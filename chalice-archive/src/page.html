@@ -35,34 +35,17 @@ button, input, textarea { font: inherit; color: inherit; }
 
 .eyebrow { margin: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--copper); }
 
-/* ---------- Stage ---------- */
+/* ---------- Stage: nothing but the construct ---------- */
 .stage {
   position: relative; isolation: isolate; overflow: hidden; box-sizing: border-box; min-height: 100%;
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr auto;
-  grid-template-areas: "mast tally" "core core" "latest latest";
-  gap: 20px 32px;
-  padding-inline: clamp(16px, 4vw, 56px); padding-block: clamp(20px, 4vh, 44px);
-  background:
-    radial-gradient(ellipse 40% 44% at 50% 52%, rgb(var(--teal-rgb) / .08), transparent 70%),
-    radial-gradient(ellipse 120% 90% at 50% 55%, var(--void-2) 0%, var(--void) 62%);
+  display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(ellipse 70% 70% at 50% 50%, var(--void-2) 0%, var(--void) 64%);
 }
 .stage::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgb(var(--shade-rgb) / .7)); }
-.motes { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-.masthead { grid-area: mast; display: flex; flex-direction: column; gap: 12px; min-width: 0; max-width: 40rem; }
-.title { margin: 0; font-family: var(--font-display); font-weight: 400; line-height: .95; text-wrap: balance; }
-.title-pre { display: block; font-size: clamp(18px, 2.2vw, 24px); color: var(--ink-dim); letter-spacing: .02em; margin-bottom: 8px; }
-.title-name { display: block; font-size: clamp(40px, 6.4vw, 76px); color: var(--ink); letter-spacing: .01em; overflow-wrap: anywhere; }
-.epithet { margin: 0; color: var(--ink-dim); max-width: 44ch; font-size: 16.5px; }
-
-.tally { grid-area: tally; display: flex; gap: 26px; align-items: flex-start; margin: 0; }
-.tally > div { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.tally-num { font-family: var(--font-mono); font-weight: 300; font-size: 28px; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
-.tally-num.is-teal { color: var(--teal); }
-.tally-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
-
-.core { grid-area: core; --size: clamp(190px, 22vw + 110px, 330px); position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 360px; padding-block: 20px; }
-.construct { position: relative; width: var(--size); max-width: 100%; aspect-ratio: 364 / 410; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.core { --size: min(58vmin, 460px); position: relative; display: grid; place-items: center; }
+.construct { position: relative; width: var(--size); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .fx { position: absolute; inset: 0; display: block; }
 .fx-x { animation: drift-x 13s ease-in-out infinite alternate; }
 .fx-y { animation: bob 5.6s ease-in-out infinite; }
@@ -70,24 +53,10 @@ button, input, textarea { font: inherit; color: inherit; }
 @keyframes drift-x { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
 @keyframes bob { 0%, 100% { transform: translateY(6px); } 50% { transform: translateY(-14px); } }
 @keyframes tilt { from { transform: rotate(-2.4deg); } to { transform: rotate(2.2deg); } }
-.halo { position: absolute; left: 50%; top: 54%; width: 150%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, rgb(var(--teal-rgb) / .14), transparent 62%); animation: halo 5.6s ease-in-out infinite; }
-@keyframes halo { 0%, 100% { opacity: .65; scale: .96; } 50% { opacity: 1; scale: 1.04; } }
-.ring { position: absolute; left: 50%; top: 56%; width: 140%; aspect-ratio: 1; translate: -50% -50%; color: var(--copper); opacity: .3; overflow: visible; animation: spin 90s linear infinite; transition: opacity .4s; }
-.ring .r2 { color: var(--teal); }
-@keyframes spin { to { rotate: 360deg; } }
 .construct-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 0 22px rgb(var(--teal-rgb) / .16)) drop-shadow(0 24px 26px rgb(var(--shade-rgb) / .85)); transition: filter .4s, opacity .8s; }
 .gem { position: absolute; left: 50%; top: 80.2%; width: 34%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; background: radial-gradient(circle, rgb(var(--teal-rgb) / .55) 0%, rgb(var(--teal-rgb) / .16) 34%, transparent 66%); animation: gem 3.4s ease-in-out infinite; transition: opacity .8s; }
 @keyframes gem { 0%, 100% { opacity: .5; scale: .9; } 50% { opacity: 1; scale: 1.08; } }
 .construct:hover .construct-img, .construct:focus-visible .construct-img { filter: drop-shadow(0 0 30px rgb(var(--teal-rgb) / .34)) drop-shadow(0 24px 26px rgb(var(--shade-rgb) / .85)); }
-/* The 3D model: the canvas overhangs the button so the hover and the glow never clip. The cutout stays underneath until the first frame is drawn. */
-.construct-gl { position: absolute; left: -22%; top: -16%; width: 144%; height: 144%; pointer-events: none; opacity: 0; transition: opacity .8s; }
-.core { --lift: .5; }
-.is-3d .construct-gl { opacity: 1; }
-.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-scanning .gem, whose flare would bring the overlay back */
-.is-3d .fx-y { animation: none; }
-.is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); }
-.is-3d .pool { animation: none; opacity: calc(.9 - .45 * var(--lift)); scale: calc(1 - .2 * var(--lift)); }
-.construct:hover .ring, .construct:focus-visible .ring { opacity: .55; }
 .lock { position: absolute; inset: -10%; pointer-events: none; opacity: 0; transition: opacity .25s, inset .5s cubic-bezier(.2, .8, .2, 1); }
 .lock i { position: absolute; width: 20px; height: 20px; border: 0 solid var(--teal); filter: drop-shadow(0 0 6px rgb(var(--teal-rgb) / .6)); }
 .lock i:nth-child(1) { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
@@ -97,21 +66,12 @@ button, input, textarea { font: inherit; color: inherit; }
 .is-scanning .lock { opacity: 1; inset: -2%; }
 .is-scanning .gem { animation: flare 1.9s ease-out forwards; }
 @keyframes flare { 0% { opacity: .8; scale: 1; } 18% { opacity: 1; scale: 2.6; } 100% { opacity: .9; scale: 1.3; } }
-.is-scanning .ring { opacity: .7; animation-duration: 5s; }
 .is-scanning .fx-y, .is-scanning .fx-x, .is-scanning .fx-tilt { animation-play-state: paused; }
-.pool { width: calc(var(--size) * .55); height: 22px; margin-top: 2px; border-radius: 50%; background: radial-gradient(ellipse, rgb(var(--teal-rgb) / .22), transparent 70%); filter: blur(4px); animation: pool 5.6s ease-in-out infinite; }
-@keyframes pool { 0%, 100% { opacity: .9; scale: 1; } 50% { opacity: .45; scale: .8; } }
-.hint { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; text-align: center; color: var(--ink-dim); transition: color .3s; }
-.hint::before { content: ""; flex: none; width: 6px; height: 6px; rotate: 45deg; background: var(--teal); box-shadow: 0 0 10px var(--teal); animation: blink 2.2s ease-in-out infinite; }
-@keyframes blink { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
-.core:has(.construct:hover) .hint { color: var(--ink); }
-
-.latest { grid-area: latest; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; min-width: 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; cursor: pointer; }
-.latest:disabled { cursor: default; }
-.latest-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--copper); }
-.latest-date { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-.latest-title { min-width: 0; font-family: var(--font-display); font-size: 22px; line-height: 1.2; color: var(--ink); transition: color .2s; }
-.latest:not(:disabled):hover .latest-title { color: var(--teal); }
+/* The 3D model: the canvas is twice the button so the construct can turn far toward the cursor without clipping. The cutout stays underneath until the first frame is drawn. */
+.construct-gl { position: absolute; left: -50%; top: -50%; width: 200%; height: 200%; pointer-events: none; opacity: 0; transition: opacity .8s; }
+.is-3d .construct-gl { opacity: 1; }
+.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-scanning .gem, whose flare would bring the overlay back */
+.core.is-3d .fx { animation: none; } /* the model hovers on its own, and the canvas must not drift under the cursor it aims at */
 
 /* ---------- Scan overlay ---------- */
 .scan { position: fixed; inset: 0; z-index: 50; overflow: hidden; pointer-events: none; }
@@ -126,7 +86,6 @@ button, input, textarea { font: inherit; color: inherit; }
 @keyframes grid-reveal { to { clip-path: inset(0 0 0 0); } }
 @keyframes grid-fade { to { opacity: 0; } }
 @keyframes beam { to { transform: translateY(calc(100vh - 138px)); opacity: .2; } }
-.scan-readout { position: absolute; left: clamp(16px, 4vw, 56px); bottom: 16%; margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 2; color: var(--teal); white-space: pre; text-shadow: 0 0 12px rgb(var(--teal-rgb) / .5); }
 
 /* ---------- Archive plate ---------- */
 .archive { width: min(1100px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--ink); overflow: visible; }
@@ -142,6 +101,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .btn-close:hover { color: var(--ink); border-color: var(--copper); }
 
 .ar-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 18px 28px; padding: 0 44px 24px 0; border-bottom: 1px solid var(--line); }
+.ar-epithet { margin: 12px 0 0; max-width: 52ch; color: var(--ink-dim); font-size: 16.5px; }
 .ar-head h2 { margin: 10px 0 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 4vw, 46px); line-height: 1; text-wrap: balance; overflow-wrap: anywhere; }
 .unit { display: flex; align-items: center; gap: 16px; margin-top: 18px; max-width: 46rem; }
 .unit img { flex: none; width: 108px; height: auto; filter: drop-shadow(0 0 14px rgb(var(--teal-rgb) / .2)); }
@@ -258,53 +218,29 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   .unit img { width: 84px; }
 }
 @media (max-width: 640px) {
-  .stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "mast" "tally" "core" "latest"; }
-  .tally > div { align-items: flex-start; }
-  .tally-num { font-size: 22px; }
-  .core { min-height: 300px; }
   .archive { width: calc(100% - 24px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fx-x, .fx-y, .fx-tilt, .halo, .ring, .gem, .pool, .hint::before { animation: none !important; }
+  .fx-x, .fx-y, .fx-tilt, .gem { animation: none !important; }
   .archive[open] .frame { animation: none; }
 }
 </style>
 <template id="ca-shell"><main class="stage" id="stage">
-  <canvas class="motes" id="motes" aria-hidden="true"></canvas>
-  <header class="masthead">
-    <p class="eyebrow" id="pf-eyebrow">Archival construct</p>
-    <h1 class="title"><span class="title-pre">The archive of</span><span class="title-name" id="pf-name">Unnamed Dracthyr</span></h1>
-    <p class="epithet" id="pf-epithet"></p>
-  </header>
-  <div class="tally" aria-label="Archive totals">
-    <div><span class="tally-num" id="t-records">00</span><span class="tally-label">Records</span></div>
-    <div><span class="tally-num is-teal" id="t-relearned">00</span><span class="tally-label">Re-learned</span></div>
-    <div><span class="tally-num" id="t-sought">00</span><span class="tally-label">Gaps sought</span></div>
-  </div>
+  <h1 class="sr-only">The archive of <span id="pf-name">Unnamed Dracthyr</span></h1>
   <div class="core" id="core">
     <button class="construct" id="construct" type="button" aria-label="Scan the archive" aria-haspopup="dialog">
       <span class="fx fx-x"><span class="fx fx-y"><span class="fx fx-tilt">
-        <span class="halo"></span>
-        <svg class="ring" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="97" fill="none" stroke="currentColor" stroke-width=".7" stroke-dasharray="1 5"></circle><circle class="r2" cx="100" cy="100" r="89" fill="none" stroke="currentColor" stroke-width=".5" stroke-dasharray="46 16 5 16"></circle></svg>
         <img class="construct-img" src="__FRONT__" alt="" width="364" height="410" draggable="false">
         <span class="gem"></span>
         <canvas class="construct-gl" id="construct-gl" aria-hidden="true"></canvas>
       </span></span></span>
       <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     </button>
-    <span class="pool" aria-hidden="true"></span>
-    <p class="hint" id="hint">Touch the construct to scan the archive</p>
   </div>
-  <button class="latest" id="latest" type="button">
-    <span class="latest-label">Latest accession</span>
-    <span class="latest-date" id="latest-date"></span>
-    <span class="latest-title" id="latest-title">No records yet</span>
-  </button>
 </main>
 <div class="scan" id="scan" hidden aria-hidden="true">
   <div class="scan-grid"></div>
   <div class="scan-beam"></div>
-  <p class="scan-readout" id="scan-readout"></p>
 </div>
 <dialog class="archive" id="archive" aria-labelledby="ar-title">
   <div class="frame">
@@ -314,6 +250,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
         <div>
           <p class="eyebrow">Archive readout</p>
           <h2 id="ar-title">Archive of <span id="ar-name">Unnamed Dracthyr</span></h2>
+          <p class="ar-epithet" id="ar-epithet" hidden></p>
           <div class="unit">
             <img src="__SIDE__" alt="Side view of the construct" width="610" height="384">
             <div>
@@ -502,8 +439,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   var root = byId("ca-root");
   root.replaceChildren(byId("ca-shell").content.cloneNode(true));
   var el = {};
-  ["stage", "motes", "core", "construct-gl", "pf-eyebrow", "pf-name", "pf-epithet", "t-records", "t-relearned", "t-sought", "construct", "latest", "latest-date", "latest-title",
-   "scan", "scan-readout", "archive", "btn-close", "plate", "ar-name", "unit-name", "unit-note", "btn-inscribe", "btn-profile", "ro-note",
+  ["stage", "core", "construct-gl", "pf-name", "construct",
+   "scan", "archive", "btn-close", "plate", "ar-name", "ar-epithet", "unit-name", "unit-note", "btn-inscribe", "btn-profile", "ro-note",
    "view-overview", "view-detail", "view-form", "view-profile", "gap-head", "gap-bar", "legend", "examples", "examples-text", "btn-clear-examples",
    "recent", "recent-count", "index", "index-count", "det-back", "det-status", "det-glyph", "det-status-label", "det-domain", "det-date", "det-example",
    "det-title", "det-note", "det-source", "det-state", "det-tools", "det-edit", "det-delete", "rec-form", "f-back", "form-heading", "f-title", "f-domain",
@@ -553,28 +490,11 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     });
   }
 
-  // ---------- Landing ----------
+  // ---------- Landing: the construct alone; the name is there for screen readers ----------
   function renderLanding() {
-    var p = state.profile, c = counts();
-    el.pfName.textContent = p.name || "Unnamed Dracthyr";
-    el.pfEpithet.textContent = p.epithet || "";
-    el.pfEpithet.hidden = !p.epithet;
-    el.pfEyebrow.textContent = (p.construct || "Archival construct") + " · archival construct";
-    el.tRecords.textContent = pad2(state.records.length);
-    el.tRelearned.textContent = pad2(c.relearned);
-    el.tSought.textContent = pad2(c.sought);
-    var latest = sorted()[0];
-    if (latest) {
-      el.latestDate.textContent = fmtDate(latest.date);
-      el.latestTitle.textContent = latest.title;
-      el.latest.disabled = false;
-      el.latest.dataset.id = latest.id;
-      el.latest.setAttribute("aria-label", "Open the latest accession: " + latest.title);
-    } else {
-      el.latestDate.textContent = "";
-      el.latestTitle.textContent = "No records yet";
-      el.latest.disabled = true;
-    }
+    var name = state.profile.name || "Unnamed Dracthyr";
+    el.pfName.textContent = name;
+    el.construct.setAttribute("aria-label", "Scan the archive of " + name);
   }
 
   // ---------- Archive ----------
@@ -589,6 +509,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   function renderArchive() {
     var p = state.profile, c = counts(), total = state.records.length;
     el.arName.textContent = p.name || "Unnamed Dracthyr";
+    el.arEpithet.textContent = p.epithet || "";
+    el.arEpithet.hidden = !p.epithet;
     el.unitName.textContent = p.construct || "Archival construct";
     el.unitNote.textContent = p.constructNote || "";
     el.unitNote.hidden = !p.constructNote;
@@ -684,7 +606,6 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     if (!el.archive.open) {
       try { el.archive.showModal(); } catch (e) { el.archive.setAttribute("open", ""); }
     }
-    motes.pause();
     model3d.pause();
     if (opts.view === "detail" && find(opts.id)) showDetail(opts.id);
     else showView("overview");
@@ -882,57 +803,6 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     t._t = setTimeout(function () { t.hidden = true; }, 4200);
   }
 
-  // ---------- Motes ----------
-  var motes = (function () {
-    var c = el.motes, ctx = c.getContext && c.getContext("2d");
-    if (!ctx) return { pause: function () {}, resume: function () {} };
-    var cs = getComputedStyle(document.documentElement);
-    function sprite(rgb) {
-      var s = document.createElement("canvas"); s.width = s.height = 32;
-      var g = s.getContext("2d"), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
-      gr.addColorStop(0, "rgb(" + rgb + " / 1)"); gr.addColorStop(.28, "rgb(" + rgb + " / .5)"); gr.addColorStop(1, "rgb(" + rgb + " / 0)");
-      g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return s;
-    }
-    var teal = sprite(cs.getPropertyValue("--teal-rgb").trim() || "102 239 220");
-    var copper = sprite(cs.getPropertyValue("--copper-rgb").trim() || "207 138 85");
-    var w = 0, hgt = 0, parts = [], raf = 0, running = false;
-    function spawn(anywhere) {
-      return { x: Math.random() * w, y: anywhere ? Math.random() * hgt : hgt + 12, r: .6 + Math.random() * 1.8, vy: .05 + Math.random() * .2, ph: Math.random() * 6.283, sp: Math.random() < .28 ? copper : teal };
-    }
-    function draw(t) {
-      ctx.clearRect(0, 0, w, hgt);
-      for (var i = 0; i < parts.length; i++) {
-        var p = parts[i], s = p.r * 7;
-        ctx.globalAlpha = .16 + .34 * (.5 + .5 * Math.sin(t * .0011 + p.ph));
-        ctx.drawImage(p.sp, p.x - s / 2, p.y - s / 2, s, s);
-      }
-      ctx.globalAlpha = 1;
-    }
-    function step(t) {
-      for (var i = 0; i < parts.length; i++) {
-        var p = parts[i];
-        p.y -= p.vy; p.x += Math.sin(t * .0004 + p.ph) * .12;
-        if (p.y < -12) parts[i] = spawn(false);
-      }
-      draw(t);
-      raf = requestAnimationFrame(step);
-    }
-    function resize() {
-      var dpr = Math.min(2, window.devicePixelRatio || 1);
-      w = c.clientWidth; hgt = c.clientHeight;
-      c.width = Math.round(w * dpr); c.height = Math.round(hgt * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var n = Math.round(Math.min(90, Math.max(26, w * hgt / 16000)));
-      parts = []; for (var i = 0; i < n; i++) parts.push(spawn(true));
-      draw(performance.now());
-    }
-    function resume() { if (reduced || running || document.hidden || el.archive.open) return; running = true; raf = requestAnimationFrame(step); }
-    function pause() { running = false; cancelAnimationFrame(raf); }
-    if (window.ResizeObserver) new ResizeObserver(resize).observe(c); else { resize(); window.addEventListener("resize", resize); }
-    document.addEventListener("visibilitychange", function () { if (document.hidden) pause(); else resume(); });
-    return { pause: pause, resume: resume };
-  })();
-
   // ---------- Construct: the in-game model, drawn with three.js ----------
   // #ca-model is the Chalice's own M2 converted to GLB by tools/m2_to_glb.py. Its materials carry the game's
   // shading in extras.wow, and the shaders below reproduce those combiners. The cutout image stays in place
@@ -1023,14 +893,18 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       "uniform vec3 uColor;",
       "uniform float uAlpha;",
       "varying vec2 vUv;",
-      "void main() { gl_FragColor = vec4(texture2D(uTex, vUv).rgb * uColor, uAlpha); }"
+      // the sprite's background is near-black, not black: fade to zero at the quad's inscribed circle so no square shows on the dark stage
+      "void main() { float edge = 1.0 - smoothstep(.72, 1.0, length(vUv - .5) * 2.0); gl_FragColor = vec4(texture2D(uTex, vUv).rgb * uColor * edge, uAlpha); }"
     ].join("\n");
 
     var T, renderer, scene, camera, rig, mixer, U;
-    var mats = [], sprites = [], emitter = null, bone0 = null, liftMin = 0, liftAmp = 0, clipLen = 1;
+    var mats = [], sprites = [], emitter = null, bone0 = null, liftAmp = 0, clipLen = 1;
     var size = null, PITCH = .2;
     var ready = false, running = false, onScreen = true, raf = 0, last = 0;
-    var t = 0, speed = 1, yaw = 0, pitch = 0, aimX = 0, aimY = 0, hover = 0, hovered = false, scanAt = -1, lastLift = "";
+    var t = 0, speed = 1, hover = 0, hovered = false, scanAt = -1;
+    // Cursor following: the construct turns so the gem's line of sight passes through the cursor, read as a point
+    // on a pane GAP model units in front of it. A smaller GAP makes it turn harder for the same cursor offset.
+    var GAP = 1.2, pointer = { on: false, x: 0, y: 0 }, A = null;
     var beam = el.scan.querySelector(".scan-beam"), tiltEl = canvas.parentElement;
 
     function decode(b64) {
@@ -1158,8 +1032,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
         var track = bone0 && clip.tracks.filter(function (k) { return k.name === bone0.name + ".position"; })[0];
         if (track) {
           var ys = []; for (var i = 1; i < track.values.length; i += 3) ys.push(track.values[i]);
-          liftMin = Math.min.apply(null, ys);
-          liftAmp = Math.max.apply(null, ys) - liftMin;
+          liftAmp = Math.max.apply(null, ys) - Math.min.apply(null, ys);
         }
       }
       // Centre the opaque body on the rig, halfway through its hover
@@ -1168,6 +1041,14 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       gltf.scene.position.copy(center).multiplyScalar(-1);
       size = box.getSize(new T.Vector3());
       size.y += liftAmp;
+
+      // The gem's resting position in rig space; it rides on bone 0
+      var gem = meshes.filter(function (m) { return m.material.uniforms.uGem.value === 1; })[0];
+      A = { ray: new T.Vector3(), view: new T.Vector3(), target: new T.Vector3(), sight: new T.Vector3(), gem: new T.Vector3(), now: new T.Vector3(),
+            bone: bone0 ? bone0.position.clone() : new T.Vector3(), looker: new T.Object3D(), q: new T.Quaternion() };
+      if (gem) { gem.geometry.computeBoundingBox(); gem.geometry.boundingBox.getCenter(A.gem).add(gltf.scene.position); }
+      var aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      Object.keys(tex).forEach(function (i) { tex[i].anisotropy = aniso; });
 
       if (node && wp) {
         var geo = new T.PlaneGeometry(1, 1);
@@ -1193,13 +1074,12 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas); else window.addEventListener("resize", resize);
       if (window.IntersectionObserver) new IntersectionObserver(function (es) { onScreen = es[es.length - 1].isIntersecting; if (onScreen) api.resume(); else stop(); }).observe(canvas);
       document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); else api.resume(); });
-      el.stage.addEventListener("pointermove", function (e) {
-        if (e.pointerType !== "mouse") return;
-        var r = el.construct.getBoundingClientRect();
-        aimX = Math.max(-1, Math.min(1, (e.clientX - r.left - r.width / 2) / (innerWidth / 2)));
-        aimY = Math.max(-1, Math.min(1, (e.clientY - r.top - r.height / 2) / (innerHeight / 2)));
-      });
-      el.stage.addEventListener("pointerleave", function () { aimX = aimY = 0; });
+      function follow(e) { pointer.on = true; pointer.x = e.clientX; pointer.y = e.clientY; }
+      document.addEventListener("pointermove", follow, { passive: true });
+      document.addEventListener("pointerdown", follow, { passive: true });
+      document.addEventListener("pointerup", function (e) { if (e.pointerType !== "mouse") pointer.on = false; });
+      document.addEventListener("pointercancel", function () { pointer.on = false; });
+      document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) pointer.on = false; }); // left the window
       ["pointerenter", "focus"].forEach(function (n) { el.construct.addEventListener(n, function () { hovered = true; }); });
       ["pointerleave", "blur"].forEach(function (n) { el.construct.addEventListener(n, function () { hovered = false; }); });
       canvas.addEventListener("webglcontextlost", function (e) { e.preventDefault(); stop(); el.core.classList.remove("is-3d"); });
@@ -1223,7 +1103,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       U.dpr.value = dpr;
       U.size.value.set(w, h);
       camera.aspect = w / h;
-      placeCamera(camera, 0, PITCH, size.x, size.y, .56);
+      placeCamera(camera, 0, PITCH, size.x, size.y, .4);
       if (ready && !running) draw(performance.now());
     }
 
@@ -1285,14 +1165,12 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     }
 
     function step(dt, now) {
-      var scanning = scanAt >= 0, since = scanning ? (now - scanAt) / 1000 : 0, k = Math.min(1, dt * 3);
+      var scanning = scanAt >= 0, since = scanning ? (now - scanAt) / 1000 : 0;
       speed += ((scanning ? .15 : 1) - speed) * Math.min(1, dt * 5);
       t += dt * speed;
       pose(reduced ? 1.2 : t);
       hover += ((hovered ? 1 : 0) - hover) * Math.min(1, dt * 6);
-      yaw += ((reduced ? .32 : Math.sin(t * Math.PI * 2 / 17) * .38) + aimX * .35 - yaw) * (reduced ? 1 : k);
-      pitch += (aimY * .14 - pitch) * (reduced ? 1 : k);
-      rig.rotation.set(pitch, yaw, 0);
+      aim(dt);
       U.hover.value = hover;
       U.glow.value = .5 + .5 * Math.sin(now / 1000 * Math.PI * 2 / 3.4);
       U.flare.value = scanning ? (since < .34 ? since / .34 : 1 - .7 * Math.min(1, (since - .34) / 1.56)) : 0;
@@ -1306,10 +1184,31 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       } else {
         U.scan.value = U.wash.value = 0;
       }
-      if (liftAmp && bone0) {
-        var lift = ((bone0.position.y - liftMin) / liftAmp).toFixed(2);
-        if (lift !== lastLift) { el.core.style.setProperty("--lift", lift); lastLift = lift; }
+    }
+
+    // Turn toward the cursor, or sway gently when there is none (touch, pointer outside the window, reduced motion)
+    function aim(dt) {
+      if (pointer.on && !reduced) {
+        // the cursor's ray through the camera, met with a pane facing the camera GAP in front of the construct
+        var r = canvas.getBoundingClientRect(), dist = camera.position.length();
+        A.ray.set((pointer.x - r.left) / r.width * 2 - 1, 1 - (pointer.y - r.top) / r.height * 2, .5).unproject(camera).sub(camera.position).normalize();
+        A.view.copy(camera.position).multiplyScalar(-1 / dist);
+        A.target.copy(camera.position).addScaledVector(A.ray, (dist - GAP) / Math.max(.05, A.ray.dot(A.view)));
+      } else {
+        var sway = reduced ? .32 : Math.sin(t * Math.PI * 2 / 17) * .38;
+        A.target.set(Math.sin(sway) * 4, 0, Math.cos(sway) * 4);
       }
+      // The gem sits below and in front of the rig's centre, so aim its own line of sight: rotate the direction
+      // that reaches the target from the gem's offset onto the target itself.
+      A.now.copy(A.gem);
+      if (bone0) A.now.add(bone0.position).sub(A.bone);
+      var len = A.target.length(), off = A.now.x * A.now.x + A.now.y * A.now.y;
+      A.sight.set(A.now.x, A.now.y, Math.sqrt(Math.max(1e-4, len * len - off)));
+      A.looker.lookAt(A.sight);
+      A.q.copy(A.looker.quaternion).invert();
+      A.looker.lookAt(A.target);
+      A.q.premultiply(A.looker.quaternion);
+      rig.quaternion.slerp(A.q, reduced || !dt ? 1 : 1 - Math.exp(-dt * 14));
     }
     function draw(now) {
       step(last && running ? Math.min(.1, (now - last) / 1000) : 0, now);
@@ -1347,18 +1246,6 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 
   // ---------- Scan ----------
   var scanning = false;
-  function readoutLines() {
-    var n = state.records.length, latest = sorted()[0];
-    function row(k, v) { return k + " " + ".".repeat(Math.max(2, 15 - k.length)) + " " + v; }
-    return [
-      "archival scan",
-      "unit · " + (state.profile.construct || "construct"),
-      row("records", pad2(n)),
-      row("domains", pad2(domains().length)),
-      row("latest", latest ? latest.date : "none"),
-      "index ready"
-    ];
-  }
   function scan(opts) {
     if (scanning || el.archive.open) return;
     scanning = true;
@@ -1371,18 +1258,12 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       void el.scan.offsetWidth;
       el.scan.classList.add("run");
       model3d.scan();
-      var lines = readoutLines();
-      el.scanReadout.textContent = "";
-      lines.forEach(function (line, i) {
-        setTimeout(function () { el.scanReadout.textContent += (i ? "\n" : "") + line; }, 120 + i * 230);
-      });
       done = wait(1950);
     }
     done.then(function () {
       openArchive(opts);
       el.scan.classList.remove("run");
       el.scan.hidden = true;
-      el.scanReadout.textContent = "";
       el.stage.classList.remove("is-scanning");
       scanning = false;
     });
@@ -1390,7 +1271,6 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 
   // ---------- Events ----------
   el.construct.addEventListener("click", function () { scan({ view: "overview" }); });
-  el.latest.addEventListener("click", function () { if (el.latest.dataset.id) scan({ view: "detail", id: el.latest.dataset.id }); });
   el.btnClose.addEventListener("click", function () { el.archive.close(); });
   el.archive.addEventListener("click", function (e) {
     if (e.target === el.archive && (currentView === "overview" || currentView === "detail")) el.archive.close();
@@ -1402,7 +1282,6 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   el.archive.addEventListener("close", function () {
     root.append(el.toast);
     disarm(el.detDelete); disarm(el.btnClearExamples);
-    motes.resume();
     model3d.resume();
     el.construct.focus({ preventScroll: true });
   });
@@ -1413,7 +1292,6 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 
   // ---------- Boot ----------
   renderLanding();
-  motes.resume();
 
   var after = null;
   try { after = JSON.parse(sessionStorage.getItem("ca-after") || "null"); sessionStorage.removeItem("ca-after"); } catch (e) { after = null; }

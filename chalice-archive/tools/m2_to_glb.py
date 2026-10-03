@@ -90,14 +90,10 @@ def simplify(times, values, eps=1e-3):
     return [times[i] for i in keep], [values[i] for i in keep]
 
 
-def encode(im: Image.Image, size=None, lossless=True) -> bytes:
-    if size and im.size != (size, size):
-        im = im.resize((size, size), Image.LANCZOS)
+def encode(im: Image.Image) -> bytes:
+    """Lossless WebP of the BLP's top mip: exactly the pixels the game samples at its highest texture setting."""
     bio = io.BytesIO()
-    if lossless:
-        im.save(bio, "WEBP", lossless=True, method=6)
-    else:
-        im.save(bio, "WEBP", quality=88, method=6)
+    im.save(bio, "WEBP", lossless=True, exact=True, method=6)
     return bio.getvalue()
 
 
@@ -171,10 +167,7 @@ def main():
         fdid = ITEM_TEXTURE[args.variant] if t["type"] == 2 else txid[m2_index]
         im = Image.open(io.BytesIO(fetch(fdid)))
         im.load()
-        size, lossless = None, True
-        if im.size[0] > 256:  # the 512 px shell noise is only ever seen as a faint shimmer
-            size, lossless = 256, False
-        images.append({"bufferView": g.view(encode(im, size, lossless)), "mimeType": "image/webp", "name": f"{fdid}"})
+        images.append({"bufferView": g.view(encode(im)), "mimeType": "image/webp", "name": f"{fdid}"})
         key = (bool(t["flags"] & 1), bool(t["flags"] & 2))
         if key not in samplers:
             samplers[key] = len(samplers)
@@ -195,17 +188,14 @@ def main():
     center = (pos.min(0) + pos.max(0)) / 2
     pos -= center
 
-    a_pos = g.accessor(pos, "VEC3", 5126, 34962, minmax=True)
-    a_nrm = g.accessor(nrm, "VEC3", 5126, 34962)
-    a_uv0 = g.accessor(uv0, "VEC2", 5126, 34962)
-    a_uv1 = g.accessor(uv1, "VEC2", 5126, 34962)
-    a_jnt = g.accessor(joints, "VEC4", 5121, 34962)
-    a_wgt = g.accessor(weights, "VEC4", 5121, 34962, normalized=True)
-
     primitives, materials = [], []
     for batch in skin.batches:
+        # each primitive gets its own vertex range, so its bounds (POSITION min/max) describe only itself
         sec = skin.sections[batch["section"]]
-        idx = np.array(skin.indices[sec["istart"]:sec["istart"] + sec["icount"]], dtype=np.uint16)
+        v0, v1 = sec["vstart"], sec["vstart"] + sec["vcount"]
+        idx = np.array(skin.indices[sec["istart"]:sec["istart"] + sec["icount"]], dtype=np.int64)
+        assert idx.min() >= v0 and idx.max() < v1, "section indices outside its vertex range"
+        idx = (idx - v0).astype(np.uint16)
         mat = mats[batch["material"]]
         pixel, vertex = SHADERS[batch["shader"]]
         slots = [tex_combos[batch["tex_combo"] + k] for k in range(batch["tex_count"])]
@@ -233,8 +223,12 @@ def main():
         if mat["flags"] & 0x1:
             gm.setdefault("extensions", {})["KHR_materials_unlit"] = {}
         materials.append(gm)
-        primitives.append({"attributes": {"POSITION": a_pos, "NORMAL": a_nrm, "TEXCOORD_0": a_uv0, "TEXCOORD_1": a_uv1,
-                                          "JOINTS_0": a_jnt, "WEIGHTS_0": a_wgt},
+        primitives.append({"attributes": {"POSITION": g.accessor(pos[v0:v1], "VEC3", 5126, 34962, minmax=True),
+                                          "NORMAL": g.accessor(nrm[v0:v1], "VEC3", 5126, 34962),
+                                          "TEXCOORD_0": g.accessor(uv0[v0:v1], "VEC2", 5126, 34962),
+                                          "TEXCOORD_1": g.accessor(uv1[v0:v1], "VEC2", 5126, 34962),
+                                          "JOINTS_0": g.accessor(joints[v0:v1], "VEC4", 5121, 34962),
+                                          "WEIGHTS_0": g.accessor(weights[v0:v1], "VEC4", 5121, 34962, normalized=True)},
                            "indices": g.accessor(idx, "SCALAR", 5123, 34963), "material": len(materials) - 1})
 
     # ---------- skeleton ----------
