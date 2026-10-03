@@ -1,9 +1,9 @@
 # Chalice Archive: handover
 
-A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on, sweeps a teal scan line down the screen and over the model, then opens the archive: his name and epithet, his most recent records and a knowledge index of what he has re-learned since waking.
+A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on, sweeps a teal scan line down the screen and over the model, then opens the archive. The archive is an old leather-bound tome in the style of the game's books and journals. It holds his bookplate and epithet, his most recent records, and a chaptered index of what he has re-learned since waking.
 
-- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 8 at handover.
-- **`dist/chalice-archive.html`** is what version 8 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
+- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 9 at handover.
+- **`dist/chalice-archive.html`** is what version 9 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
 
 ## Status
 
@@ -86,7 +86,7 @@ Rules that keep this working:
 
 **Outside claude.ai** (local file, GitHub Pages, …), `window.claude` doesn't exist. The page is read-only and still renders the embedded records and the model. Self-hosting needs another way to save, either by editing `seed.json` and rebuilding, or with a small backend.
 
-**Live data vs. `seed.json`:** records added through the live page exist only in the published Artifact. Before you rebuild from `seed.json` and republish, copy the current `ca-data` JSON from the live page into `src/seed.json`. Otherwise you overwrite his records. Before versions 3 to 8 were published, the live data still equalled `seed.json`.
+**Live data vs. `seed.json`:** records added through the live page exist only in the published Artifact. Before you rebuild from `seed.json` and republish, copy the current `ca-data` JSON from the live page into `src/seed.json`. Otherwise you overwrite his records. Before versions 3 to 9 were published, the live data still equalled `seed.json`.
 
 ### Data model
 
@@ -120,8 +120,14 @@ Rules that keep this working:
 
 ### Design
 
-- **Theme:** one deliberate dark theme (`color-scheme: dark`). Tokens live in `:root` of `ca-style`: void navy grounds, copper (the construct's frame) for structure, teal (the gem) for light and scan, plus amber and rose.
-- **Fonts:** Forum (display), Alegreya Sans (body), Martian Mono (labels, readouts, counts).
+- **Two worlds, one token set** (`:root` of `ca-style`): the landing is the dark void (navy grounds, teal light, copper). The archive is the tome (leather, parchment, sepia ink, red rubric ink, brass, and the game's red-and-gold buttons). It is a single deliberate look, not light and dark themes.
+- **Fonts:** Cinzel (titles, buttons, the game's inscriptional capitals), IM Fell English (the book's text, an 18th-century typeface with old-style numerals) and IM Fell English SC (labels and dates).
+- **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon in the gutter.
+  - **Pages:** two parchment leaves either side of a shadowed spine (`.book`, `#page-l`, `#page-r`). The paper is fine SVG grain plus a stretched low-frequency stain (`--grain`, `--mottle`); a tiled stain showed a seam. Stacked page edges show beneath.
+  - **Left leaf:** an *Ex libris* bookplate with the name and epithet. Plate I is the rendered side view in a dark gilt medallion. Below it sit the owner's buttons and the ledger ("The state of knowledge": the count, the state bar and the filter tabs), then the examples notice as a *Nota bene*.
+  - **Right leaf:** recent accessions, then the "Index of knowledge" as a table of contents. Domains are numbered chapters with roman numerals, and each entry runs to its state on dotted leaders. A record or a form opens on this leaf. A record has a red drop capital and its sources as marginalia. Forms are written on ruled lines.
+  - **Game styling:** buttons copy the game's red panel buttons (gold text, brass rim). The close button is the round red one, and notices are dark tooltips with gold text.
+  - **Narrow screens (≤ 860 px):** one leaf at a time. Opening a record or a form hides the bookplate (`.book[data-view]`), so it is not buried below it.
 - **Landing:** only the construct, centred on the dark stage, with its ambient light (below). There is no visible text and no ring. The character's name is in a visually hidden `<h1>` and in the button's accessible name ("Scan the archive of …"), and the epithet is shown in the archive header instead.
 - **Float (cutout fallback only):** three nested wrappers with different periods, so the motion never visibly loops: `.fx-x` 13 s drift, `.fx-y` 5.6 s bob, `.fx-tilt` 9 s tilt. In 3D mode they stop: the model hovers on its own, and the canvas must stay put under the cursor it aims at.
 - **Starting a scan:** only the gem starts it. A pointer click must land on the gem: `model3d.gemAt(x, y)` raycasts the gem mesh in its current pose, with slack inside 55 % of its projected bounding circle. While the pointer is over the gem, the stage gets `.on-gem` (hand cursor) and the gem brightens. Clicks anywhere else do nothing. Keyboard activation of the construct button (Tab, then Enter or Space; the click reports `detail` 0) always scans. Without the 3D model, the hit area is the cutout's gem overlay.
