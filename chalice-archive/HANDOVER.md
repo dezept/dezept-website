@@ -1,20 +1,21 @@
 # Chalice Archive: handover
 
-A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on, sweeps a teal scan line down the screen and over the model, then opens the archive. The archive is an old leather-bound tome in the style of the game's books and journals. It holds his bookplate and epithet, his most recent records, and a chaptered index of what he has re-learned since waking.
+A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on, sweeps a teal scan line down the screen and over the model, then opens the archive. The archive is an old leather-bound tome in the style of the game's books and journals. It holds only his records: the most recent on the left page, and a chaptered index of everything he has re-learned since waking on the right.
 
-- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 9 at handover.
-- **`dist/chalice-archive.html`** is what version 9 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
+- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 11 at handover.
+- **`dist/chalice-archive.html`** is what version 11 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
 
 ## Status
 
 | Area | State |
 |---|---|
 | Landing (the construct alone, no text), scan animation, archive panel, filters, record detail | Done |
-| Inscribe / revise / remove record, edit profile, remove examples | Done |
+| Inscribe / revise / remove record, remove examples | Done |
+| Profile (name, epithet, construct name and note) | Kept in the data but no longer shown or editable on the page. The name is only used for screen readers. To change it, edit `profile` in `src/seed.json` (after copying the live data) and republish. |
 | **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutouts remain as the fallback. |
-| Saving | Tested locally with a mocked `window.claude` (`tools/smoke.js`, two saves in a row). Never run live. The owner's first real save is the live test. |
-| Live viewer | Tested in headless Chromium under a CSP shaped like the Artifact viewer's. Not yet seen in the claude.ai viewer itself: open the page once and check that the model replaces the cutout. |
-| Content | Placeholder name "Unnamed Dracthyr" and 9 example records (`"example": true`). |
+| Saving | **Works live.** The owner's first real save, **Remove examples** on 2026-10-03, republished the page as version 10. Also covered locally by `tools/smoke.js` (two saves in a row through a mocked `window.claude`). |
+| Live viewer | Works in the claude.ai viewer (the owner has used the landing and saved from the archive). Also tested in headless Chromium under a CSP shaped like the viewer's. |
+| Content | No records yet: the owner removed the 9 examples on the live page. `src/seed.json` was updated from the live page before version 11 was published. |
 
 ## Files
 
@@ -25,7 +26,6 @@ src/seed.json                    profile + records embedded in the page
 src/skeleton-reset.css           exact <style> of the claude.ai Artifact skeleton (used by the save path)
 assets/model/chalice.glb         the construct's 3D model (made by tools/m2_to_glb.py, 544 KB)
 assets/front.webp|png            front-view cutout (fallback while/if the model can't load)
-assets/side.webp|png             side-view cutout (fallback for the archive header)
 assets/screenshots/              the original in-game screenshots
 tools/m2.py                      minimal reader for M2 models and .skin files
 tools/m2_to_glb.py               downloads the game files and writes assets/model/chalice.glb
@@ -39,7 +39,7 @@ Placeholders in `src/page.html`, filled by `build.py`:
 
 | Placeholder | Filled with |
 |---|---|
-| `__FRONT__`, `__SIDE__` | WebP data URIs |
+| `__FRONT__` | WebP data URI of the front cutout |
 | `__MODEL__` | `assets/model/chalice.glb`, base64 |
 | `__DATA__` | `seed.json` (with `<`, U+2028 and U+2029 escaped) |
 | `"__RESET__"` | The skeleton CSS as a JS string |
@@ -65,7 +65,7 @@ On boot, `ca-app` first captures `SRC`: the style's text, the template's innerHT
 
 The page declares the Artifact capabilities `artifact` and `user`. Inside claude.ai:
 
-1. `claude.use("user")` reports whether the viewer can edit. Owners and editors get **Inscribe record** and **Edit profile**.
+1. `claude.use("user")` reports whether the viewer can edit. Owners and editors get **Inscribe record**, **Revise** and **Remove record**, plus **Remove examples** while example records exist.
 2. Saving builds a complete new document with `buildHTML(state)`: the claude.ai skeleton, the same blocks rebuilt from `SRC`, and new JSON. It calls `artifact.publish(html)`.
 3. The viewer reloads every open view to the new version.
 4. `sessionStorage["ca-after"] = {view, id, toast}` survives the reload, so the archive reopens on the saved record with a confirmation.
@@ -75,7 +75,7 @@ Rules that keep this working:
 - **Skeleton:** the skeleton string in `buildHTML` must match claude.ai's exactly. That means `<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>` + reset + `</style></head><body>`. If it doesn't, later publishes nest one skeleton inside another.
 - **New blocks:** anything you add to the page outside the blocks above must also be emitted by `buildHTML`. Otherwise the first save from the page deletes it. The model block is emitted from `SRC.model`.
 - **Size:** every save republishes the whole page, currently 922 KB (the model is about 725 KB of it, nearly all textures). The limit is 16 MB.
-- **Live DOM:** never serialize the live DOM. The archive header's rendered side view is set on the live `<img>` only, so saves keep the cutout in the template as the fallback.
+- **Live DOM:** never serialize the live DOM.
 - **Boolean attributes:** after the first save, template serialization turns `hidden` into `hidden=""`. This is harmless.
 - **Error codes:**
   - `conflict`: the view reloads; the edit is dropped and the toast explains why.
@@ -86,7 +86,7 @@ Rules that keep this working:
 
 **Outside claude.ai** (local file, GitHub Pages, …), `window.claude` doesn't exist. The page is read-only and still renders the embedded records and the model. Self-hosting needs another way to save, either by editing `seed.json` and rebuilding, or with a small backend.
 
-**Live data vs. `seed.json`:** records added through the live page exist only in the published Artifact. Before you rebuild from `seed.json` and republish, copy the current `ca-data` JSON from the live page into `src/seed.json`. Otherwise you overwrite his records. Before versions 3 to 9 were published, the live data still equalled `seed.json`.
+**Live data vs. `seed.json`:** records added through the live page exist only in the published Artifact. Before you rebuild from `seed.json` and republish, copy the current `ca-data` JSON from the live page into `src/seed.json`. Otherwise you overwrite his records. Version 10 was the owner's own save (examples removed). Its data was copied into `seed.json` before version 11 was built, so the two match at handover.
 
 ### Data model
 
@@ -124,11 +124,12 @@ Rules that keep this working:
 - **Fonts:** Cinzel (titles, buttons, the game's inscriptional capitals), IM Fell English (the book's text, an 18th-century typeface with old-style numerals) and IM Fell English SC (labels and dates).
 - **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon in the gutter.
   - **Pages:** two parchment leaves either side of a shadowed spine (`.book`, `#page-l`, `#page-r`). The paper is fine SVG grain plus a stretched low-frequency stain (`--grain`, `--mottle`); a tiled stain showed a seam. Stacked page edges show beneath.
-  - **Left leaf:** an *Ex libris* bookplate with the name and epithet. Plate I is the rendered side view in a dark gilt medallion. Below it sit the owner's buttons and the ledger ("The state of knowledge": the count, the state bar and the filter tabs), then the examples notice as a *Nota bene*.
-  - **Right leaf:** recent accessions, then the "Index of knowledge" as a table of contents. Domains are numbered chapters with roman numerals, and each entry runs to its state on dotted leaders. A record or a form opens on this leaf. A record has a red drop capital and its sources as marginalia. Forms are written on ruled lines.
+  - **Left leaf:** the owner's buttons (Inscribe record, and Remove examples while any exist; hidden from visitors), then "Recent accessions", the latest six records with date, state and the start of the note.
+  - **Right leaf:** the "Index of knowledge" as a table of contents. Domains are numbered chapters with roman numerals, and each entry runs to its state on dotted leaders. A record or a form opens on this leaf. A record has a red drop capital and its sources as marginalia. Forms are written on ruled lines.
   - **Game styling:** buttons copy the game's red panel buttons (gold text, brass rim). The close button is the round red one, and notices are dark tooltips with gold text.
-  - **Narrow screens (≤ 860 px):** one leaf at a time. Opening a record or a form hides the bookplate (`.book[data-view]`), so it is not buried below it.
-- **Landing:** only the construct, centred on the dark stage, with its ambient light (below). There is no visible text and no ring. The character's name is in a visually hidden `<h1>` and in the button's accessible name ("Scan the archive of …"), and the epithet is shown in the archive header instead.
+  - **Narrow screens (≤ 860 px):** one leaf at a time. Opening a record or a form hides the recent accessions (`.book[data-view]`), so it is not buried below them.
+- **Landing:** only the construct, centred on the dark stage, with its ambient light (below). There is no visible text and no ring. The character's name is only in a visually hidden `<h1>`, the button's accessible name ("Scan the archive of …") and the archive's hidden heading.
+- **Not shown anywhere:** the profile (name, epithet, construct name and note), the state-of-knowledge ledger and filters, and "Example" tags. The removed pieces are gone from the code, not hidden. The `example` flag stays in the data so **Remove examples** still works.
 - **Float (cutout fallback only):** three nested wrappers with different periods, so the motion never visibly loops: `.fx-x` 13 s drift, `.fx-y` 5.6 s bob, `.fx-tilt` 9 s tilt. In 3D mode they stop: the model hovers on its own, and the canvas must stay put under the cursor it aims at.
 - **Starting a scan:** only the gem starts it. A pointer click must land on the gem: `model3d.gemAt(x, y)` raycasts the gem mesh in its current pose, with slack inside 55 % of its projected bounding circle. While the pointer is over the gem, the stage gets `.on-gem` (hand cursor) and the gem brightens. Clicks anywhere else do nothing. Keyboard activation of the construct button (Tab, then Enter or Space; the click reports `detail` 0) always scans. Without the 3D model, the hit area is the cutout's gem overlay.
 - **Scan:** `scan()` adds `.is-scanning` to the stage (corner brackets lock on, gem flares). It shows `#scan`: a beam plus a grid revealed by `clip-path`, both on the same 1.45 s easing. The dialog opens at about 1.95 s with a clip-path unfold.
@@ -173,7 +174,6 @@ Raw downloads are cached in `tools/.cache/` (git-ignored). Only the converted GL
 - **Cursor:** `aim()` casts the cursor's ray through the camera and meets it with a pane facing the camera, `GAP` (1.2) model units in front of the construct. It then turns the construct so the gem's own line of sight, not the centre's, passes through that point. On screen the gem always points straight at the cursor. `GAP` sets how far it turns: 0.7 swings it nearly side-on at the window's corners. It eases in through two smoothing stages in a row (`Math.exp(-dt * 7)` each), so the turn starts gently and trails the cursor by about 290 ms. With no cursor (touch after release, pointer outside the window) it sways ±22° on its own. Touch follows the finger while it is down.
 - **Gem:** pulses on the CSS gem's 3.4 s rhythm and flares on scan.
 - **Scan:** each frame of the sweep reads the CSS beam's position and the tilt wrapper's rotation, and lights a teal band on the model exactly under the beam, with a fading wash above it. The model's animation slows to 15 % speed while it is being scanned.
-- **Archive header:** after loading, one side view is rendered off-screen at 2× and swapped into the header `<img>`.
 - **Fallback:** the cutout stays visible until the first frame is drawn, then cross-fades out. If WebGL, the CDN or the GLB fails, the page keeps the cutout and logs one console warning. WebGL context loss also falls back to the cutout.
 - **Size:** the canvas is twice the button (`--size`, up to 460 px), so the construct can turn without clipping. The camera frames the body at 40 % of the canvas.
 - **Cost:** device pixel ratio is capped at 2, and textures use up to 8× anisotropic filtering. The loop pauses while the dialog is open, the tab is hidden or the canvas is off-screen.
@@ -185,12 +185,9 @@ cd tools && npm install
 CHROME=/path/to/chrome node smoke.js
 ```
 
-It serves the standalone build under a CSP shaped like the viewer's and checks that the model loads. It checks that a click on the construct's body does nothing, that pointing at the gem shows the hand cursor, that clicking the gem opens the archive, and that the side view renders. It then saves twice through a mocked `window.claude` and reloads each saved page. Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`.
+It serves the standalone build under a CSP shaped like the viewer's and checks that the model loads. It checks that a click on the construct's body does nothing, that pointing at the gem shows the hand cursor, that clicking the gem opens the archive, and that the archive shows recent accessions and the index. It then saves twice through a mocked `window.claude` and reloads each saved page. Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`.
 
 ## Open items for the owner
 
-- Open the live page once and check that the 3D model replaces the cutout in the claude.ai viewer.
-- Set the character's name and the line under it (**Edit profile**).
-- Remove the 9 example records (**Remove examples**) once real ones exist.
-- Do a first real save, to confirm publishing works from the owner account.
+- If the character should have a name for screen readers, set `profile.name` in `src/seed.json` (it is no longer editable on the page).
 - Share the page from its Share menu so other RPers can open it.

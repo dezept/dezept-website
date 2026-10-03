@@ -10,7 +10,7 @@ Environment:
 
 Checks:
   1. Under a CSP shaped like the claude.ai Artifact viewer's (scripts only from the allowed CDNs, images only
-     from data:, no fetch), the page swaps the cutout for the 3D model and renders the archive's side view.
+     from data:, no fetch), the page swaps the cutout for the 3D model, and the archive shows its accessions and index.
      A click on the construct's body does nothing; pointing at the gem shows the hand cursor, and clicking
      the gem opens the archive.
   2. With a mocked window.claude, inscribing a record publishes a page that keeps the skeleton and the model
@@ -86,7 +86,7 @@ server.listen(0, '127.0.0.1', async () => {
     await page.waitForSelector('#archive[open]', { timeout: 5000 });
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, 'archive.png') });
-    check(await page.$eval('.unit img', (i) => i.src.startsWith('data:image/png')), 'archive header shows the rendered side view');
+    check(await page.$$eval('#recent .rec-btn', (n) => n.length) > 0 && await page.$$eval('#index .domain', (n) => n.length) > 0, 'the archive shows recent accessions and the index');
     check(await page.$('#btn-inscribe[hidden]') !== null, 'no owner controls without window.claude');
     check(errors.length === 0, `no console errors${errors.length ? ': ' + errors.join(' | ') : ''}`);
     await page.close();

@@ -5,33 +5,5 @@
     "construct": "Eternal Gladiator's Chalice",
     "constructNote": "An archival construct of Shadowlands make, bought from a broker who asked no questions and answered fewer."
   },
-  "records": [
-    { "id": "ex1", "title": "The Shadowlands", "domain": "Cosmology & the beyond", "status": "relearned", "date": "2026-10-03", "added": 9,
-      "note": "The realms where souls go after death. The construct was made there, and its memory holds more of that place than any tutor I have found.",
-      "source": "The construct's own archive", "example": true },
-    { "id": "ex2", "title": "The Sundering", "domain": "Wars & catastrophes", "status": "relearned", "date": "2026-10-01", "added": 8,
-      "note": "The Well of Eternity tore itself apart and the land broke with it. The coastlines I remember flying over are gone.",
-      "source": "Maps in a Valdrakken library", "example": true },
-    { "id": "ex3", "title": "Brokers", "domain": "Peoples & factions", "status": "relearned", "date": "2026-09-30", "added": 7,
-      "note": "Cloaked merchants who trade between worlds. One sold me this construct and would not say where it came from.",
-      "source": "The sale itself", "example": true },
-    { "id": "ex4", "title": "Neltharion", "domain": "Dragonkind & the Aspects", "status": "superseded", "date": "2026-09-28", "added": 6,
-      "note": "I remember the Earth-Warder, Aspect of the black flight, who made us. The world now calls him Deathwing. He went mad, broke the world a second time, and was killed.",
-      "source": "An older dracthyr in Valdrakken", "example": true },
-    { "id": "ex5", "title": "The Horde and the Alliance", "domain": "Peoples & factions", "status": "fragment", "date": "2026-09-24", "added": 5,
-      "note": "Two pacts of the younger races. They fight each other, then fight side by side when something worse arrives. I do not yet know how either began.",
-      "source": "Overheard in taverns", "example": true },
-    { "id": "ex6", "title": "Valdrakken", "domain": "Places", "status": "relearned", "date": "2026-09-20", "added": 4,
-      "note": "City of the dragonflights on the Dragon Isles. The first place I saw dracthyr welcomed by the other flights, more or less.",
-      "source": "Living there", "example": true },
-    { "id": "ex7", "title": "Draconic speech", "domain": "Dragonkind & the Aspects", "status": "remembered", "date": "2026-09-18", "added": 3,
-      "note": "The old tongue of dragons. I still speak it better than the trade language everyone here uses.",
-      "source": "Before the slumber", "example": true },
-    { "id": "ex8", "title": "Humans", "domain": "Peoples & factions", "status": "sought", "date": "2026-09-15", "added": 2,
-      "note": "Short-lived and everywhere. Where did they come from? Everyone assumes I already know.",
-      "source": "", "example": true },
-    { "id": "ex9", "title": "The Scourge", "domain": "Wars & catastrophes", "status": "sought", "date": "2026-09-12", "added": 1,
-      "note": "Mentioned in passing, always followed by a pause. Undead armies of some kind. I need the whole account.",
-      "source": "", "example": true }
-  ]
+  "records": []
 }

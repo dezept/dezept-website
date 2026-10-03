@@ -8,8 +8,7 @@ Writes:
   dist/chalice-archive.standalone.html  same page wrapped in the Artifact skeleton; opens directly in a browser
 
 Placeholders in src/page.html:
-  __FRONT__    front cutout (assets/front.webp) as a data URI
-  __SIDE__     side cutout (assets/side.webp) as a data URI
+  __FRONT__    front cutout (assets/front.webp) as a data URI, shown until the 3D model has drawn
   __MODEL__    the construct's 3D model (assets/model/chalice.glb, made by tools/m2_to_glb.py), base64
   __DATA__     src/seed.json, escaped for a <script> block
   "__RESET__"  the claude.ai skeleton reset CSS (src/skeleton-reset.css), as a JS string literal
@@ -33,11 +32,10 @@ def script_json(obj) -> str:
 reset = (ROOT / "src/skeleton-reset.css").read_text(encoding="utf-8").strip()
 page = (ROOT / "src/page.html").read_text(encoding="utf-8")
 page = page.replace("__FRONT__", data_uri(ROOT / "assets/front.webp"))
-page = page.replace("__SIDE__", data_uri(ROOT / "assets/side.webp"))
 page = page.replace("__MODEL__", base64.b64encode((ROOT / "assets/model/chalice.glb").read_bytes()).decode())
 page = page.replace("__DATA__", script_json(json.loads((ROOT / "src/seed.json").read_text(encoding="utf-8"))))
 page = page.replace('"__RESET__"', json.dumps(reset))
-leftover = [line[:80] for line in page.splitlines() if any(k in line for k in ("__FRONT__", "__SIDE__", "__MODEL__", "__DATA__", "__RESET__"))]
+leftover = [line[:80] for line in page.splitlines() if any(k in line for k in ("__FRONT__", "__MODEL__", "__DATA__", "__RESET__"))]
 assert not leftover, leftover
 
 dist = ROOT / "dist"

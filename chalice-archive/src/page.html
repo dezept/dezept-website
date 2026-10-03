@@ -163,47 +163,20 @@ button, input, textarea { font: inherit; color: inherit; }
 .btn-close:hover { color: #fff; filter: brightness(1.15); }
 
 /* type */
-.eyebrow { margin: 0; font-family: var(--font-book-sc); font-size: 16px; letter-spacing: .08em; color: var(--rubric); }
 .rubric { display: flex; align-items: baseline; gap: 12px; margin: 0 0 14px; font-family: var(--font-title); font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--rubric); }
 .rubric::after { content: ""; flex: 1; height: 1px; align-self: center; background: linear-gradient(90deg, rgb(var(--sepia-rgb) / .45), transparent); }
 .rubric span { order: 2; font-family: var(--font-book); font-size: 15px; font-weight: 400; font-style: italic; letter-spacing: 0; text-transform: none; color: var(--sepia-faint); }
 .empty { margin: 0; padding: 10px 0; font-style: italic; color: var(--sepia-faint); }
-.tag { display: inline-block; margin-left: 8px; padding: 0 6px; border: 1px solid rgb(var(--sepia-rgb) / .35); font-family: var(--font-book-sc); font-size: 13px; line-height: 1.4; color: var(--sepia-faint); vertical-align: 3px; }
 
-/* left leaf: bookplate, Plate I, the ledger */
+/* left leaf: the owner's tools and the recent accessions */
 .page-l { display: flex; flex-direction: column; gap: 22px; }
-.ar-head { display: grid; gap: 4px; }
-.ar-head h2 { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(30px, 3.4vw, 42px); line-height: 1.08; letter-spacing: .02em; color: var(--sepia); text-wrap: balance; overflow-wrap: anywhere; }
-.ar-epithet { margin: 6px 0 0; max-width: 40ch; font-style: italic; color: var(--sepia-soft); }
-.unit { display: grid; justify-items: center; gap: 12px; margin: 0; }
-.plate-art { display: grid; place-items: center; width: min(100%, 270px); aspect-ratio: 1.55; border-radius: 50%; overflow: hidden; background: radial-gradient(ellipse at 50% 45%, var(--void-3), var(--void) 72%); box-shadow: 0 0 0 3px var(--brass), 0 0 0 4px var(--leather-dark), 0 0 0 8px rgb(var(--brass-rgb) / .35), 0 8px 18px rgb(var(--sepia-rgb) / .45), inset 0 0 30px rgb(0 0 0 / .85); }
-.unit img { width: 84%; height: auto; }
-.unit figcaption { max-width: 38ch; text-align: center; }
-.unit-name { margin: 0; font-family: var(--font-book-sc); font-size: 18px; color: var(--sepia); }
-.unit-name::before { content: "Plate I. "; color: var(--rubric); }
-.unit-note { margin: 2px 0 0; font-size: 16px; font-style: italic; color: var(--sepia-soft); }
 .ar-tools { display: flex; flex-wrap: wrap; gap: 10px; }
 .ar-tools:not(:has(.btn:not([hidden]))) { display: none; }
-.ro-note { margin: -12px 0 0; font-size: 15px; font-style: italic; color: var(--sepia-faint); }
+.ro-note { margin: 0; font-size: 15px; font-style: italic; color: var(--sepia-faint); }
 
-.gap { display: grid; gap: 12px; }
-.gap .rubric { margin: 0; }
-.gap-head { margin: 0; font-size: 19px; color: var(--sepia); }
-.gap-head .num { font-family: var(--font-title); font-weight: 700; color: var(--rubric); }
-.gap-bar { display: flex; gap: 2px; height: 9px; padding: 2px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: rgb(255 248 225 / .35); }
-.gap-seg { flex: var(--n) 1 0; min-width: 4px; background: var(--c); }
-.gap-seg[data-s="sought"] { background: repeating-linear-gradient(135deg, var(--c) 0 2px, transparent 2px 5px); }
-.gap-empty { flex: 1; }
-.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
-.chip { display: inline-flex; align-items: center; gap: 8px; padding: 3px 11px 4px 10px; border: 1px solid rgb(var(--sepia-rgb) / .35); border-radius: 2px; background: rgb(255 248 225 / .35); cursor: pointer; font-family: var(--font-book-sc); font-size: 15px; color: var(--sepia-soft); transition: background .2s, color .2s, border-color .2s; }
-.chip .count { font-family: var(--font-book); color: var(--sepia-faint); }
-.chip:hover { border-color: var(--c); color: var(--sepia); }
-.chip[aria-pressed="true"] { border-color: var(--c); background: var(--c); color: var(--parchment); }
-.chip[aria-pressed="true"] .count { color: var(--parchment); }
-.chip[aria-pressed="true"] .glyph { --c: var(--parchment); }
-.legend-clear, .back { padding: 4px 0; border: 0; background: none; cursor: pointer; font-family: var(--font-book); font-size: 16px; font-style: italic; color: var(--sepia-soft); text-decoration: underline; text-decoration-color: rgb(var(--sepia-rgb) / .35); text-underline-offset: 3px; }
+.back { padding: 4px 0; border: 0; background: none; cursor: pointer; font-family: var(--font-book); font-size: 16px; font-style: italic; color: var(--sepia-soft); text-decoration: underline; text-decoration-color: rgb(var(--sepia-rgb) / .35); text-underline-offset: 3px; }
 .back { justify-self: start; }
-.legend-clear:hover, .back:hover { color: var(--rubric); text-decoration-color: currentColor; }
+.back:hover { color: var(--rubric); text-decoration-color: currentColor; }
 
 .glyph { flex: none; box-sizing: border-box; width: 9px; height: 9px; rotate: 45deg; border: 1.5px solid var(--c); background: var(--c); }
 [data-s="remembered"] { --c: var(--ink-copper); }
@@ -215,11 +188,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .glyph[data-s="sought"] { background: transparent; }
 .glyph[data-s="superseded"] { background: linear-gradient(transparent 36%, var(--c) 36% 64%, transparent 64%); }
 
-.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 14px; border: 1px dashed rgb(var(--sepia-rgb) / .4); font-size: 16px; font-style: italic; color: var(--sepia-soft); }
-.examples p { margin: 0; flex: 1 1 16rem; min-width: 0; }
-.examples p::before { content: "Nota bene. "; font-family: var(--font-book-sc); font-style: normal; color: var(--rubric); }
 
-/* right leaf: recent accessions and the index, or a record, or a form */
+/* right leaf: the index, or a record, or a form */
 #view-overview { display: grid; gap: 34px; }
 .recent { margin: 0; padding: 0; list-style: none; }
 .recent li + li { border-top: 1px solid rgb(var(--sepia-rgb) / .15); }
@@ -301,7 +271,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   .book { grid-template-columns: minmax(0, 1fr); height: auto; max-height: calc(100vh - 56px); max-height: calc(100dvh - 56px); overflow: auto; overscroll-behavior: contain; background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment); }
   .page { overflow: visible; background: none; box-shadow: none; padding: 26px 20px; }
   .page-r { border-top: 1px solid rgb(var(--sepia-rgb) / .25); }
-  .book:not([data-view="overview"]) .page-l { display: none; }
+  .book:not([data-view="overview"]) .page-l { display: none; } /* a record or form comes first */
   .book:not([data-view="overview"]) .page-r { border-top: 0; }
   .btn-close { top: -8px; right: -6px; width: 34px; height: 34px; }
 }
@@ -337,42 +307,21 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     <button class="btn-close" id="btn-close" type="button" aria-label="Close the archive"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
     <div class="book" id="plate" data-view="overview">
       <span class="ribbon" aria-hidden="true"></span>
-      <section class="page page-l" id="page-l" aria-label="The archive">
-        <header class="ar-head">
-          <p class="eyebrow">Ex libris</p>
-          <h2 id="ar-title"><span id="ar-name">Unnamed Dracthyr</span></h2>
-          <p class="ar-epithet" id="ar-epithet" hidden></p>
-        </header>
-        <figure class="unit">
-          <div class="plate-art"><img src="__SIDE__" alt="The construct in profile" width="610" height="384"></div>
-          <figcaption>
-            <p class="unit-name" id="unit-name">Eternal Gladiator's Chalice</p>
-            <p class="unit-note" id="unit-note"></p>
-          </figcaption>
-        </figure>
+      <section class="page page-l" id="page-l">
+        <h2 class="sr-only" id="ar-title">The archive of <span id="ar-name">Unnamed Dracthyr</span></h2>
         <div class="ar-tools">
           <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
-          <button class="btn" id="btn-profile" type="button" hidden>Edit profile</button>
-        </div>
-        <p class="ro-note" id="ro-note" hidden>This view is read-only, so changes can't be saved here.</p>
-        <section class="gap" aria-labelledby="gap-title">
-          <h3 class="rubric" id="gap-title">The state of knowledge</h3>
-          <p class="gap-head" id="gap-head"></p>
-          <div class="gap-bar" id="gap-bar" aria-hidden="true"></div>
-          <div class="legend" id="legend" role="group" aria-label="Filter the index by state"></div>
-        </section>
-        <div class="examples" id="examples" hidden>
-          <p id="examples-text">Records tagged Example are placeholders.</p>
           <button class="btn" id="btn-clear-examples" type="button" hidden>Remove examples</button>
         </div>
+        <p class="ro-note" id="ro-note" hidden>This view is read-only, so changes can't be saved here.</p>
+        <section aria-labelledby="recent-title">
+          <h3 class="rubric" id="recent-title">Recent accessions <span id="recent-count"></span></h3>
+          <ol class="recent" id="recent"></ol>
+        </section>
       </section>
 
       <section class="page page-r" id="page-r">
         <section id="view-overview">
-          <section aria-labelledby="recent-title">
-            <h3 class="rubric" id="recent-title">Recent accessions <span id="recent-count"></span></h3>
-            <ol class="recent" id="recent"></ol>
-          </section>
           <section aria-labelledby="index-title">
             <h3 class="rubric" id="index-title">Index of knowledge <span id="index-count"></span></h3>
             <div class="index" id="index"></div>
@@ -385,7 +334,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
             <span class="det-status" id="det-status"><span class="glyph" id="det-glyph"></span><span id="det-status-label"></span></span>
             <span id="det-domain"></span>
             <time id="det-date"></time>
-            <span class="tag" id="det-example" hidden>Example</span>
           </div>
           <h3 class="det-title" id="det-title"></h3>
           <p class="det-note" id="det-note"></p>
@@ -439,35 +387,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
           </form>
         </section>
 
-        <section id="view-profile" hidden>
-          <form class="form" id="pf-form" novalidate>
-            <button class="back" id="p-back" type="button">← Return without saving</button>
-            <h3>Archive profile</h3>
-            <div class="row-2">
-              <div class="field">
-                <label for="p-name">Character name</label>
-                <input class="input" id="p-name" name="name" maxlength="60" autocomplete="off">
-              </div>
-              <div class="field">
-                <label for="p-construct">Construct name</label>
-                <input class="input" id="p-construct" name="construct" maxlength="60" autocomplete="off">
-              </div>
-            </div>
-            <div class="field">
-              <label for="p-epithet">Line under the name</label>
-              <textarea class="input" id="p-epithet" name="epithet" maxlength="280" rows="2" style="min-height: 90px"></textarea>
-            </div>
-            <div class="field">
-              <label for="p-note">About the construct</label>
-              <textarea class="input" id="p-note" name="constructNote" maxlength="400" rows="3" style="min-height: 120px"></textarea>
-            </div>
-            <p class="form-error" id="p-error" role="alert" hidden></p>
-            <div class="form-actions">
-              <button class="btn" id="p-submit" type="submit">Save profile</button>
-              <button class="btn" id="p-cancel" type="button">Cancel</button>
-            </div>
-          </form>
-        </section>
       </section>
     </div>
   </div>
@@ -532,12 +451,11 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   root.replaceChildren(byId("ca-shell").content.cloneNode(true));
   var el = {};
   ["stage", "motes", "core", "construct-gl", "pf-name", "construct",
-   "scan", "archive", "btn-close", "plate", "page-l", "page-r", "ar-name", "ar-epithet", "unit-name", "unit-note", "btn-inscribe", "btn-profile", "ro-note",
-   "view-overview", "view-detail", "view-form", "view-profile", "gap-head", "gap-bar", "legend", "examples", "examples-text", "btn-clear-examples",
-   "recent", "recent-count", "index", "index-count", "det-back", "det-status", "det-glyph", "det-status-label", "det-domain", "det-date", "det-example",
+   "scan", "archive", "btn-close", "plate", "page-l", "page-r", "ar-name", "btn-inscribe", "ro-note",
+   "view-overview", "view-detail", "view-form", "btn-clear-examples",
+   "recent", "recent-count", "index", "index-count", "det-back", "det-status", "det-glyph", "det-status-label", "det-domain", "det-date",
    "det-title", "det-note", "det-source", "det-state", "det-tools", "det-edit", "det-delete", "rec-form", "f-back", "form-heading", "f-title", "f-domain",
-   "domain-list", "f-date", "status-pick", "f-status-desc", "f-note", "f-source", "f-error", "f-submit", "f-cancel", "pf-form", "p-back", "p-name",
-   "p-construct", "p-epithet", "p-note", "p-error", "p-submit", "p-cancel", "toast"].forEach(function (id) {
+   "domain-list", "f-date", "status-pick", "f-status-desc", "f-note", "f-source", "f-error", "f-submit", "f-cancel", "toast"].forEach(function (id) {
     el[id.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); })] = byId(id);
   });
 
@@ -571,11 +489,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       return b.date.localeCompare(a.date) || (b.added - a.added) || a.title.localeCompare(b.title);
     });
   }
-  function counts() {
-    var c = {}; ORDER.forEach(function (s) { c[s] = 0; });
-    state.records.forEach(function (r) { c[r.status]++; });
-    return c;
-  }
   function domains() {
     var seen = {};
     state.records.forEach(function (r) { seen[r.domain] = true; });
@@ -595,7 +508,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   }
 
   // ---------- Archive ----------
-  var filter = {};
   var currentView = "overview";
   var detailId = null;
   var editingId = null;
@@ -604,41 +516,11 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   var busy = false;
 
   function renderArchive() {
-    var p = state.profile, c = counts(), total = state.records.length;
+    var p = state.profile, total = state.records.length;
     el.arName.textContent = p.name || "Unnamed Dracthyr";
-    el.arEpithet.textContent = p.epithet || "";
-    el.arEpithet.hidden = !p.epithet;
-    el.unitName.textContent = p.construct || "Archival construct";
-    el.unitNote.textContent = p.constructNote || "";
-    el.unitNote.hidden = !p.constructNote;
 
-    // gap summary
-    el.gapHead.replaceChildren();
-    if (total) {
-      el.gapHead.append(h("span", { class: "num", text: String(c.relearned) }), " of ", h("span", { class: "num", text: String(total) }), (total === 1 ? " record" : " records") + " re-learned since waking.");
-    } else {
-      el.gapHead.textContent = "The archive is empty. Its pages wait for the first record.";
-    }
-    el.gapBar.replaceChildren();
-    if (total) {
-      ORDER.forEach(function (s) { if (c[s]) el.gapBar.append(h("span", { class: "gap-seg", "data-s": s, style: "--n:" + c[s], title: STATUS[s].label + ": " + c[s] })); });
-    } else {
-      el.gapBar.append(h("span", { class: "gap-empty" }));
-    }
-    el.legend.replaceChildren();
-    var anyFilter = ORDER.some(function (s) { return filter[s]; });
-    ORDER.forEach(function (s) {
-      el.legend.append(h("button", {
-        class: "chip", type: "button", "data-s": s, "aria-pressed": filter[s] ? "true" : "false", title: STATUS[s].desc,
-        onclick: function () { filter[s] = !filter[s]; renderArchive(); if (currentView !== "overview") showView("overview"); }
-      }, glyph(s), STATUS[s].label, h("span", { class: "count", text: String(c[s]) })));
-    });
-    if (anyFilter) el.legend.append(h("button", { class: "legend-clear", type: "button", text: "Show all", onclick: function () { filter = {}; renderArchive(); } }));
-
-    // examples
+    // the owner can clear the example records in one go while any remain
     var ex = state.records.filter(function (r) { return r.example; }).length;
-    el.examples.hidden = !ex;
-    el.examplesText.textContent = ex === 1 ? "One record is tagged Example. It is a placeholder." : "Records tagged Example are placeholders showing how the archive works.";
     el.btnClearExamples.hidden = !(ex && canWrite);
     if (!el.btnClearExamples.dataset.armed) el.btnClearExamples.textContent = "Remove " + ex + " example" + (ex === 1 ? "" : "s");
 
@@ -653,7 +535,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       el.recent.append(h("li", null, h("button", { class: "rec-btn", type: "button", "data-s": r.status, onclick: function () { showDetail(r.id); } },
         glyph(r.status),
         h("span", { class: "rec-date" }, h("time", { datetime: r.date, text: fmtDate(r.date) }), " · " + STATUS[r.status].label),
-        h("span", { class: "rec-title" }, r.title, r.example ? h("span", { class: "tag", text: "Example" }) : null),
+        h("span", { class: "rec-title", text: r.title }),
         r.note ? h("span", { class: "rec-note", text: r.note }) : null
       )));
     });
@@ -662,7 +544,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     el.index.replaceChildren();
     var shown = 0;
     domains().forEach(function (d, chapter) {
-      var items = state.records.filter(function (r) { return r.domain === d && (!anyFilter || filter[r.status]); });
+      var items = state.records.filter(function (r) { return r.domain === d; });
       if (!items.length) return;
       items.sort(function (a, b) { return ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || a.title.localeCompare(b.title); });
       shown += items.length;
@@ -677,21 +559,20 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
         }))
       ));
     });
-    el.indexCount.textContent = total ? (anyFilter ? shown + " of " + total + " shown" : "in " + domains().length + (domains().length === 1 ? " chapter" : " chapters")) : "";
-    if (!shown) el.index.append(h("p", { class: "empty", text: total ? "No records in the selected states." : "Records appear here, gathered into chapters by domain." }));
+    el.indexCount.textContent = total ? "in " + domains().length + (domains().length === 1 ? " chapter" : " chapters") : "";
+    if (!shown) el.index.append(h("p", { class: "empty", text: "Records appear here, gathered into chapters by domain." }));
 
     renderOwnerUI();
   }
 
   function renderOwnerUI() {
     el.btnInscribe.hidden = !canWrite;
-    el.btnProfile.hidden = !canWrite;
     el.detTools.hidden = !canWrite;
     var ex = state.records.some(function (r) { return r.example; });
     el.btnClearExamples.hidden = !(ex && canWrite);
   }
 
-  var VIEWS = { overview: "viewOverview", detail: "viewDetail", form: "viewForm", profile: "viewProfile" };
+  var VIEWS = { overview: "viewOverview", detail: "viewDetail", form: "viewForm" };
   function showView(name) {
     Object.keys(VIEWS).forEach(function (v) { el[VIEWS[v]].hidden = v !== name; });
     currentView = name;
@@ -723,7 +604,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     el.detDomain.textContent = r.domain;
     el.detDate.textContent = fmtDate(r.date);
     el.detDate.setAttribute("datetime", r.date);
-    el.detExample.hidden = !r.example;
     el.detTitle.textContent = r.title;
     el.detNote.textContent = r.note || "Nothing inscribed beyond the title yet.";
     el.detNote.classList.toggle("is-empty", !r.note);
@@ -783,26 +663,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
 
-  function openProfile() {
-    var p = state.profile;
-    el.pName.value = p.name || "";
-    el.pConstruct.value = p.construct || "";
-    el.pEpithet.value = p.epithet || "";
-    el.pNote.value = p.constructNote || "";
-    el.pError.hidden = true;
-    showView("profile");
-    setTimeout(function () { if (!el.pfForm.contains(document.activeElement) || document.activeElement === el.pBack) el.pName.focus(); }, 40);
-  }
-  el.pfForm.addEventListener("submit", function (e) {
-    e.preventDefault();
-    if (busy) return;
-    var name = el.pName.value.trim();
-    if (!name) { el.pError.textContent = "The archive needs a character name."; el.pError.hidden = false; el.pName.focus(); return; }
-    var profile = { name: name, construct: el.pConstruct.value.trim() || "Archival construct", epithet: el.pEpithet.value.trim(), constructNote: el.pNote.value.trim() };
-    save({ profile: profile, records: state.records }, { view: "overview", toast: "Profile saved." }, el.pSubmit, "Saving…");
-  });
-  el.pCancel.addEventListener("click", function () { showView("overview"); });
-  el.pBack.addEventListener("click", function () { showView("overview"); });
 
   // two-step confirmation (the viewer cannot show confirm dialogs)
   function arm(btn, label, action) {
@@ -879,7 +739,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
         setAfter(null);
         if (["not_writer", "not_granted", "consent_required", "capability_disabled", "capability_removed", "not_declared"].indexOf(code) >= 0) {
           canWrite = false; renderOwnerUI(); el.roNote.hidden = false;
-          if (currentView === "form" || currentView === "profile") showView("overview");
+          if (currentView === "form") showView("overview");
           toast("This view is read-only, so changes can't be saved here.");
         } else if (code === "rate_limited") {
           toast("Saving too often. Wait a few seconds, then try again.");
@@ -1335,7 +1195,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
 
       camera = new T.PerspectiveCamera(22, 1, .05, 50);
       resize();
-      try { renderSide(); } catch (e) { /* keep the cutout in the archive header */ }
       ready = true;
       draw(performance.now());
       el.core.classList.add("is-3d");
@@ -1373,40 +1232,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       camera.aspect = w / h;
       placeCamera(camera, 0, PITCH, size.x, size.y, .4);
       if (ready && !running) draw(performance.now());
-    }
-
-    // Archive header: one still from the side, replacing the side cutout
-    function renderSide() {
-      var img = el.plate.querySelector(".unit img");
-      if (!img) return;
-      var w = 864, h = 544, cam = new T.PerspectiveCamera(18, w / h, .05, 50);
-      placeCamera(cam, 78, .16, size.z, size.y, .94);
-      rig.rotation.set(0, 0, 0);
-      pose(1.2);
-      var rt = new T.WebGLRenderTarget(w, h);
-      renderer.setRenderTarget(rt);
-      renderer.clear();
-      renderer.render(scene, cam);
-      var px = new Uint8Array(w * h * 4);
-      renderer.readRenderTargetPixels(rt, 0, 0, w, h, px);
-      renderer.setRenderTarget(null);
-      rt.dispose();
-      var big = document.createElement("canvas"), ctx = big.getContext("2d");
-      big.width = w; big.height = h;
-      var id = ctx.createImageData(w, h);
-      for (var y = 0; y < h; y++) {
-        for (var x = 0; x < w; x++) {
-          var s = ((h - 1 - y) * w + x) * 4, o = (y * w + x) * 4;
-          var r = px[s], g = px[s + 1], b = px[s + 2], a = Math.max(px[s + 3], r, g, b); // additive glow keeps its light
-          if (!a) continue;
-          id.data[o] = r * 255 / a; id.data[o + 1] = g * 255 / a; id.data[o + 2] = b * 255 / a; id.data[o + 3] = a;
-        }
-      }
-      ctx.putImageData(id, 0, 0);
-      var out = document.createElement("canvas");
-      out.width = w / 2; out.height = h / 2;
-      out.getContext("2d").drawImage(big, 0, 0, w / 2, h / 2);
-      img.src = out.toDataURL("image/png");
     }
 
     // Pose everything for model time `at` (seconds)
@@ -1590,7 +1415,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   });
   el.archive.addEventListener("cancel", function (e) {
     if (currentView === "form") { e.preventDefault(); leaveForm(); }
-    else if (currentView === "profile") { e.preventDefault(); showView("overview"); }
   });
   el.archive.addEventListener("close", function () {
     root.append(el.toast);
@@ -1603,7 +1427,6 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   el.detBack.addEventListener("click", function () { showView("overview"); });
   el.detEdit.addEventListener("click", function () { openForm(detailId); });
   el.btnInscribe.addEventListener("click", function () { openForm(null); });
-  el.btnProfile.addEventListener("click", openProfile);
 
   // ---------- Boot ----------
   renderLanding();
