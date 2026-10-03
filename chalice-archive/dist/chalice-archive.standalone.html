@@ -159,6 +159,16 @@ button, input, textarea { font: inherit; color: inherit; }
 .page-l { box-shadow: inset -40px 0 50px -40px rgb(var(--sepia-rgb) / .5), inset 0 0 80px rgb(var(--sepia-rgb) / .22); }
 .page-r { box-shadow: inset 40px 0 50px -40px rgb(var(--sepia-rgb) / .5), inset 0 0 80px rgb(var(--sepia-rgb) / .22); }
 
+/* The keeper's clasp: a small brass keyhole on the fore-edge. The word it asks for shows or hides the editing tools. */
+.clasp { position: absolute; z-index: 4; right: -11px; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 22px; height: 52px; padding: 0; border: 1px solid var(--leather-dark); border-radius: 4px; cursor: pointer; color: var(--leather-dark); background: linear-gradient(90deg, #6a4714, var(--brass) 35%, var(--brass-light) 55%, #8a6420); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5); }
+.clasp svg { width: 9px; height: 15px; }
+.clasp:hover, .clasp[aria-expanded="true"] { filter: brightness(1.15); }
+.clasp.is-open { color: var(--ink-verdigris); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5), 0 0 10px rgb(var(--teal-rgb) / .55); }
+.seal { position: absolute; z-index: 6; right: 24px; top: 50%; translate: 0 -50%; box-sizing: border-box; display: grid; gap: 12px; width: min(340px, calc(100% - 44px)); padding: 20px 20px 18px; border: 1px solid rgb(var(--sepia-rgb) / .6); border-radius: 3px; background: var(--grain), var(--parchment); color: var(--sepia); box-shadow: 0 0 0 3px var(--brass), 0 0 0 4px var(--leather-dark), 0 18px 40px rgb(0 0 0 / .55); }
+.seal-title { margin: 0; font-family: var(--font-title); font-size: 17px; font-weight: 700; letter-spacing: .06em; color: var(--rubric); }
+.seal-text { margin: 0; font-size: 16px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
+.seal .input { font-size: 18px; }
+
 /* the game's round close button */
 .btn-close { position: absolute; top: -14px; right: -14px; z-index: 5; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 2px solid var(--brass); border-radius: 50%; cursor: pointer; color: var(--brass-light); background: radial-gradient(circle at 40% 32%, #c8301f, var(--wow-red) 55%, var(--wow-red-dark)); box-shadow: 0 0 0 1px var(--leather-dark), 0 3px 8px rgb(0 0 0 / .6), inset 0 1px 1px rgb(255 220 160 / .45); }
 .btn-close:hover { color: #fff; filter: brightness(1.15); }
@@ -275,6 +285,8 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   .book:not([data-view="overview"]) .page-l { display: none; } /* a record or form comes first */
   .book:not([data-view="overview"]) .page-r { border-top: 0; }
   .btn-close { top: -8px; right: -6px; width: 34px; height: 34px; }
+  .clasp { right: -8px; width: 18px; height: 44px; }
+  .seal { right: 50%; translate: 50% -50%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool, .nebula i { animation: none !important; }
@@ -305,7 +317,26 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
 <dialog class="archive" id="archive" aria-labelledby="ar-title">
   <div class="tome">
     <i class="corner tl" aria-hidden="true"></i><i class="corner tr" aria-hidden="true"></i><i class="corner bl" aria-hidden="true"></i><i class="corner br" aria-hidden="true"></i>
-    <button class="btn-close" id="btn-close" type="button" aria-label="Close the archive"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
+    <button class="clasp" id="clasp" type="button" aria-label="The keeper's lock" aria-expanded="false" aria-controls="seal"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="5" cy="5" r="3.3" fill="currentColor"></circle><path d="M3.5 7.4 2.4 15.2h5.2L6.5 7.4z" fill="currentColor"></path></svg></button>
+    <form class="seal" id="seal" hidden novalidate aria-labelledby="seal-title">
+      <h3 class="seal-title" id="seal-title">The keeper's word</h3>
+      <p class="seal-text" id="seal-text"></p>
+      <div class="field" id="seal-f1">
+        <label for="seal-word">Word</label>
+        <input class="input" id="seal-word" name="password" type="password" maxlength="200" autocomplete="current-password" spellcheck="false">
+      </div>
+      <div class="field" id="seal-f2" hidden>
+        <label for="seal-again">The word again</label>
+        <input class="input" id="seal-again" name="password-again" type="password" maxlength="200" autocomplete="new-password" spellcheck="false">
+      </div>
+      <p class="form-error" id="seal-error" role="alert" hidden></p>
+      <div class="form-actions">
+        <button class="btn" id="seal-go" type="submit">Unseal</button>
+        <button class="btn" id="seal-lock" type="button" hidden>Seal it again</button>
+        <button class="btn" id="seal-change" type="button" hidden>Change the word</button>
+      </div>
+    </form>
+    <button class="btn-close" id="btn-close" type="button" aria-label="Close the archive" autofocus><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
     <div class="book" id="plate" data-view="overview">
       <span class="ribbon" aria-hidden="true"></span>
       <section class="page page-l" id="page-l">
@@ -443,7 +474,10 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
         date: /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : today(), added: Number(r.added) || 0, example: !!r.example
       };
     });
-    return { profile: profile, records: records };
+    var seal = raw.seal;
+    seal = seal && typeof seal.salt === "string" && typeof seal.hash === "string" && Number(seal.iter) >= 100000
+      ? { v: 1, kdf: "PBKDF2-SHA256", iter: Number(seal.iter), salt: seal.salt, hash: seal.hash } : null;
+    return { profile: profile, records: records, seal: seal };
   }
   var state = loadState();
 
@@ -452,7 +486,8 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   root.replaceChildren(byId("ca-shell").content.cloneNode(true));
   var el = {};
   ["stage", "motes", "core", "construct-gl", "pf-name", "construct",
-   "scan", "archive", "btn-close", "plate", "page-l", "page-r", "ar-name", "btn-inscribe", "ro-note",
+   "scan", "archive", "btn-close", "plate", "page-l", "page-r", "ar-name", "btn-inscribe", "ro-note", "clasp", "seal", "seal-title", "seal-text", "seal-f1", "seal-f2",
+   "seal-word", "seal-again", "seal-error", "seal-go", "seal-lock", "seal-change",
    "view-overview", "view-detail", "view-form", "btn-clear-examples",
    "recent", "recent-count", "index", "index-count", "det-back", "det-status", "det-glyph", "det-status-label", "det-domain", "det-date",
    "det-title", "det-note", "det-source", "det-state", "det-tools", "det-edit", "det-delete", "rec-form", "f-back", "form-heading", "f-title", "f-domain",
@@ -522,7 +557,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
 
     // the owner can clear the example records in one go while any remain
     var ex = state.records.filter(function (r) { return r.example; }).length;
-    el.btnClearExamples.hidden = !(ex && canWrite);
+    el.btnClearExamples.hidden = !(ex && canPost());
     if (!el.btnClearExamples.dataset.armed) el.btnClearExamples.textContent = "Remove " + ex + " example" + (ex === 1 ? "" : "s");
 
     // recent accessions
@@ -530,7 +565,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     el.recentCount.textContent = total ? "the latest " + recent.length : "";
     el.recent.replaceChildren();
     if (!recent.length) {
-      el.recent.append(h("li", null, h("p", { class: "empty", text: canWrite ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." })));
+      el.recent.append(h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." })));
     }
     recent.forEach(function (r) {
       el.recent.append(h("li", null, h("button", { class: "rec-btn", type: "button", "data-s": r.status, onclick: function () { showDetail(r.id); } },
@@ -566,11 +601,13 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     renderOwnerUI();
   }
 
+  // The editing tools need both: claude.ai's write access (owner or editor) and this visit unsealed with the word
   function renderOwnerUI() {
-    el.btnInscribe.hidden = !canWrite;
-    el.detTools.hidden = !canWrite;
+    el.btnInscribe.hidden = !canPost();
+    el.detTools.hidden = !canPost();
+    el.clasp.classList.toggle("is-open", canPost());
     var ex = state.records.some(function (r) { return r.example; });
-    el.btnClearExamples.hidden = !(ex && canWrite);
+    el.btnClearExamples.hidden = !(ex && canPost());
   }
 
   var VIEWS = { overview: "viewOverview", detail: "viewDetail", form: "viewForm" };
@@ -648,7 +685,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
 
   el.recForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy) return;
+    if (busy || !canPost()) return;
     var title = el.fTitle.value.trim();
     if (!title) { el.fError.textContent = "Give the record a title."; el.fError.hidden = false; el.fTitle.focus(); return; }
     var prev = editingId ? find(editingId) : null;
@@ -659,7 +696,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       added: prev ? (prev.added || Date.now()) : Date.now(), example: false
     };
     var records = prev ? state.records.map(function (r) { return r.id === prev.id ? rec : r; }) : state.records.concat([rec]);
-    save({ profile: state.profile, records: records }, { view: "detail", id: rec.id, toast: prev ? "Record revised." : "Record inscribed." }, el.fSubmit, prev ? "Saving…" : "Inscribing…");
+    save({ records: records }, { view: "detail", id: rec.id, toast: prev ? "Record revised." : "Record inscribed." }, el.fSubmit, prev ? "Saving…" : "Inscribing…");
   });
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
@@ -684,11 +721,12 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     btn.textContent = btn.dataset.label || btn.textContent;
   }
   arm(el.detDelete, function () { return "Confirm removal"; }, function () {
-    var r = find(detailId); if (!r) return;
-    save({ profile: state.profile, records: state.records.filter(function (x) { return x.id !== r.id; }) }, { view: "overview", toast: "Removed “" + r.title + "”." }, el.detDelete, "Removing…");
+    var r = find(detailId); if (!r || !canPost()) return;
+    save({ records: state.records.filter(function (x) { return x.id !== r.id; }) }, { view: "overview", toast: "Removed “" + r.title + "”." }, el.detDelete, "Removing…");
   });
   arm(el.btnClearExamples, function () { return "Confirm: remove examples"; }, function () {
-    save({ profile: state.profile, records: state.records.filter(function (x) { return !x.example; }) }, { view: "overview", toast: "Examples removed." }, el.btnClearExamples, "Removing…");
+    if (!canPost()) return;
+    save({ records: state.records.filter(function (x) { return !x.example; }) }, { view: "overview", toast: "Examples removed." }, el.btnClearExamples, "Removing…");
   });
 
   // ---------- Saving: the page republishes itself with the new records ----------
@@ -713,8 +751,11 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   }
   function setAfter(v) { try { if (v) sessionStorage.setItem("ca-after", JSON.stringify(v)); else sessionStorage.removeItem("ca-after"); } catch (e) {} }
 
+  // `next` holds the parts that change; the rest is carried over from the current state
   function save(next, after, btn, label) {
     if (!api || !canWrite) { toast("Saving isn't available in this view."); return; }
+    next = Object.assign({ profile: state.profile, records: state.records, seal: state.seal }, next);
+    if (!next.seal) delete next.seal;
     setBusy(btn, true, label);
     setAfter(after);
     var html = buildHTML(next);
@@ -722,7 +763,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     function go() {
       return api.publish(html).then(function () {
         // The viewer reloads to the new version. If it doesn't, show the change here.
-        state = { profile: next.profile, records: next.records };
+        state = { profile: next.profile, records: next.records, seal: next.seal || null };
         renderLanding(); renderArchive();
         if (after.view === "detail" && find(after.id)) showDetail(after.id); else showView("overview");
         setBusy(btn, false);
@@ -753,6 +794,132 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     }
     go();
   }
+
+  // ---------- The keeper's seal ----------
+  // claude.ai decides who may save this page: its owner and people given edit access, never visitors on a public
+  // link, whatever runs in their browser. The seal is a second lock on top, kept in this browser: the editing tools
+  // stay hidden, even from the keeper, until the keeper speaks the word. Only a salted PBKDF2-SHA256 hash of the
+  // word is published with the page (in the data block); the word itself is never stored or sent anywhere.
+  var SEAL_ITER = 600000, SEAL_MIN = 12;
+  var unsealed = false, sealMode = "", sealFails = 0, sealWaitUntil = 0, sealBusy = false;
+  try { unsealed = sessionStorage.getItem("ca-unsealed") === "1"; } catch (e) {}
+  function canPost() { return canWrite && unsealed && !!state.seal; }
+  function setUnsealed(on) {
+    unsealed = on;
+    try { if (on) sessionStorage.setItem("ca-unsealed", "1"); else sessionStorage.removeItem("ca-unsealed"); } catch (e) {}
+    renderOwnerUI();
+  }
+  function b64(bytes) { var s = ""; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); }
+  function unb64(str) { var s = atob(str), out = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i); return out; }
+  function derive(word, salt, iter) {
+    return crypto.subtle.importKey("raw", new TextEncoder().encode(word.normalize("NFC")), "PBKDF2", false, ["deriveBits"]).then(function (key) {
+      return crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: iter }, key, 256);
+    }).then(function (bits) { return new Uint8Array(bits); });
+  }
+  function makeSeal(word) {
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    return derive(word, salt, SEAL_ITER).then(function (hash) { return { v: 1, kdf: "PBKDF2-SHA256", iter: SEAL_ITER, salt: b64(salt), hash: b64(hash) }; });
+  }
+  function checkSeal(word, seal) {
+    return derive(word, unb64(seal.salt), seal.iter).then(function (hash) {
+      var ref = unb64(seal.hash), diff = hash.length ^ ref.length;
+      for (var i = 0; i < ref.length; i++) diff |= hash[i] ^ ref[i]; // compare every byte
+      return diff === 0;
+    });
+  }
+  var SEAL_COPY = {
+    unlock: ["The keeper's word", "Speak the word to take up the quill."],
+    set: ["Seal the archive", "Choose the word that will show the editing tools. Use at least " + SEAL_MIN + " characters and a phrase you use nowhere else: a salted hash of it is published with the page."],
+    change: ["A new word", "Choose the new word, at least " + SEAL_MIN + " characters."],
+    open: ["The archive is unsealed", "The quill is yours until this tab closes."],
+    nokey: ["The keeper's word", "This lock has no key yet."],
+    nocrypto: ["The keeper's word", "This browser can't check the word."]
+  };
+  function renderSeal(mode) {
+    sealMode = mode;
+    el.sealTitle.textContent = SEAL_COPY[mode][0];
+    el.sealText.textContent = SEAL_COPY[mode][1];
+    var asks = mode === "unlock" || mode === "set" || mode === "change", twice = mode === "set" || mode === "change";
+    el.sealF1.hidden = !asks;
+    el.sealF2.hidden = !twice;
+    el.sealWord.setAttribute("autocomplete", twice ? "new-password" : "current-password");
+    el.sealWord.value = el.sealAgain.value = "";
+    el.sealGo.hidden = !asks;
+    el.sealGo.textContent = twice ? "Seal" : "Unseal";
+    el.sealLock.hidden = el.sealChange.hidden = mode !== "open";
+    el.sealError.hidden = true;
+  }
+  function openSeal() {
+    var mode = !(window.crypto && crypto.subtle && window.TextEncoder) ? "nocrypto"
+      : canPost() ? "open" : !state.seal ? (canWrite ? "set" : "nokey") : "unlock";
+    renderSeal(mode);
+    el.seal.hidden = false;
+    el.clasp.setAttribute("aria-expanded", "true");
+    setTimeout(function () { (el.sealF1.hidden ? (el.sealGo.hidden ? el.sealLock : el.sealGo) : el.sealWord).focus(); }, 30);
+  }
+  function closeSeal(refocus) {
+    if (el.seal.hidden) return;
+    el.seal.hidden = true;
+    el.sealWord.value = el.sealAgain.value = "";
+    el.clasp.setAttribute("aria-expanded", "false");
+    if (refocus) el.clasp.focus();
+  }
+  function sealError(msg) { el.sealError.textContent = msg; el.sealError.hidden = false; }
+  function sealWorking(on, label) {
+    sealBusy = on;
+    el.sealGo.disabled = on;
+    if (on) { el.sealGo.dataset.idle = el.sealGo.textContent; el.sealGo.textContent = label; } else if (el.sealGo.dataset.idle) el.sealGo.textContent = el.sealGo.dataset.idle;
+  }
+  el.clasp.addEventListener("click", function () { if (el.seal.hidden) openSeal(); else closeSeal(true); });
+  el.sealLock.addEventListener("click", function () {
+    setUnsealed(false);
+    if (currentView === "form") showView("overview");
+    closeSeal(true);
+    toast("Sealed. The editing tools are hidden again.");
+  });
+  el.sealChange.addEventListener("click", function () { if (canPost()) { renderSeal("change"); el.sealWord.focus(); } });
+  el.seal.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (sealBusy) return;
+    var word = el.sealWord.value, mode = sealMode;
+    if (mode === "unlock") {
+      var now = Date.now();
+      if (now < sealWaitUntil) { sealError("Wait " + Math.ceil((sealWaitUntil - now) / 1000) + " s before trying again."); return; }
+      if (!word) { sealError("Speak the word first."); el.sealWord.focus(); return; }
+      sealWorking(true, "Testing…");
+      checkSeal(word, state.seal).then(function (ok) {
+        sealWorking(false);
+        if (!ok) {
+          sealFails++;
+          var secs = Math.min(30, Math.pow(2, sealFails - 1)); // each miss doubles the wait
+          sealWaitUntil = Date.now() + secs * 1000;
+          sealError("The seal does not yield. Try again in " + secs + " s.");
+          el.sealWord.select();
+          return;
+        }
+        sealFails = 0;
+        if (!canWrite) { el.sealWord.value = ""; sealError("The word is right, but only the keeper's claude.ai account can write here."); return; }
+        setUnsealed(true);
+        if (el.archive.open) renderArchive();
+        closeSeal(true);
+        toast("Unsealed. The editing tools are yours until this tab closes.");
+      }, function () { sealWorking(false); sealError("This browser couldn't check the word."); });
+      return;
+    }
+    if (mode === "set" || mode === "change") {
+      if (!canWrite || (mode === "change" && !canPost())) { sealError("Only the keeper's claude.ai account can seal the archive."); return; }
+      if (word.length < SEAL_MIN) { sealError("Use at least " + SEAL_MIN + " characters."); el.sealWord.focus(); return; }
+      if (word !== el.sealAgain.value) { sealError("The two words don't match."); el.sealAgain.focus(); return; }
+      sealWorking(true, "Sealing…");
+      makeSeal(word).then(function (seal) {
+        sealWorking(false);
+        setUnsealed(true);
+        closeSeal(true);
+        save({ seal: seal }, { view: currentView === "detail" ? "detail" : "overview", id: detailId,
+          toast: mode === "set" ? "Sealed with your word. The editing tools are yours until this tab closes." : "The word is changed." }, null, null);
+      }, function () { sealWorking(false); sealError("This browser couldn't seal the archive."); });
+    }
+  });
 
   // ---------- Toast ----------
   function toast(msg) {
@@ -1415,9 +1582,11 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     if (e.target === el.archive && (currentView === "overview" || currentView === "detail")) el.archive.close();
   });
   el.archive.addEventListener("cancel", function (e) {
-    if (currentView === "form") { e.preventDefault(); leaveForm(); }
+    if (!el.seal.hidden) { e.preventDefault(); closeSeal(true); }
+    else if (currentView === "form") { e.preventDefault(); leaveForm(); }
   });
   el.archive.addEventListener("close", function () {
+    closeSeal(false);
     root.append(el.toast);
     disarm(el.detDelete); disarm(el.btnClearExamples);
     el.stage.classList.remove("is-paused");

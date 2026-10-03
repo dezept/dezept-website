@@ -2,8 +2,8 @@
 
 A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on, sweeps a teal scan line down the screen and over the model, then opens the archive. The archive is an old leather-bound tome in the style of the game's books and journals. It holds only his records: the most recent on the left page, and a chaptered index of everything he has re-learned since waking on the right.
 
-- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 11 at handover.
-- **`dist/chalice-archive.html`** is what version 11 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
+- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 12 at handover.
+- **`dist/chalice-archive.html`** is what version 12 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
 
 ## Status
 
@@ -11,6 +11,7 @@ A one-page RP site for a Dracthyr character. The landing page is nothing but his
 |---|---|
 | Landing (the construct alone, no text), scan animation, archive panel, filters, record detail | Done |
 | Inscribe / revise / remove record, remove examples | Done |
+| **Keeper's seal** | **Done.** A brass clasp on the book's edge. The editing tools stay hidden, even for the owner, until the keeper's word is spoken. The word must be chosen once on the live page (see Open items). |
 | Profile (name, epithet, construct name and note) | Kept in the data but no longer shown or editable on the page. The name is only used for screen readers. To change it, edit `profile` in `src/seed.json` (after copying the live data) and republish. |
 | **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutouts remain as the fallback. |
 | Saving | **Works live.** The owner's first real save, **Remove examples** on 2026-10-03, republished the page as version 10. Also covered locally by `tools/smoke.js` (two saves in a row through a mocked `window.claude`). |
@@ -102,7 +103,12 @@ Rules that keep this working:
     "date": "YYYY-MM-DD",
     "added": 0,               // ms timestamp, tie-breaker for ordering
     "example": false
-  }]
+  }],
+  "seal": {                   // absent until the keeper chooses a word
+    "v": 1, "kdf": "PBKDF2-SHA256", "iter": 600000,
+    "salt": "…",              // 16 random bytes, base64
+    "hash": "…"               // 32-byte PBKDF2 output, base64; the word itself is never stored
+  }
 }
 ```
 
@@ -141,6 +147,23 @@ Rules that keep this working:
   - **Anima wisps (`#motes`):** six glowing teal or copper streaks with tapered trails. They drift in from the edges on a slow flow field and orbit the construct. Some spiral in, and each arrival flickers the gem (`model3d.absorb()`). Clicking to scan pulls every wisp in flight into the construct (`motes.gather()`).
   - **Paused** while the archive is open (`.is-paused` on the stage) or the tab is hidden.
 - **Reduced motion:** `prefers-reduced-motion` turns off the float, the halo and pool pulse, the haze drift, the motes, the wisps, the sweep and the unfold. The shafts stay as a still frame. The model draws one still frame and does not follow the cursor.
+
+## The keeper's seal and what keeps the archive safe
+
+**Who can save is decided by claude.ai, not by this page.** `artifact.publish` succeeds only for the owner and people given edit access. Anyone on a public link is read-only on Anthropic's servers, whatever they run in their own browser. That is the real security boundary, and it already holds.
+
+**The seal is a second lock on top, for the keeper's own browser.** The editing tools appear only when two things are true (`canPost()`): claude.ai says this account can write (`user.canEdit()` / `isOwner()`), and this tab has been unsealed with the word.
+- **The clasp:** the brass keyhole on the book's right edge (`#clasp`) opens the word panel (`#seal`).
+- **Choosing the word:** with no word set yet, an account that can write chooses one: at least 12 characters, typed twice. The page derives PBKDF2-SHA256 with a random 16-byte salt and 600,000 iterations (the OWASP figure for PBKDF2-SHA256) in the browser with WebCrypto. Only `{salt, hash, iter}` goes into the data block, published with the next save.
+- **Unsealing:** the word is re-derived and compared byte by byte. Unsealing lasts until the tab closes (`sessionStorage["ca-unsealed"]`), so the reload after a save keeps the tools. **Seal it again** hides them at once. **Change the word** needs an unsealed tab.
+- **Wrong words:** each miss doubles a wait, up to 30 s. A visitor who knows the right word is told that only the keeper's claude.ai account can write, and gets no tools.
+- **Never leaves the browser:** the word is never stored, never sent anywhere and never written into the page. The inputs are cleared after use, and saves rebuild the page from the template rather than the live DOM.
+
+**What this means in practice:**
+- **Public hash:** the salted hash is public with the page, so the word should be a long phrase used nowhere else. PBKDF2's cost makes guessing slow, but a weak word could still be guessed offline.
+- **Leaked word:** if someone learned the word, they still could not post. Without the keeper's claude.ai account they get nothing.
+- **Encryption:** the page and every save travel over HTTPS to claude.ai. The records are not encrypted at rest because they are meant to be read by visitors. The word is hashed, not encrypted, so it cannot be recovered from the page.
+- **Untrusted input:** every record field is rendered as text, never as HTML, and the data block escapes `<`, U+2028 and U+2029.
 
 ## The 3D construct
 
@@ -185,9 +208,10 @@ cd tools && npm install
 CHROME=/path/to/chrome node smoke.js
 ```
 
-It serves the standalone build under a CSP shaped like the viewer's and checks that the model loads. It checks that a click on the construct's body does nothing, that pointing at the gem shows the hand cursor, that clicking the gem opens the archive, and that the archive shows recent accessions and the index. It then saves twice through a mocked `window.claude` and reloads each saved page. Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`.
+It serves the standalone build under a CSP shaped like the viewer's and checks that the model loads. It checks that a click on the construct's body does nothing, that pointing at the gem shows the hand cursor, that clicking the gem opens the archive, and that the archive shows its two pages. With `window.claude` mocked as the owner, it checks that the tools stay hidden until the word is set, that setting it publishes only the salted hash and never the word, that a wrong word is refused, that the right word shows the tools, and that saves keep the seal. Finally it checks that a visitor who knows the word gets no tools. It then saves twice through a mocked `window.claude` and reloads each saved page. Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`.
 
 ## Open items for the owner
 
+- **Choose the keeper's word.** Open the live page, scan the gem, click the brass clasp on the book's right edge, and choose a long phrase you use nowhere else. Until then the editing tools stay hidden, even for you. Don't share the word in chats or files.
 - If the character should have a name for screen readers, set `profile.name` in `src/seed.json` (it is no longer editable on the page).
 - Share the page from its Share menu so other RPers can open it.

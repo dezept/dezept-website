@@ -13,8 +13,10 @@ Checks:
      from data:, no fetch), the page swaps the cutout for the 3D model, and the archive shows its accessions and index.
      A click on the construct's body does nothing; pointing at the gem shows the hand cursor, and clicking
      the gem opens the archive.
-  2. With a mocked window.claude, inscribing a record publishes a page that keeps the skeleton and the model
-     block, boots again in 3D with the new record, and a second save matches the first apart from its data.
+  2. With window.claude mocked as the owner: the editing tools stay hidden until the keeper's word is set or
+     spoken; setting it publishes only a salted PBKDF2 hash; a wrong word is refused; saves keep the skeleton,
+     the model and the seal, and a second save matches the first apart from its data.
+  3. A visitor who knows the word still gets no editing tools.
 Screenshots go to tools/.smoke/.
 */
 const fs = require('fs');
@@ -86,36 +88,90 @@ server.listen(0, '127.0.0.1', async () => {
     await page.waitForSelector('#archive[open]', { timeout: 5000 });
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, 'archive.png') });
-    check(await page.$$eval('#recent .rec-btn', (n) => n.length) > 0 && await page.$$eval('#index .domain', (n) => n.length) > 0, 'the archive shows recent accessions and the index');
-    check(await page.$('#btn-inscribe[hidden]') !== null, 'no owner controls without window.claude');
+    check(await page.$('#recent-title') !== null && await page.$('#index-title') !== null, 'the archive shows its two pages: recent accessions and the index');
+    check(await page.$('#btn-inscribe[hidden]') !== null, 'no editing tools without window.claude');
     check(errors.length === 0, `no console errors${errors.length ? ': ' + errors.join(' | ') : ''}`);
     await page.close();
 
-    // 2. two saves through the self-republishing path
-    for (let round = 1; round <= 2; round++) {
-      const p = await ctx.newPage();
-      await p.goto(url);
-      await p.evaluate(() => sessionStorage.setItem('smoke-claude', '1'));
-      await p.reload();
-      await p.waitForSelector('.core.is-3d', { timeout: 30000 });
-      await p.focus('#construct');
-      await p.keyboard.press('Enter'); // keyboard activation always scans
-      await p.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 10000 });
-      await p.click('#btn-inscribe');
-      await p.fill('#f-title', `Smoke record ${round}`);
-      await p.click('#f-submit');
-      await p.waitForFunction((n) => document.querySelector('#toast') && !document.querySelector('#toast').hidden, round, { timeout: 5000 });
-      const html = published[round - 1] || '';
-      check(html.startsWith(SKELETON) && html.endsWith('</body></html>'), `save ${round}: published page keeps the Artifact skeleton`);
-      check((html.match(MODEL_BLOCK) || [])[1] === originalModel, `save ${round}: model block survives unchanged`);
-      served = html;
-      await p.reload();
-      check(await p.waitForSelector('.core.is-3d', { timeout: 30000 }).then(() => true, () => false), `save ${round}: saved page boots in 3D`);
-      const titles = await p.evaluate(() => JSON.parse(document.getElementById('ca-data').textContent).records.map((r) => r.title));
-      check(titles.includes(`Smoke record ${round}`), `save ${round}: saved page holds the new record`);
-      await p.close();
+    // 2. the keeper's seal, and saves through the self-republishing path (window.claude mocked as the owner)
+    const WORD = 'a long smoke-test passphrase';
+    const SEAL = /"seal":\{"v":1,"kdf":"PBKDF2-SHA256","iter":600000,"salt":"[A-Za-z0-9+/=]{24}","hash":"[A-Za-z0-9+/=]{44}"\}/;
+    const waitPublished = (n) => (async () => { for (let i = 0; i < 100 && published.length < n; i++) await new Promise((r) => setTimeout(r, 100)); })();
+    async function ownerTab() {
+      const t = await ctx.newPage();
+      await t.goto(url);
+      await t.evaluate(() => sessionStorage.setItem('smoke-claude', '1'));
+      await t.reload();
+      await t.waitForSelector('.core.is-3d', { timeout: 30000 });
+      await t.focus('#construct');
+      await t.keyboard.press('Enter'); // keyboard activation always scans
+      await t.waitForSelector('#archive[open]', { timeout: 5000 });
+      await t.waitForTimeout(1200); // claude.use resolves
+      return t;
     }
-    check(published[0].replace(DATA_BLOCK, '') === published[1].replace(DATA_BLOCK, ''), 'a re-saved page differs from the first save only in its data');
+    async function inscribe(t, title, n) {
+      await t.click('#btn-inscribe');
+      await t.fill('#f-title', title);
+      await t.click('#f-submit');
+      await waitPublished(n);
+      const html = published[n - 1] || '';
+      check(html.startsWith(SKELETON) && html.endsWith('</body></html>') && (html.match(MODEL_BLOCK) || [])[1] === originalModel,
+        `save ${n}: the published page keeps the Artifact skeleton and the model`);
+      return html;
+    }
+
+    let t = await ownerTab();
+    check(await t.$('#btn-inscribe[hidden]') !== null, 'the owner sees no editing tools while the archive is sealed');
+    await t.click('#clasp');
+    check(await t.$('#seal-f2:not([hidden])') !== null, 'with no word set yet, the clasp asks the owner to choose one');
+    await t.fill('#seal-word', WORD);
+    await t.fill('#seal-again', WORD + '!');
+    await t.click('#seal-go');
+    check((await t.textContent('#seal-error')).includes("don't match"), 'mismatched words are refused');
+    await t.fill('#seal-again', WORD);
+    await t.click('#seal-go');
+    await waitPublished(1);
+    const sealed = published[0] || '';
+    const sealJson = (sealed.match(SEAL) || [''])[0];
+    check(!!sealJson, 'choosing the word publishes a salted PBKDF2-SHA256 hash (600,000 rounds)');
+    check(!sealed.includes(WORD), 'the word itself appears nowhere in the published page');
+    served = sealed;
+    await t.reload(); // the viewer reloads every open view to the new version
+    check(await t.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 15000 }).then(() => true, () => false), "after sealing, the owner's tab stays unsealed");
+    served = await inscribe(t, 'Smoke record 1', 2);
+    check(served.includes(sealJson), 'saving a record keeps the seal');
+    await t.close();
+
+    t = await ownerTab(); // a new tab starts sealed again
+    check(await t.$('#btn-inscribe[hidden]') !== null, 'a new tab starts sealed, even for the owner');
+    check(await t.evaluate(() => JSON.parse(document.getElementById('ca-data').textContent).records.some((r) => r.title === 'Smoke record 1')), 'the saved record is in the reloaded page');
+    await t.click('#clasp');
+    await t.fill('#seal-word', 'not the word at all');
+    await t.click('#seal-go');
+    await t.waitForSelector('#seal-error:not([hidden])', { timeout: 15000 });
+    check((await t.textContent('#seal-error')).includes('does not yield') && await t.$('#btn-inscribe[hidden]') !== null, 'a wrong word is refused and the tools stay hidden');
+    await t.waitForTimeout(1100); // the first miss costs a second
+    await t.fill('#seal-word', WORD);
+    await t.click('#seal-go');
+    check(await t.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 15000 }).then(() => true, () => false), 'the right word shows the editing tools');
+    served = await inscribe(t, 'Smoke record 2', 3);
+    await t.close();
+    check(published[1].replace(DATA_BLOCK, '') === published[2].replace(DATA_BLOCK, ''), 'a re-saved page differs from the first save only in its data');
+
+    // 3. a visitor who knows the word still cannot write: claude.ai decides that
+    const v = await ctx.newPage();
+    await v.goto(url);
+    await v.waitForSelector('.core.is-3d', { timeout: 30000 });
+    await v.focus('#construct');
+    await v.keyboard.press('Enter');
+    await v.waitForSelector('#archive[open]', { timeout: 5000 });
+    await v.click('#clasp');
+    await v.fill('#seal-word', WORD);
+    await v.click('#seal-go');
+    await v.waitForSelector('#seal-error:not([hidden])', { timeout: 15000 });
+    check((await v.textContent('#seal-error')).includes("only the keeper's claude.ai account") && await v.$('#btn-inscribe[hidden]') !== null,
+      'a visitor with the right word gets no editing tools');
+    await v.close();
   } catch (e) {
     check(false, `run completed (${e.message})`);
   } finally {
