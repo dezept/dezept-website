@@ -11,6 +11,8 @@ Environment:
 Checks:
   1. Under a CSP shaped like the claude.ai Artifact viewer's (scripts only from the allowed CDNs, images only
      from data:, no fetch), the page swaps the cutout for the 3D model and renders the archive's side view.
+     A click on the construct's body does nothing; pointing at the gem shows the hand cursor, and clicking
+     the gem opens the archive.
   2. With a mocked window.claude, inscribing a record publishes a page that keeps the skeleton and the model
      block, boots again in 3D with the new record, and a second save matches the first apart from its data.
 Screenshots go to tools/.smoke/.
@@ -68,7 +70,19 @@ server.listen(0, '127.0.0.1', async () => {
     check(await page.waitForSelector('.core.is-3d', { timeout: 30000 }).then(() => true, () => false), '3D model replaces the cutout under the Artifact CSP');
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(OUT, 'landing.png') });
-    await page.click('#construct');
+    const box = await (await page.$('#construct')).boundingBox();
+    const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+    await page.mouse.click(cx, cy - box.height * .3); // the frame between the horns, above the gem
+    await page.waitForTimeout(2500);
+    check(!(await page.$('#archive[open]')), 'a click on the construct away from the gem does not scan');
+    let gem = null; // walk down the centre line until the pointer is over the gem
+    for (let dy = 0; dy <= box.height * .5 && !gem; dy += 12) {
+      await page.mouse.move(cx, cy + dy);
+      await page.waitForTimeout(500);
+      if (await page.$('#stage.on-gem')) gem = [cx, cy + dy];
+    }
+    check(!!gem, 'pointing at the gem shows the hand cursor');
+    if (gem) await page.mouse.click(gem[0], gem[1]);
     await page.waitForSelector('#archive[open]', { timeout: 5000 });
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, 'archive.png') });
@@ -84,7 +98,8 @@ server.listen(0, '127.0.0.1', async () => {
       await p.evaluate(() => sessionStorage.setItem('smoke-claude', '1'));
       await p.reload();
       await p.waitForSelector('.core.is-3d', { timeout: 30000 });
-      await p.click('#construct');
+      await p.focus('#construct');
+      await p.keyboard.press('Enter'); // keyboard activation always scans
       await p.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 10000 });
       await p.click('#btn-inscribe');
       await p.fill('#f-title', `Smoke record ${round}`);

@@ -59,7 +59,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 .core { --size: min(58vmin, 460px); position: relative; display: grid; place-items: center; }
-.construct { position: relative; width: var(--size); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.construct { position: relative; width: var(--size); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: none; cursor: inherit; -webkit-tap-highlight-color: transparent; }
+.stage.on-gem { cursor: pointer; } /* only the gem starts a scan */
 .fx { position: absolute; inset: 0; display: block; }
 .fx-x { animation: drift-x 13s ease-in-out infinite alternate; }
 .fx-y { animation: bob 5.6s ease-in-out infinite; }
@@ -1000,7 +1001,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   var THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm";
   var GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js/+esm";
   var model3d = (function () {
-    var api = { pause: function () {}, resume: function () {}, scan: function () {}, absorb: function () {}, lift: function () { return .5; } };
+    var api = { pause: function () {}, resume: function () {}, scan: function () {}, absorb: function () {}, lift: function () { return .5; }, gemAt: function () { return false; } };
     var canvas = el.constructGl;
     if (!SRC.model || !canvas || !window.WebGLRenderingContext) return api;
 
@@ -1059,7 +1060,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       "    float rim = pow(1.0 - clamp(dot(n, normalize(-vView)), 0.0, 1.0), 3.0);",
       "    c = c * light + uTeal * rim * (0.14 + 0.2 * uHover);",
       "  }",
-      "  c = c * (1.0 + uGem * (0.2 + 0.35 * uGlow + 1.1 * uFlare)) + uGem * uTeal * (0.06 + 0.2 * uGlow + 0.5 * uFlare);",
+      "  c = c * (1.0 + uGem * (0.2 + 0.35 * uGlow + 1.1 * uFlare + 0.5 * uHover)) + uGem * uTeal * (0.06 + 0.2 * uGlow + 0.5 * uFlare + 0.2 * uHover);",
       // distance in CSS px from the page's scan line, in the screen's frame (the canvas sits in a tilted wrapper)
       "  vec2 q = vec2(gl_FragCoord.x, uSize.y * uDpr - gl_FragCoord.y) / uDpr - uSize * 0.5;",
       "  float d = q.x * sin(uTilt) + q.y * cos(uTilt) - uScanY;",
@@ -1091,7 +1092,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     var mats = [], sprites = [], emitter = null, bone0 = null, liftMin = 0, liftAmp = 0, lastLift = "", clipLen = 1;
     var size = null, PITCH = .2;
     var ready = false, running = false, onScreen = true, raf = 0, last = 0;
-    var t = 0, speed = 1, hover = 0, hovered = false, scanAt = -1, absorbAt = -1e9, liftNow = .5;
+    var t = 0, speed = 1, hover = 0, focused = false, scanAt = -1, absorbAt = -1e9, liftNow = .5, gemMesh = null, picker = null;
     // Cursor following: the construct turns so the gem's line of sight passes through the cursor, read as a point
     // on a pane GAP model units in front of it. A smaller GAP makes it turn harder for the same cursor offset.
     var GAP = 1.2, pointer = { on: false, x: 0, y: 0 }, A = null;
@@ -1238,6 +1239,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       A = { ray: new T.Vector3(), view: new T.Vector3(), target: new T.Vector3(), sight: new T.Vector3(), gem: new T.Vector3(), now: new T.Vector3(),
             bone: bone0 ? bone0.position.clone() : new T.Vector3(), looker: new T.Object3D(), q: new T.Quaternion(), mid: new T.Quaternion() };
       if (gem) { gem.geometry.computeBoundingBox(); gem.geometry.boundingBox.getCenter(A.gem).add(gltf.scene.position); }
+      gemMesh = gem || null;
+      picker = { ray: new T.Raycaster(), ndc: new T.Vector2(), c: new T.Vector3(), e: new T.Vector3() };
       var aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
       Object.keys(tex).forEach(function (i) { tex[i].anisotropy = aniso; });
 
@@ -1271,8 +1274,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       document.addEventListener("pointerup", function (e) { if (e.pointerType !== "mouse") pointer.on = false; });
       document.addEventListener("pointercancel", function () { pointer.on = false; });
       document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) pointer.on = false; }); // left the window
-      ["pointerenter", "focus"].forEach(function (n) { el.construct.addEventListener(n, function () { hovered = true; }); });
-      ["pointerleave", "blur"].forEach(function (n) { el.construct.addEventListener(n, function () { hovered = false; }); });
+      el.construct.addEventListener("focus", function () { focused = true; });
+      el.construct.addEventListener("blur", function () { focused = false; });
       canvas.addEventListener("webglcontextlost", function (e) { e.preventDefault(); stop(); el.core.classList.remove("is-3d"); });
       canvas.addEventListener("webglcontextrestored", function () { draw(performance.now()); el.core.classList.add("is-3d"); api.resume(); });
       api.resume();
@@ -1360,7 +1363,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       speed += ((scanning ? .15 : 1) - speed) * Math.min(1, dt * 5);
       t += dt * speed;
       pose(reduced ? 1.2 : t);
-      hover += ((hovered ? 1 : 0) - hover) * Math.min(1, dt * 6);
+      if (pointer.on && !scanning) setGemHover(gemAt(pointer.x, pointer.y)); // the gem moves under a still cursor too
+      hover += ((gemHover || focused ? 1 : 0) - hover) * Math.min(1, dt * 6);
       aim(dt);
       U.hover.value = hover;
       U.glow.value = .5 + .5 * Math.sin(now / 1000 * Math.PI * 2 / 3.4);
@@ -1381,6 +1385,24 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
         var lift = liftNow.toFixed(2);
         if (lift !== lastLift) { el.core.style.setProperty("--lift", lift); lastLift = lift; }
       }
+    }
+
+    // Is the client point (x, y) on the gem? A ray against its mesh in the current pose, with a little slack:
+    // anywhere inside 55% of its projected bounding circle also counts.
+    function gemAt(x, y) {
+      if (!ready || !gemMesh) return false;
+      var r = canvas.getBoundingClientRect();
+      scene.updateMatrixWorld();
+      gemMesh.computeBoundingSphere(); // skinned: the cached sphere would not follow the hover
+      picker.ndc.set((x - r.left) / r.width * 2 - 1, 1 - (y - r.top) / r.height * 2);
+      picker.ray.setFromCamera(picker.ndc, camera);
+      if (picker.ray.intersectObject(gemMesh, false).length) return true;
+      var sph = gemMesh.boundingSphere;
+      picker.c.copy(sph.center).applyMatrix4(gemMesh.matrixWorld);
+      picker.e.copy(picker.c).project(camera);
+      var gx = r.left + (picker.e.x + 1) / 2 * r.width, gy = r.top + (1 - picker.e.y) / 2 * r.height;
+      var px = sph.radius / (picker.c.distanceTo(camera.position) * Math.tan(camera.fov * Math.PI / 360)) * r.height / 2;
+      return (x - gx) * (x - gx) + (y - gy) * (y - gy) < Math.pow(px * .55, 2);
     }
 
     // Turn toward the cursor, or sway gently when there is none (touch, pointer outside the window, reduced motion)
@@ -1405,8 +1427,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       A.q.copy(A.looker.quaternion).invert();
       A.looker.lookAt(A.target);
       A.q.premultiply(A.looker.quaternion);
-      // two easing stages in a row: the turn starts gently and trails the cursor by about 150 ms
-      var k = reduced || !dt ? 1 : 1 - Math.exp(-dt * 13);
+      // two easing stages in a row: the turn starts gently and trails the cursor by about 290 ms
+      var k = reduced || !dt ? 1 : 1 - Math.exp(-dt * 7);
       A.mid.slerp(A.q, k);
       rig.quaternion.slerp(A.mid, k);
     }
@@ -1434,6 +1456,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     api.scan = function () { if (ready && !reduced) scanAt = performance.now(); };
     api.absorb = function () { absorbAt = performance.now(); };
     api.lift = function () { return liftNow; };
+    api.gemAt = gemAt;
 
     Promise.all([import(THREE_URL), import(GLTF_URL)]).then(function (mods) {
       T = mods[0];
@@ -1473,7 +1496,20 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   }
 
   // ---------- Events ----------
-  el.construct.addEventListener("click", function () { scan({ view: "overview" }); });
+  // Only the gem starts a scan. A pointer click has to land on it; keyboard activation of the button
+  // (Enter or Space, which reports detail 0) always scans.
+  var gemHover = false;
+  function setGemHover(on) { if (on === gemHover) return; gemHover = on; el.stage.classList.toggle("on-gem", on); }
+  function onGem(x, y) {
+    if (el.core.classList.contains("is-3d")) return model3d.gemAt(x, y);
+    var g = el.construct.querySelector(".gem").getBoundingClientRect(); // the cutout's gem, while the model is not drawn
+    var dx = x - (g.left + g.width / 2), dy = y - (g.top + g.height / 2);
+    return dx * dx + dy * dy < Math.pow(g.width * .25, 2);
+  }
+  el.construct.addEventListener("click", function (e) { if (e.detail === 0) scan({ view: "overview" }); });
+  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && onGem(e.clientX, e.clientY)) scan({ view: "overview" }); });
+  el.stage.addEventListener("pointermove", function (e) { if (!scanning) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
+  el.stage.addEventListener("pointerleave", function () { setGemHover(false); });
   el.btnClose.addEventListener("click", function () { el.archive.close(); });
   el.archive.addEventListener("click", function (e) {
     if (e.target === el.archive && (currentView === "overview" || currentView === "detail")) el.archive.close();
