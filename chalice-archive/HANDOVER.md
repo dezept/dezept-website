@@ -2,92 +2,91 @@
 
 A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on, sweeps a teal scan line down the screen and over the model, then opens the archive. The archive is an old leather-bound tome in the style of the game's books and journals. It holds only his records: the most recent on the left page, and a chaptered index of everything he has re-learned since waking on the right.
 
-- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 12 at handover.
-- **`dist/chalice-archive.html`** is what version 12 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
+- **Self-hosted** on the owner's VPS: Cloudflare in front, then Caddy, then a small Node server (`server/server.mjs`, no dependencies) that serves the page and the model, stores the records, and checks the keeper's word. **`deploy/README.md` is the step-by-step setup.**
+- **The old claude.ai Artifact** (https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh, version 12) is left as it was: a frozen snapshot that no longer matches this code. Its data (no records, no word) matched `src/seed.json` when the move was made, so nothing needed migrating.
 
 ## Status
 
 | Area | State |
 |---|---|
-| Landing (the construct alone, no text), scan animation, archive panel, filters, record detail | Done |
-| Inscribe / revise / remove record, remove examples | Done |
-| **Keeper's seal** | **Done.** A brass clasp on the book's edge. The editing tools stay hidden, even for the owner, until the keeper's word is spoken. The word must be chosen once on the live page (see Open items). |
-| Profile (name, epithet, construct name and note) | Kept in the data but no longer shown or editable on the page. The name is only used for screen readers. To change it, edit `profile` in `src/seed.json` (after copying the live data) and republish. |
-| **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutouts remain as the fallback. |
-| Saving | **Works live.** The owner's first real save, **Remove examples** on 2026-10-03, republished the page as version 10. Also covered locally by `tools/smoke.js` (two saves in a row through a mocked `window.claude`). |
-| Live viewer | Works in the claude.ai viewer (the owner has used the landing and saved from the archive). Also tested in headless Chromium under a CSP shaped like the viewer's. |
-| Content | No records yet: the owner removed the 9 examples on the live page. `src/seed.json` was updated from the live page before version 11 was published. |
+| Landing (the construct alone, no text), scan animation, archive tome, record detail | Done |
+| Inscribe / revise / remove record, remove examples | Done, through the server's API |
+| **Keeper's seal** | **Done.** A brass clasp on the tome's edge opens a small panel. The keeper's word is checked on the server and gives a session; **Seal it again** ends it. The word is set on the VPS with `set-password` and can be changed from the panel. |
+| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (60 checks). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
+| Profile (name, epithet, construct name and note) | Kept in the data, not shown or editable. The name is only used for screen readers. To change it, stop the service and edit `profile` in `/var/lib/chalice-archive/archive.json`. |
+| **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutout remains as the fallback. |
+| Content | No records yet. |
 
 ## Files
 
 ```
 build.py                         builds dist/ from src/ + assets/
-src/page.html                    the page: CSS, markup template, app script, with placeholders
-src/seed.json                    profile + records embedded in the page
-src/skeleton-reset.css           exact <style> of the claude.ai Artifact skeleton (used by the save path)
+src/page.html                    the page: CSS, markup, app script, with placeholders
+src/seed.json                    the starting archive, copied to DATA_DIR/archive.json on the server's first start
+server/server.mjs                the server (Node 20+, no dependencies); `set-password` sets the keeper's word
+deploy/README.md                 VPS setup: Node, Caddy, Cloudflare, firewall, backups, what protects what
+deploy/Caddyfile                 Caddy in front of the server: Origin Certificate, Authenticated Origin Pulls, real client IP
+deploy/chalice-archive.service   systemd unit with sandboxing
+deploy/firewall.sh               ufw: 443 only from Cloudflare, SSH rate-limited, everything else closed
 assets/model/chalice.glb         the construct's 3D model (made by tools/m2_to_glb.py, 544 KB)
 assets/front.webp|png            front-view cutout (fallback while/if the model can't load)
 assets/screenshots/              the original in-game screenshots
 tools/m2.py                      minimal reader for M2 models and .skin files
 tools/m2_to_glb.py               downloads the game files and writes assets/model/chalice.glb
-tools/smoke.js                   headless-browser smoke test (CSP load + two saves); npm install in tools/ first
+tools/smoke.js                   starts the server and tests the API and the page; npm install in tools/ first
 tools/cutout.py                  background removal used to make the cutouts (ISNet via onnxruntime)
-dist/chalice-archive.html             page body: what gets published as the Artifact
-dist/chalice-archive.standalone.html  same page in the skeleton; open locally in a browser (read-only)
+dist/index.html                  the built page (committed, so the VPS needs no build step)
+dist/chalice.<hash>.glb          the model, named by its SHA-256 so it can be cached forever
 ```
 
-Placeholders in `src/page.html`, filled by `build.py`:
+Placeholders in `src/page.html`:
 
-| Placeholder | Filled with |
-|---|---|
-| `__FRONT__` | WebP data URI of the front cutout |
-| `__MODEL__` | `assets/model/chalice.glb`, base64 |
-| `__DATA__` | `seed.json` (with `<`, U+2028 and U+2029 escaped) |
-| `"__RESET__"` | The skeleton CSS as a JS string |
+| Placeholder | Filled by | With |
+|---|---|---|
+| `__FRONT__` | `build.py` | WebP data URI of the front cutout |
+| `__MODEL_URL__` | `build.py` | `chalice.<first 12 hex of SHA-256>.glb` |
+| `__ARCHIVE__` | the server, per request | the archive JSON, with `<`, `>`, `&`, U+2028 and U+2029 escaped |
+
+### Running it locally
+
+```
+python3 build.py
+node server/server.mjs set-password                  # asks twice; data goes to server/data/ (git-ignored)
+COOKIE_SECURE=false node server/server.mjs           # http://127.0.0.1:8080
+```
+
+`COOKIE_SECURE=false` drops the cookie's `Secure` flag and `__Host-` prefix and HSTS, which plain http needs. Never set it in production.
 
 ## How the page works
 
 ### Structure
 
-The published file contains exactly these blocks, in this order:
+`dist/index.html` is an ordinary document: `<head>` with the title, an inline SVG favicon, a preload of the model, the Google Fonts `<link>` and `<style id="ca-style">`; `<body>` with the markup (stage, scan overlay, the `<dialog>` tome, the toast), `<script type="application/json" id="ca-data">` and `<script id="ca-app">`. The model is fetched from `MODEL_URL`.
 
-1. `<title>`
-2. Google Fonts `<link>`
-3. `<style id="ca-style">`
-4. `<template id="ca-shell">`, which holds all the markup, including the scan overlay, the `<dialog>` and the toast
-5. `<div id="ca-root">`
-6. `<script type="application/json" id="ca-data">`
-7. `<script type="application/octet-stream" id="ca-model">`: the GLB as base64
-8. `<script id="ca-app">`
+The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and puts them in the Content-Security-Policy, so they are the only inline script and style that can run. **Any other inline `<script>`, `<style>`, `style="…"` attribute or `on…=` handler is blocked.** Add styles to `ca-style`, code to `ca-app`, and set styles from JS through `el.style` (allowed), not `setAttribute("style", …)`.
 
-On boot, `ca-app` first captures `SRC`: the style's text, the template's innerHTML, the model's base64 and its own text. It then clones the template into `#ca-root` and renders from the JSON.
+### Server and API
 
-### Saving (self-republishing Artifact)
+| Route | Who | Does |
+|---|---|---|
+| `GET /` | anyone | the page, with the current archive in `ca-data` |
+| `GET /chalice.<hash>.glb` | anyone | the model, cached for a year (`immutable`) |
+| `GET /api/session` | anyone | `{owner, csrf}`: whether this browser holds the keeper's session, and its CSRF token |
+| `GET /api/archive` | anyone | `{archive}` |
+| `POST /api/login` | anyone, throttled | `{password}` → session cookie + `{csrf}` |
+| `POST /api/logout` | keeper | ends the session |
+| `POST /api/password` | keeper | `{current, next}` → new word, every other session ended |
+| `POST /api/records` | keeper | new record → `{archive, id}` |
+| `PUT /api/records/:id` | keeper | revise → `{archive, id}` |
+| `DELETE /api/records/:id` | keeper | remove → `{archive}` |
+| `POST /api/records/clear-examples` | keeper | remove example records → `{archive}` |
 
-The page declares the Artifact capabilities `artifact` and `user`. Inside claude.ai:
-
-1. `claude.use("user")` reports whether the viewer can edit. Owners and editors get **Inscribe record**, **Revise** and **Remove record**, plus **Remove examples** while example records exist.
-2. Saving builds a complete new document with `buildHTML(state)`: the claude.ai skeleton, the same blocks rebuilt from `SRC`, and new JSON. It calls `artifact.publish(html)`.
-3. The viewer reloads every open view to the new version.
-4. `sessionStorage["ca-after"] = {view, id, toast}` survives the reload, so the archive reopens on the saved record with a confirmation.
-
-Rules that keep this working:
-
-- **Skeleton:** the skeleton string in `buildHTML` must match claude.ai's exactly. That means `<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>` + reset + `</style></head><body>`. If it doesn't, later publishes nest one skeleton inside another.
-- **New blocks:** anything you add to the page outside the blocks above must also be emitted by `buildHTML`. Otherwise the first save from the page deletes it. The model block is emitted from `SRC.model`.
-- **Size:** every save republishes the whole page, currently 922 KB (the model is about 725 KB of it, nearly all textures). The limit is 16 MB.
-- **Live DOM:** never serialize the live DOM.
-- **Boolean attributes:** after the first save, template serialization turns `hidden` into `hidden=""`. This is harmless.
-- **Error codes:**
-  - `conflict`: the view reloads; the edit is dropped and the toast explains why.
-  - `not_writer`, `not_granted` and similar: switch to read-only.
-  - `rate_limited` and `too_large`: show a message.
-  - `upstream_error`: retry once.
-- **Viewer limits:** the viewer has no `alert`, `confirm` or `prompt`. Deletes are two-step buttons: the first click arms, the second confirms, and it auto-disarms after 5 s.
-
-**Outside claude.ai** (local file, GitHub Pages, …), `window.claude` doesn't exist. The page is read-only and still renders the embedded records and the model. Self-hosting needs another way to save, either by editing `seed.json` and rebuilding, or with a small backend.
-
-**Live data vs. `seed.json`:** records added through the live page exist only in the published Artifact. Before you rebuild from `seed.json` and republish, copy the current `ca-data` JSON from the live page into `src/seed.json`. Otherwise you overwrite his records. Version 10 was the owner's own save (examples removed). Its data was copied into `seed.json` before version 11 was built, so the two match at handover.
+- **Keeper-only routes** need the session cookie, an `X-CSRF-Token` header equal to the session's token and an `Origin` equal to `PUBLIC_ORIGIN`. Bodies must be JSON (`Content-Type: application/json`, at most 64 KB).
+- **Server-side cleaning:** ids, `added` and `example` are set by the server. Text is trimmed, stripped of control characters and capped (title 120, domain 60, note 4000, source 160). Unknown states become `fragment`, bad dates become today, an empty domain becomes "Unsorted".
+- **Storage:** `DATA_DIR/archive.json`, written atomically (temp file, fsync, rename). The previous version goes to `DATA_DIR/backups/` first, keeping the last 50. `auth.json` holds the scrypt hash. All are mode 0600 in a 0700 directory.
+- **Sessions** are kept in memory (at most 50), so a restart signs the keeper out. Only each token's SHA-256 is stored.
+- **In the page** (`ca-app`): `call(method, url, body)` wraps `fetch` with the CSRF header. `save()` sends a change and re-renders from the archive the server returns. A 401/403 asks the server about the session again: if it has ended, the seal panel opens without closing an open form, so the keeper can unseal and press Inscribe again.
+- **Deletes** are two-step buttons: the first click arms, the second confirms, and they disarm after 5 s.
 
 ### Data model
 
@@ -95,7 +94,7 @@ Rules that keep this working:
 {
   "profile": { "name": "", "epithet": "", "construct": "", "constructNote": "" },
   "records": [{
-    "id": "r…",               // unique
+    "id": "r…",               // set by the server: "r" + 12 random base64url characters
     "title": "",
     "domain": "",             // free text; SUGGESTED_DOMAINS sets display order
     "status": "relearned",    // see below
@@ -103,12 +102,7 @@ Rules that keep this working:
     "date": "YYYY-MM-DD",
     "added": 0,               // ms timestamp, tie-breaker for ordering
     "example": false
-  }],
-  "seal": {                   // absent until the keeper chooses a word
-    "v": 1, "kdf": "PBKDF2-SHA256", "iter": 600000,
-    "salt": "…",              // 16 random bytes, base64
-    "hash": "…"               // 32-byte PBKDF2 output, base64; the word itself is never stored
-  }
+  }]
 }
 ```
 
@@ -122,7 +116,6 @@ Rules that keep this working:
 
 - **Recent accessions:** sorted by `date` desc, then `added` desc, top 6.
 - **Knowledge index:** grouped by domain.
-- **Status bar:** the counts of each state.
 
 ### Design
 
@@ -130,7 +123,7 @@ Rules that keep this working:
 - **Fonts:** Cinzel (titles, buttons, the game's inscriptional capitals), IM Fell English (the book's text, an 18th-century typeface with old-style numerals) and IM Fell English SC (labels and dates).
 - **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon in the gutter.
   - **Pages:** two parchment leaves either side of a shadowed spine (`.book`, `#page-l`, `#page-r`). The paper is fine SVG grain plus a stretched low-frequency stain (`--grain`, `--mottle`); a tiled stain showed a seam. Stacked page edges show beneath.
-  - **Left leaf:** the owner's buttons (Inscribe record, and Remove examples while any exist; hidden from visitors), then "Recent accessions", the latest six records with date, state and the start of the note.
+  - **Left leaf:** the keeper's buttons (Inscribe record, and Remove examples while any exist; shown only during the keeper's session), then "Recent accessions", the latest six records with date, state and the start of the note.
   - **Right leaf:** the "Index of knowledge" as a table of contents. Domains are numbered chapters with roman numerals, and each entry runs to its state on dotted leaders. A record or a form opens on this leaf. A record has a red drop capital and its sources as marginalia. Forms are written on ruled lines.
   - **Game styling:** buttons copy the game's red panel buttons (gold text, brass rim). The close button is the round red one, and notices are dark tooltips with gold text.
   - **Narrow screens (≤ 860 px):** one leaf at a time. Opening a record or a form hides the recent accessions (`.book[data-view]`), so it is not buried below them.
@@ -150,20 +143,17 @@ Rules that keep this working:
 
 ## The keeper's seal and what keeps the archive safe
 
-**Who can save is decided by claude.ai, not by this page.** `artifact.publish` succeeds only for the owner and people given edit access. Anyone on a public link is read-only on Anthropic's servers, whatever they run in their own browser. That is the real security boundary, and it already holds.
-
-**The seal is a second lock on top, for the keeper's own browser.** The editing tools appear only when two things are true (`canPost()`): claude.ai says this account can write (`user.canEdit()` / `isOwner()`), and this tab has been unsealed with the word.
-- **The clasp:** the brass keyhole on the book's right edge (`#clasp`) opens the word panel (`#seal`).
-- **Choosing the word:** with no word set yet, an account that can write chooses one: at least 12 characters, typed twice. The page derives PBKDF2-SHA256 with a random 16-byte salt and 600,000 iterations (the OWASP figure for PBKDF2-SHA256) in the browser with WebCrypto. Only `{salt, hash, iter}` goes into the data block, published with the next save.
-- **Unsealing:** the word is re-derived and compared byte by byte. Unsealing lasts until the tab closes (`sessionStorage["ca-unsealed"]`), so the reload after a save keeps the tools. **Seal it again** hides them at once. **Change the word** needs an unsealed tab.
-- **Wrong words:** each miss doubles a wait, up to 30 s. A visitor who knows the right word is told that only the keeper's claude.ai account can write, and gets no tools.
-- **Never leaves the browser:** the word is never stored, never sent anywhere and never written into the page. The inputs are cleared after use, and saves rebuild the page from the template rather than the live DOM.
-
-**What this means in practice:**
-- **Public hash:** the salted hash is public with the page, so the word should be a long phrase used nowhere else. PBKDF2's cost makes guessing slow, but a weak word could still be guessed offline.
-- **Leaked word:** if someone learned the word, they still could not post. Without the keeper's claude.ai account they get nothing.
-- **Encryption:** the page and every save travel over HTTPS to claude.ai. The records are not encrypted at rest because they are meant to be read by visitors. The word is hashed, not encrypted, so it cannot be recovered from the page.
-- **Untrusted input:** every record field is rendered as text, never as HTML, and the data block escapes `<`, U+2028 and U+2029.
+- **The clasp:** the brass keyhole on the tome's right edge (`#clasp`) opens the seal panel (`#seal`). It is deliberately small and unlabelled; visitors see a book fitting.
+- **Unsealing:** the word goes to `POST /api/login` over HTTPS. The server compares it with the stored scrypt hash (N=2¹⁷, r=8, p=1, 16-byte salt, 64-byte key; one check at a time, so a burst cannot exhaust memory). The right word gets a random 256-bit session token in a `__Host-ca_session` cookie (HttpOnly, Secure, SameSite=Strict, 12 hours), plus a CSRF token in the response body, kept in a variable.
+- **Wrong words:** two free misses per client address, then waits of 2 s, 4 s, 8 s … up to an hour (429 with Retry-After). More than 50 misses in ten minutes from anywhere pauses all logins until the window clears. Behind Caddy, the client address is Cloudflare's `CF-Connecting-IP`, trusted only from Cloudflare's ranges and passed on as `X-Real-IP`; the server believes `X-Real-IP` only from loopback and only with `TRUST_PROXY=true`.
+- **Panel modes:** unsealed, the panel offers **Seal it again** (logout) and **Change the word** (current word, new word twice; at least 12 characters). Changing the word signs every other session out.
+- **Setting the word:** only on the server, as the service user: `node server/server.mjs set-password` asks twice with hidden input (or reads two lines from stdin). It refuses words under 12 characters. There is no web form for a first word, so nobody can claim the archive before the keeper does. Running it again is also the recovery path for a forgotten word.
+- **Where the word goes:** typed into the panel, sent once over HTTPS, hashed, discarded. It is never logged, stored in the browser, or written into the page. The inputs are cleared after use.
+- **Encryption:**
+  - In transit: visitor ↔ Cloudflare uses Cloudflare's edge certificate, and Cloudflare ↔ Caddy uses the Origin Certificate in Full (strict) mode with Authenticated Origin Pulls, TLS 1.2+. Caddy ↔ Node is plain HTTP on loopback only.
+  - At rest: the records are not encrypted, because they are published to every visitor. The word is hashed, not encrypted, so it cannot be recovered from `auth.json`.
+- **Untrusted input:** every record field is rendered with `textContent`, never as HTML. The data block escapes `<`, `>`, `&`, U+2028 and U+2029. The CSP blocks any script that is not the page's own.
+- **Headers on every response:** the CSP (`default-src 'none'`; scripts: the page's hash and jsDelivr's `/npm/`; styles: the page's hash and Google Fonts; `connect-src 'self'`; `frame-ancestors 'none'`), HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, COOP/CORP same-origin and a restrictive Permissions-Policy.
 
 ## The 3D construct
 
@@ -191,7 +181,7 @@ Raw downloads are cached in `tools/.cache/` (git-ignored). Only the converted GL
 
 ### Renderer (`model3d` in `ca-app`)
 
-- **Loading:** three.js 0.186.1 and its GLTFLoader load as ES modules from jsDelivr's `+esm` bundles with dynamic `import()`. The loader's bundle imports `three` from the same pinned URL, so there is one three.js instance and no import map. GLTFLoader normally decodes embedded images through `blob:` URLs and `fetch`, which the Artifact CSP may refuse, so a small plugin decodes them through `<img>` with data URIs instead.
+- **Loading:** three.js 0.186.1 and its GLTFLoader load as ES modules from jsDelivr's `+esm` bundles with dynamic `import()`, in parallel with the model's `fetch(MODEL_URL)` (already started by a `<link rel="preload">`). The loader's bundle imports `three` from the same pinned URL, so there is one three.js instance and no import map. GLTFLoader normally decodes embedded images through `blob:` URLs, which the CSP's `img-src 'self' data:` refuses, so a small plugin decodes them through `<img>` with data URIs instead.
 - **Shading:** a `ShaderMaterial` reproduces the game's combiners in gamma space. `Combiners_Opaque_Mod2xNA_Alpha` with a sphere-mapped env texture shades the body and gem. `Combiners_Mod_Mod` shades the additive shells, and `shell_edge` also gets the game's edge fade. Lighting is ambient plus a warm key and a teal under-fill, with a teal rim that strengthens on hover. Additive passes leave canvas alpha untouched, so they add light to the page instead of darkening it.
 - **Motion:** the model's own clip plays, the shell UVs scroll on their 4.033 s loop, and five glow sprites follow the emitter's colour, alpha and size curves. The sprites fade to zero at their edges, because the glow texture's background is near-black and would otherwise show as a faint square on the dark stage.
 - **Cursor:** `aim()` casts the cursor's ray through the camera and meets it with a pane facing the camera, `GAP` (1.2) model units in front of the construct. It then turns the construct so the gem's own line of sight, not the centre's, passes through that point. On screen the gem always points straight at the cursor. `GAP` sets how far it turns: 0.7 swings it nearly side-on at the window's corners. It eases in through two smoothing stages in a row (`Math.exp(-dt * 7)` each), so the turn starts gently and trails the cursor by about 290 ms. With no cursor (touch after release, pointer outside the window) it sways ±22° on its own. Touch follows the finger while it is down.
@@ -204,14 +194,37 @@ Raw downloads are cached in `tools/.cache/` (git-ignored). Only the converted GL
 ### Smoke test
 
 ```
+python3 build.py
 cd tools && npm install
 CHROME=/path/to/chrome node smoke.js
 ```
 
-It serves the standalone build under a CSP shaped like the viewer's and checks that the model loads. It checks that a click on the construct's body does nothing, that pointing at the gem shows the hand cursor, that clicking the gem opens the archive, and that the archive shows its two pages. With `window.claude` mocked as the owner, it checks that the tools stay hidden until the word is set, that setting it publishes only the salted hash and never the word, that a wrong word is refused, that the right word shows the tools, and that saves keep the seal. Finally it checks that a visitor who knows the word gets no tools. It then saves twice through a mocked `window.claude` and reloads each saved page. Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`.
+It starts the real server twice with throwaway data under `tools/.smoke/`:
+
+- **API checks** use production settings: Secure cookies, `PUBLIC_ORIGIN`, `TRUST_PROXY`. They cover:
+  - the password file and `set-password`;
+  - the CSP hashes against the served page, and the other headers;
+  - path traversal and other paths;
+  - Origin, CSRF and content-type refusals;
+  - the cookie's flags;
+  - field cleaning and size limits;
+  - stored markup escaping;
+  - backups;
+  - changing the word, which signs older sessions out;
+  - logout;
+  - per-address throttling via `X-Real-IP`.
+- **Browser checks** run Chromium against the server's real CSP and treat any console error or CSP violation as a failure. They walk the gem, then:
+  - try a wrong word, then the right one, confirming the cookie stays invisible to scripts;
+  - inscribe a record containing markup, which must stay text;
+  - reload, still unsealed, then revise and remove the record;
+  - change the word;
+  - seal, reload, and unseal with the new word.
+
+Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`.
 
 ## Open items for the owner
 
-- **Choose the keeper's word.** Open the live page, scan the gem, click the brass clasp on the book's right edge, and choose a long phrase you use nowhere else. Until then the editing tools stay hidden, even for you. Don't share the word in chats or files.
-- If the character should have a name for screen readers, set `profile.name` in `src/seed.json` (it is no longer editable on the page).
-- Share the page from its Share menu so other RPers can open it.
+- **Deploy:** follow `deploy/README.md`. Replace `archive.example.com` in the Caddyfile and in `PUBLIC_ORIGIN` in the unit.
+- **Set the keeper's word on the VPS** with `set-password` (step 3). Don't share it in chats or files.
+- **Optional:** set `profile.name` for screen readers. It lives in `archive.json` on the server once deployed, or in `src/seed.json` before the first start.
+- **Optional:** once the site is live, the old claude.ai Artifact can be deleted, or left private.

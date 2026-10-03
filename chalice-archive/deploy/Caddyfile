@@ -1,0 +1,46 @@
+# /etc/caddy/Caddyfile for the Chalice Archive behind Cloudflare. deploy/README.md has the whole setup.
+# Replace archive.example.com with your hostname (twice: here and PUBLIC_ORIGIN in chalice-archive.service).
+{
+	# Cloudflare redirects http to https ("Always Use HTTPS"), and port 80 stays closed, so Caddy only serves 443.
+	auto_https disable_redirects
+
+	servers {
+		# Requests arrive from Cloudflare. Only from these addresses does Caddy believe CF-Connecting-IP,
+		# the visitor's real address; from anywhere else the header is ignored. The ranges are
+		# https://www.cloudflare.com/ips/ as of October 2026; compare them now and then.
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		trusted_proxies_strict
+		client_ip_headers CF-Connecting-IP
+	}
+}
+
+https://archive.example.com {
+	# The Cloudflare Origin Certificate (SSL/TLS > Origin Server), for Cloudflare's "Full (strict)" mode.
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key {
+		protocols tls1.2 tls1.3
+		# Authenticated Origin Pulls: only Cloudflare, presenting its client certificate, completes the handshake.
+		# Turn it on in Cloudflare too (SSL/TLS > Origin Server), or every request fails with error 525/526.
+		client_auth {
+			mode require_and_verify
+			trust_pool file /etc/caddy/certs/cloudflare-origin-pull-ca.pem
+		}
+	}
+
+	request_body {
+		max_size 128KB
+	}
+
+	encode zstd gzip
+
+	# say nothing about the software behind the site
+	header {
+		-Server
+		-Via
+	}
+
+	# The archive server, on loopback only. It takes the visitor's address from X-Real-IP, which is set here
+	# from the address Caddy resolved above, overwriting anything the request carried.
+	reverse_proxy 127.0.0.1:8080 {
+		header_up X-Real-IP {client_ip}
+	}
+}
