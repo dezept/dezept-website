@@ -19,6 +19,7 @@
   --rose: #de8f8a;
   --teal-rgb: 102 239 220;
   --copper-rgb: 207 138 85;
+  --indigo-rgb: 74 82 170;
   --shade-rgb: 4 7 14;
   --font-display: "Forum", "Cormorant Garamond", "Palatino Linotype", Georgia, serif;
   --font-body: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
@@ -44,6 +45,16 @@ button, input, textarea { font: inherit; color: inherit; }
     radial-gradient(ellipse 70% 70% at 50% 50%, var(--void-2) 0%, var(--void) 64%);
 }
 .stage::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgb(var(--shade-rgb) / .7)); }
+/* Ambient light. The haze drifts here in CSS; the motes, the light shafts and the anima wisps are drawn on #motes. */
+.nebula { position: absolute; inset: -25%; z-index: -2; pointer-events: none; }
+.nebula i { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
+.nebula i:nth-child(1) { left: 6%; top: 16%; width: 52%; height: 46%; background: radial-gradient(closest-side, rgb(var(--indigo-rgb) / .17), transparent); animation: haze-a 70s ease-in-out infinite alternate; }
+.nebula i:nth-child(2) { right: 4%; top: 34%; width: 50%; height: 50%; background: radial-gradient(closest-side, rgb(var(--teal-rgb) / .065), transparent); animation: haze-b 90s ease-in-out infinite alternate; }
+.nebula i:nth-child(3) { left: 30%; bottom: 4%; width: 44%; height: 38%; background: radial-gradient(closest-side, rgb(var(--copper-rgb) / .05), transparent); animation: haze-c 110s ease-in-out infinite alternate; }
+@keyframes haze-a { to { transform: translate(14%, 9%) scale(1.15); } }
+@keyframes haze-b { to { transform: translate(-12%, -10%) scale(.9); } }
+@keyframes haze-c { to { transform: translate(9%, -14%) scale(1.2); } }
+.is-paused .nebula i { animation-play-state: paused; }
 .motes { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
@@ -231,11 +242,12 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   .archive { width: calc(100% - 24px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool { animation: none !important; }
+  .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool, .nebula i { animation: none !important; }
   .archive[open] .frame { animation: none; }
 }
 </style>
 <template id="ca-shell"><main class="stage" id="stage">
+  <div class="nebula" aria-hidden="true"><i></i><i></i><i></i></div>
   <canvas class="motes" id="motes" aria-hidden="true"></canvas>
   <h1 class="sr-only">The archive of <span id="pf-name">Unnamed Dracthyr</span></h1>
   <div class="core" id="core">
@@ -621,6 +633,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     }
     motes.pause();
     model3d.pause();
+    el.stage.classList.add("is-paused");
     if (opts.view === "detail" && find(opts.id)) showDetail(opts.id);
     else showView("overview");
   }
@@ -817,55 +830,167 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     t._t = setTimeout(function () { t.hidden = true; }, 4200);
   }
 
-  // ---------- Motes ----------
+  // ---------- Ambient: light shafts, motes at three depths, and anima wisps the construct draws in ----------
   var motes = (function () {
+    var noop = { pause: function () {}, resume: function () {}, gather: function () {} };
     var c = el.motes, ctx = c.getContext && c.getContext("2d");
-    if (!ctx) return { pause: function () {}, resume: function () {} };
+    if (!ctx) return noop;
     var cs = getComputedStyle(document.documentElement);
+    var TEAL = cs.getPropertyValue("--teal-rgb").trim() || "102 239 220";
+    var COPPER = cs.getPropertyValue("--copper-rgb").trim() || "207 138 85";
     function sprite(rgb) {
       var s = document.createElement("canvas"); s.width = s.height = 32;
       var g = s.getContext("2d"), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
       gr.addColorStop(0, "rgb(" + rgb + " / 1)"); gr.addColorStop(.28, "rgb(" + rgb + " / .5)"); gr.addColorStop(1, "rgb(" + rgb + " / 0)");
       g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return s;
     }
-    var teal = sprite(cs.getPropertyValue("--teal-rgb").trim() || "102 239 220");
-    var copper = sprite(cs.getPropertyValue("--copper-rgb").trim() || "207 138 85");
-    var w = 0, hgt = 0, parts = [], raf = 0, running = false;
-    function spawn(anywhere) {
-      return { x: Math.random() * w, y: anywhere ? Math.random() * hgt : hgt + 12, r: .6 + Math.random() * 1.8, vy: .05 + Math.random() * .2, ph: Math.random() * 6.283, sp: Math.random() < .28 ? copper : teal };
+    var glow = {};
+    glow[TEAL] = sprite(TEAL);
+    glow[COPPER] = sprite(COPPER);
+    var WISPS = 6, TRAIL = 46;
+    var w = 0, hgt = 0, cx = 0, cy = 0, unit = 300, parts = [], wisps = [], rays = [], raf = 0, running = false, last = 0, clock = 0;
+    var aim = { x: 0, y: 0, tx: 0, ty: 0 }; // cursor offset from the stage centre (-1..1), eased, for parallax
+
+    // Light shafts: soft wedges fanning out from the construct, turning slowly, brighter while it is risen
+    for (var i = 0; i < 9; i++) {
+      rays.push({ a: i / 9 * 6.283 + Math.random() * .5, w: .06 + Math.random() * .1, v: (i % 2 ? -1 : 1) * (.012 + Math.random() * .02),
+                  c: Math.random() < .3 ? COPPER : TEAL, o: .03 + Math.random() * .035, ph: Math.random() * 6.283 });
     }
-    function draw(t) {
-      ctx.clearRect(0, 0, w, hgt);
-      for (var i = 0; i < parts.length; i++) {
-        var p = parts[i], s = p.r * 7;
-        ctx.globalAlpha = .16 + .34 * (.5 + .5 * Math.sin(t * .0011 + p.ph));
-        ctx.drawImage(p.sp, p.x - s / 2, p.y - s / 2, s, s);
-      }
+    var shade = {}; // one radial falloff per colour, rebuilt on resize; each shaft's strength is set with globalAlpha
+    function shadeFor(rgb) {
+      var g = ctx.createRadialGradient(cx, cy, unit * .1, cx, cy, unit * 1.3);
+      g.addColorStop(0, "rgb(" + rgb + " / 1)");
+      g.addColorStop(1, "rgb(" + rgb + " / 0)");
+      return g;
+    }
+    function drawShafts() {
+      var lift = model3d ? model3d.lift() : .5, L = unit * 1.3;
+      rays.forEach(function (r) {
+        var a = r.a + clock * r.v;
+        ctx.globalAlpha = r.o / 3 * (.55 + .45 * lift) * (.7 + .3 * Math.sin(clock * .45 + r.ph));
+        ctx.fillStyle = shade[r.c];
+        for (var k = 1; k <= 3; k++) { // three nested wedges give each shaft a soft edge
+          var half = r.w * k / 6;
+          ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, L, a - half, a + half); ctx.closePath(); ctx.fill();
+        }
+      });
       ctx.globalAlpha = 1;
     }
-    function step(t) {
+
+    function spawn(anywhere) {
+      var z = Math.random(); // depth: 0 far, 1 near
+      return { x: Math.random() * w, y: anywhere ? Math.random() * hgt : hgt + 12, z: z, r: .5 + z * 1.7 + Math.random() * .4,
+               vy: 3 + z * 10 + Math.random() * 3, ph: Math.random() * 6.283, c: Math.random() < .28 ? COPPER : TEAL };
+    }
+
+    // Anima wisps drift in from the edges on a slow flow field. Near the construct they orbit; some spiral in
+    // and are absorbed, and the gem flickers as each arrives.
+    function wisp(delay) {
+      var side = Math.floor(Math.random() * 4), m = 30;
+      return { x: side === 0 ? -m : side === 1 ? w + m : Math.random() * w, y: side === 2 ? -m : side === 3 ? hgt + m : Math.random() * hgt,
+               trail: [], age: 0, delay: delay, fall: 0, gone: 0, dead: false, c: Math.random() < .3 ? COPPER : TEAL,
+               size: .7 + Math.random() * .8, turn: Math.random() < .5 ? 1 : -1, inward: Math.random() < .45 ? .5 : -.08 };
+    }
+    function moveWisp(s, dt) {
+      if (s.delay > 0) { s.delay -= dt; return; }
+      s.age += dt;
+      var R = Math.min(w, hgt), dx = cx - s.x, dy = cy - s.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (s.fall) {
+        s.fall += dt;
+        var k = Math.min(1, dt * (2 + s.fall * 10));
+        s.x += dx * k; s.y += dy * k;
+        if (d < 4) { s.dead = true; if (model3d) model3d.absorb(); }
+      } else {
+        var speed = R * .05, f = Math.sin(s.x * .0016 + clock * .07) + Math.cos(s.y * .0019 - clock * .05);
+        var vx = Math.cos(f * 2.2) * speed, vy = Math.sin(f * 2.2) * speed;
+        var pull = speed * 1.1 * Math.min(1, R * .45 / d);
+        vx += (dx * s.inward - dy * s.turn) / d * pull;
+        vy += (dy * s.inward + dx * s.turn) / d * pull;
+        s.x += vx * dt; s.y += vy * dt;
+        if (d < unit * .3 && s.age > 2) s.fall = .001;
+        if ((s.x < -60 || s.x > w + 60 || s.y < -60 || s.y > hgt + 60) && s.age > 3 || s.age > 40) s.gone += dt;
+        if (s.gone > 1.2) s.dead = true;
+      }
+      var tr = s.trail, n = tr.length;
+      if (!n || Math.abs(s.x - tr[n - 2]) + Math.abs(s.y - tr[n - 1]) > 3) {
+        tr.push(s.x, s.y);
+        if (tr.length > TRAIL * 2) tr.splice(0, 2);
+      }
+    }
+    function drawWisp(s) {
+      var tr = s.trail, n = tr.length / 2;
+      if (s.delay > 0 || n < 2) return;
+      var a = Math.min(1, s.age / 1.5) * (1 - Math.min(1, s.gone / 1.2));
+      for (var i = 1; i < n; i++) {
+        var f = i / (n - 1);
+        ctx.strokeStyle = "rgb(" + s.c + " / " + (a * f * f * .5).toFixed(3) + ")";
+        ctx.lineWidth = s.size * (.4 + f * 1.6);
+        ctx.beginPath(); ctx.moveTo(tr[i * 2 - 2], tr[i * 2 - 1]); ctx.lineTo(tr[i * 2], tr[i * 2 + 1]); ctx.stroke();
+      }
+      var g = 10 + s.size * 10;
+      ctx.globalAlpha = a * .8;
+      ctx.drawImage(glow[s.c], s.x - g / 2, s.y - g / 2, g, g);
+      ctx.globalAlpha = 1;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, w, hgt);
+      ctx.globalCompositeOperation = "lighter";
+      drawShafts();
+      ctx.globalCompositeOperation = "source-over";
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i], s = p.r * 7, shift = (p.z - .35) * 26; // near motes slide against the cursor more than far ones
+        ctx.globalAlpha = (.12 + .34 * p.z) * (.55 + .45 * Math.sin(clock * 1.1 + p.ph));
+        ctx.drawImage(glow[p.c], p.x - aim.x * shift - s / 2, p.y - aim.y * shift * .7 - s / 2, s, s);
+      }
+      ctx.globalAlpha = 1;
+      if (reduced) return;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      wisps.forEach(drawWisp);
+      ctx.globalCompositeOperation = "source-over";
+    }
+    function step(now) {
+      var dt = last ? Math.min(.1, (now - last) / 1000) : 0;
+      last = now;
+      clock += dt;
+      aim.x += (aim.tx - aim.x) * Math.min(1, dt * 2.5);
+      aim.y += (aim.ty - aim.y) * Math.min(1, dt * 2.5);
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
-        p.y -= p.vy; p.x += Math.sin(t * .0004 + p.ph) * .12;
+        p.y -= p.vy * dt;
+        p.x += Math.sin(clock * .4 + p.ph) * 7 * dt;
         if (p.y < -12) parts[i] = spawn(false);
       }
-      draw(t);
+      for (var j = 0; j < wisps.length; j++) {
+        moveWisp(wisps[j], dt);
+        if (wisps[j].dead) wisps[j] = wisp(3 + Math.random() * 6);
+      }
+      draw();
       raf = requestAnimationFrame(step);
     }
     function resize() {
-      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      var dpr = Math.min(2, window.devicePixelRatio || 1), sr = c.getBoundingClientRect(), cr = el.core.getBoundingClientRect();
       w = c.clientWidth; hgt = c.clientHeight;
+      cx = cr.left + cr.width / 2 - sr.left; cy = cr.top + cr.height / 2 - sr.top; unit = cr.width || 300;
       c.width = Math.round(w * dpr); c.height = Math.round(hgt * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var n = Math.round(Math.min(90, Math.max(26, w * hgt / 16000)));
+      shade[TEAL] = shadeFor(TEAL);
+      shade[COPPER] = shadeFor(COPPER);
+      var n = Math.round(Math.min(110, Math.max(30, w * hgt / 13000)));
       parts = []; for (var i = 0; i < n; i++) parts.push(spawn(true));
-      draw(performance.now());
+      if (!wisps.length) for (var k = 0; k < WISPS; k++) wisps.push(wisp(k * 1.3 + Math.random() * 2));
+      draw();
     }
-    function resume() { if (reduced || running || document.hidden || el.archive.open) return; running = true; raf = requestAnimationFrame(step); }
+    function resume() { if (reduced || running || document.hidden || el.archive.open) return; running = true; last = 0; raf = requestAnimationFrame(step); }
     function pause() { running = false; cancelAnimationFrame(raf); }
+    // Every wisp in flight is drawn into the construct as it is scanned
+    function gather() { wisps.forEach(function (s) { if (s.delay <= 0 && !s.fall && !s.gone) s.fall = .001; }); }
     if (window.ResizeObserver) new ResizeObserver(resize).observe(c); else { resize(); window.addEventListener("resize", resize); }
     document.addEventListener("visibilitychange", function () { if (document.hidden) pause(); else resume(); });
-    return { pause: pause, resume: resume };
+    document.addEventListener("pointermove", function (e) { aim.tx = e.clientX / innerWidth * 2 - 1; aim.ty = e.clientY / innerHeight * 2 - 1; }, { passive: true });
+    document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) aim.tx = aim.ty = 0; });
+    return { pause: pause, resume: resume, gather: gather };
   })();
 
   // ---------- Construct: the in-game model, drawn with three.js ----------
@@ -875,7 +1000,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   var THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm";
   var GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js/+esm";
   var model3d = (function () {
-    var api = { pause: function () {}, resume: function () {}, scan: function () {} };
+    var api = { pause: function () {}, resume: function () {}, scan: function () {}, absorb: function () {}, lift: function () { return .5; } };
     var canvas = el.constructGl;
     if (!SRC.model || !canvas || !window.WebGLRenderingContext) return api;
 
@@ -966,7 +1091,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     var mats = [], sprites = [], emitter = null, bone0 = null, liftMin = 0, liftAmp = 0, lastLift = "", clipLen = 1;
     var size = null, PITCH = .2;
     var ready = false, running = false, onScreen = true, raf = 0, last = 0;
-    var t = 0, speed = 1, hover = 0, hovered = false, scanAt = -1;
+    var t = 0, speed = 1, hover = 0, hovered = false, scanAt = -1, absorbAt = -1e9, liftNow = .5;
     // Cursor following: the construct turns so the gem's line of sight passes through the cursor, read as a point
     // on a pane GAP model units in front of it. A smaller GAP makes it turn harder for the same cursor offset.
     var GAP = 1.2, pointer = { on: false, x: 0, y: 0 }, A = null;
@@ -1111,7 +1236,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       // The gem's resting position in rig space; it rides on bone 0
       var gem = meshes.filter(function (m) { return m.material.uniforms.uGem.value === 1; })[0];
       A = { ray: new T.Vector3(), view: new T.Vector3(), target: new T.Vector3(), sight: new T.Vector3(), gem: new T.Vector3(), now: new T.Vector3(),
-            bone: bone0 ? bone0.position.clone() : new T.Vector3(), looker: new T.Object3D(), q: new T.Quaternion() };
+            bone: bone0 ? bone0.position.clone() : new T.Vector3(), looker: new T.Object3D(), q: new T.Quaternion(), mid: new T.Quaternion() };
       if (gem) { gem.geometry.computeBoundingBox(); gem.geometry.boundingBox.getCenter(A.gem).add(gltf.scene.position); }
       var aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
       Object.keys(tex).forEach(function (i) { tex[i].anisotropy = aniso; });
@@ -1239,7 +1364,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       aim(dt);
       U.hover.value = hover;
       U.glow.value = .5 + .5 * Math.sin(now / 1000 * Math.PI * 2 / 3.4);
-      U.flare.value = scanning ? (since < .34 ? since / .34 : 1 - .7 * Math.min(1, (since - .34) / 1.56)) : 0;
+      U.flare.value = Math.max(scanning ? (since < .34 ? since / .34 : 1 - .7 * Math.min(1, (since - .34) / 1.56)) : 0,
+                               .4 * Math.exp(-(now - absorbAt) / 260)); // a wisp just arrived
       if (scanning && beam) {
         var b = beam.getBoundingClientRect(), r = canvas.getBoundingClientRect(), m = getComputedStyle(tiltEl).transform;
         var mx = m && m !== "none" && window.DOMMatrixReadOnly ? new DOMMatrixReadOnly(m) : null;
@@ -1251,7 +1377,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
         U.scan.value = U.wash.value = 0;
       }
       if (liftAmp && bone0) {
-        var lift = ((bone0.position.y - liftMin) / liftAmp).toFixed(2);
+        liftNow = (bone0.position.y - liftMin) / liftAmp;
+        var lift = liftNow.toFixed(2);
         if (lift !== lastLift) { el.core.style.setProperty("--lift", lift); lastLift = lift; }
       }
     }
@@ -1278,7 +1405,10 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       A.q.copy(A.looker.quaternion).invert();
       A.looker.lookAt(A.target);
       A.q.premultiply(A.looker.quaternion);
-      rig.quaternion.slerp(A.q, reduced || !dt ? 1 : 1 - Math.exp(-dt * 10));
+      // two easing stages in a row: the turn starts gently and trails the cursor by about 150 ms
+      var k = reduced || !dt ? 1 : 1 - Math.exp(-dt * 13);
+      A.mid.slerp(A.q, k);
+      rig.quaternion.slerp(A.mid, k);
     }
     function draw(now) {
       step(last && running ? Math.min(.1, (now - last) / 1000) : 0, now);
@@ -1302,6 +1432,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     };
     api.pause = function () { stop(); scanAt = -1; };
     api.scan = function () { if (ready && !reduced) scanAt = performance.now(); };
+    api.absorb = function () { absorbAt = performance.now(); };
+    api.lift = function () { return liftNow; };
 
     Promise.all([import(THREE_URL), import(GLTF_URL)]).then(function (mods) {
       T = mods[0];
@@ -1328,6 +1460,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       void el.scan.offsetWidth;
       el.scan.classList.add("run");
       model3d.scan();
+      motes.gather();
       done = wait(1950);
     }
     done.then(function () {
@@ -1352,6 +1485,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   el.archive.addEventListener("close", function () {
     root.append(el.toast);
     disarm(el.detDelete); disarm(el.btnClearExamples);
+    el.stage.classList.remove("is-paused");
     motes.resume();
     model3d.resume();
     el.construct.focus({ preventScroll: true });
