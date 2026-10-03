@@ -1,0 +1,7 @@
+{
+  "name": "chalice-archive-tools",
+  "private": true,
+  "description": "Smoke test for the built page (node smoke.js)",
+  "scripts": { "smoke": "node smoke.js" },
+  "devDependencies": { "playwright-core": "1.63.0" }
+}

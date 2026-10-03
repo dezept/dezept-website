@@ -1,0 +1,4 @@
+tools/.cache/
+tools/.smoke/
+tools/node_modules/
+__pycache__/

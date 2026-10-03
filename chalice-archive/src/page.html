@@ -75,10 +75,18 @@ button, input, textarea { font: inherit; color: inherit; }
 .ring { position: absolute; left: 50%; top: 56%; width: 140%; aspect-ratio: 1; translate: -50% -50%; color: var(--copper); opacity: .3; overflow: visible; animation: spin 90s linear infinite; transition: opacity .4s; }
 .ring .r2 { color: var(--teal); }
 @keyframes spin { to { rotate: 360deg; } }
-.construct-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 0 22px rgb(var(--teal-rgb) / .16)) drop-shadow(0 24px 26px rgb(var(--shade-rgb) / .85)); transition: filter .4s; }
-.gem { position: absolute; left: 50%; top: 80.2%; width: 34%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; background: radial-gradient(circle, rgb(var(--teal-rgb) / .55) 0%, rgb(var(--teal-rgb) / .16) 34%, transparent 66%); animation: gem 3.4s ease-in-out infinite; }
+.construct-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 0 22px rgb(var(--teal-rgb) / .16)) drop-shadow(0 24px 26px rgb(var(--shade-rgb) / .85)); transition: filter .4s, opacity .8s; }
+.gem { position: absolute; left: 50%; top: 80.2%; width: 34%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; background: radial-gradient(circle, rgb(var(--teal-rgb) / .55) 0%, rgb(var(--teal-rgb) / .16) 34%, transparent 66%); animation: gem 3.4s ease-in-out infinite; transition: opacity .8s; }
 @keyframes gem { 0%, 100% { opacity: .5; scale: .9; } 50% { opacity: 1; scale: 1.08; } }
 .construct:hover .construct-img, .construct:focus-visible .construct-img { filter: drop-shadow(0 0 30px rgb(var(--teal-rgb) / .34)) drop-shadow(0 24px 26px rgb(var(--shade-rgb) / .85)); }
+/* The 3D model: the canvas overhangs the button so the hover and the glow never clip. The cutout stays underneath until the first frame is drawn. */
+.construct-gl { position: absolute; left: -22%; top: -16%; width: 144%; height: 144%; pointer-events: none; opacity: 0; transition: opacity .8s; }
+.core { --lift: .5; }
+.is-3d .construct-gl { opacity: 1; }
+.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-scanning .gem, whose flare would bring the overlay back */
+.is-3d .fx-y { animation: none; }
+.is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); }
+.is-3d .pool { animation: none; opacity: calc(.9 - .45 * var(--lift)); scale: calc(1 - .2 * var(--lift)); }
 .construct:hover .ring, .construct:focus-visible .ring { opacity: .55; }
 .lock { position: absolute; inset: -10%; pointer-events: none; opacity: 0; transition: opacity .25s, inset .5s cubic-bezier(.2, .8, .2, 1); }
 .lock i { position: absolute; width: 20px; height: 20px; border: 0 solid var(--teal); filter: drop-shadow(0 0 6px rgb(var(--teal-rgb) / .6)); }
@@ -273,13 +281,14 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     <div><span class="tally-num is-teal" id="t-relearned">00</span><span class="tally-label">Re-learned</span></div>
     <div><span class="tally-num" id="t-sought">00</span><span class="tally-label">Gaps sought</span></div>
   </div>
-  <div class="core">
+  <div class="core" id="core">
     <button class="construct" id="construct" type="button" aria-label="Scan the archive" aria-haspopup="dialog">
       <span class="fx fx-x"><span class="fx fx-y"><span class="fx fx-tilt">
         <span class="halo"></span>
         <svg class="ring" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="97" fill="none" stroke="currentColor" stroke-width=".7" stroke-dasharray="1 5"></circle><circle class="r2" cx="100" cy="100" r="89" fill="none" stroke="currentColor" stroke-width=".5" stroke-dasharray="46 16 5 16"></circle></svg>
         <img class="construct-img" src="__FRONT__" alt="" width="364" height="410" draggable="false">
         <span class="gem"></span>
+        <canvas class="construct-gl" id="construct-gl" aria-hidden="true"></canvas>
       </span></span></span>
       <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     </button>
@@ -437,6 +446,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div></template>
 <div id="ca-root"></div>
 <script type="application/json" id="ca-data">__DATA__</script>
+<script type="application/octet-stream" id="ca-model">__MODEL__</script>
 <script id="ca-app">
 (function () {
   "use strict";
@@ -469,6 +479,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   var SRC = {
     style: byId("ca-style").textContent,
     shell: byId("ca-shell").innerHTML,
+    model: byId("ca-model") ? byId("ca-model").textContent.trim() : "",
     app: byId("ca-app").textContent
   };
 
@@ -491,7 +502,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   var root = byId("ca-root");
   root.replaceChildren(byId("ca-shell").content.cloneNode(true));
   var el = {};
-  ["stage", "motes", "pf-eyebrow", "pf-name", "pf-epithet", "t-records", "t-relearned", "t-sought", "construct", "latest", "latest-date", "latest-title",
+  ["stage", "motes", "core", "construct-gl", "pf-eyebrow", "pf-name", "pf-epithet", "t-records", "t-relearned", "t-sought", "construct", "latest", "latest-date", "latest-title",
    "scan", "scan-readout", "archive", "btn-close", "plate", "ar-name", "unit-name", "unit-note", "btn-inscribe", "btn-profile", "ro-note",
    "view-overview", "view-detail", "view-form", "view-profile", "gap-head", "gap-bar", "legend", "examples", "examples-text", "btn-clear-examples",
    "recent", "recent-count", "index", "index-count", "det-back", "det-status", "det-glyph", "det-status-label", "det-domain", "det-date", "det-example",
@@ -674,6 +685,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       try { el.archive.showModal(); } catch (e) { el.archive.setAttribute("open", ""); }
     }
     motes.pause();
+    model3d.pause();
     if (opts.view === "detail" && find(opts.id)) showDetail(opts.id);
     else showView("overview");
   }
@@ -805,6 +817,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       "<template id=\"ca-shell\">" + SRC.shell + "</template>\n" +
       "<div id=\"ca-root\"></div>\n" +
       "<script type=\"application/json\" id=\"ca-data\">" + json + "<\/script>\n" +
+      (SRC.model ? "<script type=\"application/octet-stream\" id=\"ca-model\">" + SRC.model + "<\/script>\n" : "") +
       "<script id=\"ca-app\">" + SRC.app + "<\/script>\n" +
       "</body></html>";
   }
@@ -920,6 +933,418 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     return { pause: pause, resume: resume };
   })();
 
+  // ---------- Construct: the in-game model, drawn with three.js ----------
+  // #ca-model is the Chalice's own M2 converted to GLB by tools/m2_to_glb.py. Its materials carry the game's
+  // shading in extras.wow, and the shaders below reproduce those combiners. The cutout image stays in place
+  // until the first frame is drawn, and for good if WebGL or the CDN is unavailable.
+  var THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm";
+  var GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js/+esm";
+  var model3d = (function () {
+    var api = { pause: function () {}, resume: function () {}, scan: function () {} };
+    var canvas = el.constructGl;
+    if (!SRC.model || !canvas || !window.WebGLRenderingContext) return api;
+
+    var VERT = [
+      "#include <common>",
+      "#include <skinning_pars_vertex>",
+      "#ifndef USE_UV1",
+      "attribute vec2 uv1;",
+      "#endif",
+      "uniform int uVertex;",
+      "uniform vec2 uUv0Shift, uUv1Shift;",
+      "varying vec2 vUv0, vUv1;",
+      "varying vec3 vNormal, vView;",
+      "varying float vEdge;",
+      "void main() {",
+      "  vec3 objectNormal = normal;",
+      "  vec3 transformed = position;",
+      "  #include <skinbase_vertex>",
+      "  #include <skinnormal_vertex>",
+      "  #include <skinning_vertex>",
+      "  vec4 mv = modelViewMatrix * vec4(transformed, 1.0);",
+      "  vec3 n = normalize(normalMatrix * objectNormal);",
+      "  vec3 p = normalize(mv.xyz);",
+      "  vUv0 = uv + uUv0Shift;",
+      "  vUv1 = uv1 + uUv1Shift;",
+      "  if (uVertex == 0) {", // Diffuse_T1_Env: the second texture is a sphere map
+      "    vec3 r = p - n * (2.0 * dot(p, n));",
+      "    vUv1 = normalize(vec3(r.xy, r.z + 1.0)).xy * 0.5 + 0.5;",
+      "  }",
+      "  float f = clamp(dot(-p, n), 0.0, 1.0);",
+      "  vEdge = uVertex == 1 ? clamp(2.7 * f * f - 0.4, 0.0, 1.0) : 1.0;", // Diffuse_EdgeFade_T1_T2
+      "  vNormal = n;",
+      "  vView = mv.xyz;",
+      "  gl_Position = projectionMatrix * mv;",
+      "}"
+    ].join("\n");
+    var FRAG = [
+      "uniform sampler2D uTex0, uTex1;",
+      "uniform int uPixel;",
+      "uniform float uLit, uGem, uGlow, uFlare, uHover, uScan, uScanY, uWash, uTilt, uDpr;",
+      "uniform vec2 uSize;",
+      "uniform vec3 uAmbient, uKeyDir, uKey, uFillDir, uFill, uTeal;",
+      "varying vec2 vUv0, vUv1;",
+      "varying vec3 vNormal, vView;",
+      "varying float vEdge;",
+      "void main() {",
+      "  vec4 t0 = texture2D(uTex0, vUv0);",
+      "  vec4 t1 = texture2D(uTex1, vUv1);",
+      "  vec3 c;",
+      "  float a = 1.0;",
+      "  if (uPixel == 0) c = mix(t0.rgb * t1.rgb * 2.0, t0.rgb, t0.a);", // Combiners_Opaque_Mod2xNA_Alpha
+      "  else { c = t0.rgb * t1.rgb; a = t0.a * t1.a; }", // Combiners_Mod_Mod
+      "  if (uLit > 0.5) {",
+      "    vec3 n = normalize(vNormal);",
+      "    vec3 light = uAmbient + uKey * max(dot(n, uKeyDir), 0.0) + uFill * max(dot(n, uFillDir), 0.0);",
+      "    float rim = pow(1.0 - clamp(dot(n, normalize(-vView)), 0.0, 1.0), 3.0);",
+      "    c = c * light + uTeal * rim * (0.14 + 0.2 * uHover);",
+      "  }",
+      "  c = c * (1.0 + uGem * (0.2 + 0.35 * uGlow + 1.1 * uFlare)) + uGem * uTeal * (0.06 + 0.2 * uGlow + 0.5 * uFlare);",
+      // distance in CSS px from the page's scan line, in the screen's frame (the canvas sits in a tilted wrapper)
+      "  vec2 q = vec2(gl_FragCoord.x, uSize.y * uDpr - gl_FragCoord.y) / uDpr - uSize * 0.5;",
+      "  float d = q.x * sin(uTilt) + q.y * cos(uTilt) - uScanY;",
+      "  c += uTeal * (exp(-d * d / 90.0) * 1.3 * uScan + step(d, 0.0) * uWash);",
+      "  gl_FragColor = vec4(c, a * vEdge);",
+      "}"
+    ].join("\n");
+    // The glow emitter: camera-facing quads at the orb's pivot
+    var SPRITE_VERT = [
+      "uniform float uSize, uRot;",
+      "varying vec2 vUv;",
+      "void main() {",
+      "  vUv = uv;",
+      "  vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);",
+      "  mv.xy += mat2(cos(uRot), sin(uRot), -sin(uRot), cos(uRot)) * position.xy * uSize;",
+      "  gl_Position = projectionMatrix * mv;",
+      "}"
+    ].join("\n");
+    var SPRITE_FRAG = [
+      "uniform sampler2D uTex;",
+      "uniform vec3 uColor;",
+      "uniform float uAlpha;",
+      "varying vec2 vUv;",
+      "void main() { gl_FragColor = vec4(texture2D(uTex, vUv).rgb * uColor, uAlpha); }"
+    ].join("\n");
+
+    var T, renderer, scene, camera, rig, mixer, U;
+    var mats = [], sprites = [], emitter = null, bone0 = null, liftMin = 0, liftAmp = 0, clipLen = 1;
+    var size = null, PITCH = .2;
+    var ready = false, running = false, onScreen = true, raf = 0, last = 0;
+    var t = 0, speed = 1, yaw = 0, pitch = 0, aimX = 0, aimY = 0, hover = 0, hovered = false, scanAt = -1, lastLift = "";
+    var beam = el.scan.querySelector(".scan-beam"), tiltEl = canvas.parentElement;
+
+    function decode(b64) {
+      var bin = atob(b64), n = bin.length, out = new Uint8Array(n);
+      for (var i = 0; i < n; i++) out[i] = bin.charCodeAt(i);
+      return out.buffer;
+    }
+    // GLTFLoader decodes embedded images through blob: URLs, which the Artifact's CSP may refuse.
+    // data: URIs in an <img> are allowed there, so images are decoded that way instead.
+    function dataUriImages(parser) {
+      var cache = {};
+      parser.loadImageSource = function (index) {
+        if (!cache[index]) {
+          var def = parser.json.images[index];
+          cache[index] = parser.getDependency("bufferView", def.bufferView).then(function (buf) {
+            return new Promise(function (resolve, reject) {
+              var fr = new FileReader();
+              fr.onerror = reject;
+              fr.onload = function () {
+                var img = new Image();
+                img.onload = function () { resolve(img); };
+                img.onerror = reject;
+                img.src = fr.result;
+              };
+              fr.readAsDataURL(new Blob([buf], { type: def.mimeType }));
+            });
+          });
+        }
+        return cache[index].then(function (img) { var tex = new T.Texture(img); tex.needsUpdate = true; return tex; });
+      };
+      return { name: "ca_data_uri_images" };
+    }
+    function sample(times, values, x) {
+      var n = times.length;
+      if (n < 2 || x <= times[0]) return [].concat(values[0]);
+      for (var i = 1; i < n; i++) {
+        if (x <= times[i]) {
+          var f = (x - times[i - 1]) / (times[i] - times[i - 1]), a = [].concat(values[i - 1]), b = [].concat(values[i]);
+          return a.map(function (v, k) { return v + (b[k] - v) * f; });
+        }
+      }
+      return [].concat(values[n - 1]);
+    }
+    function hash(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+    // Additive light that leaves the canvas alpha alone, so the page shows through unchanged where only glow is drawn
+    function additive(m) {
+      m.blending = T.CustomBlending;
+      m.blendEquation = T.AddEquation;
+      m.blendSrc = T.SrcAlphaFactor; m.blendDst = T.OneFactor;
+      m.blendSrcAlpha = T.ZeroFactor; m.blendDstAlpha = T.OneFactor;
+      return m;
+    }
+    function wowMaterial(src, tex) {
+      var w = src.userData.wow;
+      var m = new T.ShaderMaterial({
+        vertexShader: VERT, fragmentShader: FRAG,
+        uniforms: {
+          uTex0: { value: tex[w.textures[0]] }, uTex1: { value: tex[w.textures[1]] },
+          uPixel: { value: w.pixel === "Combiners_Mod_Mod" ? 1 : 0 },
+          uVertex: { value: w.vertex === "Diffuse_T1_Env" ? 0 : w.vertex.indexOf("EdgeFade") >= 0 ? 1 : 2 },
+          uUv0Shift: { value: new T.Vector2() }, uUv1Shift: { value: new T.Vector2() },
+          uLit: { value: w.unlit ? 0 : 1 }, uGem: { value: src.name === "gem" ? 1 : 0 },
+          uGlow: U.glow, uFlare: U.flare, uHover: U.hover, uScan: U.scan, uScanY: U.scanY, uWash: U.wash, uTilt: U.tilt,
+          uDpr: U.dpr, uSize: U.size, uAmbient: U.ambient, uKeyDir: U.keyDir, uKey: U.key, uFillDir: U.fillDir, uFill: U.fill, uTeal: U.teal
+        },
+        transparent: w.blend >= 2, depthWrite: w.depthWrite, side: src.side,
+        blending: w.blend === 2 ? T.NormalBlending : T.NoBlending
+      });
+      m.userData.uvAnim = w.uvAnim || [];
+      return w.blend >= 3 ? additive(m) : m;
+    }
+
+    function setup(gltf) {
+      var parser = gltf.parser, need = {}, meshes = [];
+      gltf.scene.traverse(function (o) {
+        if (o.isMesh && o.material && o.material.userData.wow) {
+          meshes.push(o);
+          o.material.userData.wow.textures.forEach(function (i) { need[i] = true; });
+        }
+      });
+      var node = gltf.scene.getObjectByName("glow_emitter"), wp = node && node.userData.wowParticle;
+      if (wp) need[wp.texture] = true;
+      var ids = Object.keys(need);
+      return Promise.all(ids.map(function (i) { return parser.getDependency("texture", Number(i)); })).then(function (list) {
+        var tex = {};
+        ids.forEach(function (i, k) { list[k].colorSpace = T.NoColorSpace; tex[i] = list[k]; }); // the game shades in gamma space
+        build(gltf, meshes, tex, node, wp);
+      });
+    }
+
+    function build(gltf, meshes, tex, node, wp) {
+      renderer = new T.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: "low-power" });
+      renderer.setClearColor(0x000000, 0);
+      U = {
+        glow: { value: 0 }, flare: { value: 0 }, hover: { value: 0 }, scan: { value: 0 }, scanY: { value: -1e4 }, wash: { value: 0 },
+        tilt: { value: 0 }, dpr: { value: 1 }, size: { value: new T.Vector2(1, 1) },
+        ambient: { value: new T.Vector3(.36, .39, .48) },
+        keyDir: { value: new T.Vector3(-.45, .62, .64).normalize() }, key: { value: new T.Vector3(.9, .8, .7) },
+        fillDir: { value: new T.Vector3(.2, -.88, .42).normalize() }, fill: { value: new T.Vector3(.14, .44, .4) },
+        teal: { value: new T.Vector3(.4, .937, .863) }
+      };
+      scene = new T.Scene();
+      rig = new T.Group();
+      scene.add(rig);
+      rig.add(gltf.scene);
+
+      var box = new T.Box3();
+      meshes.forEach(function (m) {
+        var old = m.material;
+        m.material = wowMaterial(old, tex);
+        old.dispose();
+        m.frustumCulled = false;
+        if (m.material.transparent) m.renderOrder = 1;
+        if (!m.material.transparent) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox); }
+        mats.push(m.material);
+      });
+
+      mixer = new T.AnimationMixer(gltf.scene);
+      var clip = gltf.animations[0];
+      bone0 = gltf.scene.getObjectByName("bone0");
+      if (clip) {
+        mixer.clipAction(clip).play();
+        clipLen = clip.duration || 1;
+        var track = bone0 && clip.tracks.filter(function (k) { return k.name === bone0.name + ".position"; })[0];
+        if (track) {
+          var ys = []; for (var i = 1; i < track.values.length; i += 3) ys.push(track.values[i]);
+          liftMin = Math.min.apply(null, ys);
+          liftAmp = Math.max.apply(null, ys) - liftMin;
+        }
+      }
+      // Centre the opaque body on the rig, halfway through its hover
+      var center = box.getCenter(new T.Vector3());
+      center.y += liftAmp / 2;
+      gltf.scene.position.copy(center).multiplyScalar(-1);
+      size = box.getSize(new T.Vector3());
+      size.y += liftAmp;
+
+      if (node && wp) {
+        var geo = new T.PlaneGeometry(1, 1);
+        for (var k = 0, n = Math.ceil(wp.lifespan * wp.rate); k < n; k++) {
+          var s = new T.Mesh(geo, additive(new T.ShaderMaterial({
+            vertexShader: SPRITE_VERT, fragmentShader: SPRITE_FRAG, transparent: true, depthWrite: false,
+            uniforms: { uTex: { value: tex[wp.texture] }, uColor: { value: new T.Vector3() }, uAlpha: { value: 0 }, uSize: { value: 0 }, uRot: { value: 0 } }
+          })));
+          s.frustumCulled = false;
+          s.renderOrder = 2;
+          node.add(s);
+          sprites.push(s);
+        }
+        emitter = wp;
+      }
+
+      camera = new T.PerspectiveCamera(22, 1, .05, 50);
+      resize();
+      try { renderSide(); } catch (e) { /* keep the cutout in the archive header */ }
+      ready = true;
+      draw(performance.now());
+      el.core.classList.add("is-3d");
+      if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas); else window.addEventListener("resize", resize);
+      if (window.IntersectionObserver) new IntersectionObserver(function (es) { onScreen = es[es.length - 1].isIntersecting; if (onScreen) api.resume(); else stop(); }).observe(canvas);
+      document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); else api.resume(); });
+      el.stage.addEventListener("pointermove", function (e) {
+        if (e.pointerType !== "mouse") return;
+        var r = el.construct.getBoundingClientRect();
+        aimX = Math.max(-1, Math.min(1, (e.clientX - r.left - r.width / 2) / (innerWidth / 2)));
+        aimY = Math.max(-1, Math.min(1, (e.clientY - r.top - r.height / 2) / (innerHeight / 2)));
+      });
+      el.stage.addEventListener("pointerleave", function () { aimX = aimY = 0; });
+      ["pointerenter", "focus"].forEach(function (n) { el.construct.addEventListener(n, function () { hovered = true; }); });
+      ["pointerleave", "blur"].forEach(function (n) { el.construct.addEventListener(n, function () { hovered = false; }); });
+      canvas.addEventListener("webglcontextlost", function (e) { e.preventDefault(); stop(); el.core.classList.remove("is-3d"); });
+      canvas.addEventListener("webglcontextrestored", function () { draw(performance.now()); el.core.classList.add("is-3d"); api.resume(); });
+      api.resume();
+    }
+
+    // Distance at which a box of width w and height h (model units) fills `fill` of the frame
+    function placeCamera(cam, yawDeg, pitchRad, w, h, fill) {
+      var tv = Math.tan(cam.fov * Math.PI / 360), th = tv * cam.aspect;
+      var d = Math.max(w / 2 / (fill * th), h / 2 / (fill * tv));
+      var a = yawDeg * Math.PI / 180;
+      cam.position.set(d * Math.cos(pitchRad) * Math.sin(a), d * Math.sin(pitchRad), d * Math.cos(pitchRad) * Math.cos(a));
+      cam.lookAt(0, 0, 0);
+      cam.updateProjectionMatrix();
+    }
+    function resize() {
+      var dpr = Math.min(2, window.devicePixelRatio || 1), w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(w, h, false);
+      U.dpr.value = dpr;
+      U.size.value.set(w, h);
+      camera.aspect = w / h;
+      placeCamera(camera, 0, PITCH, size.x, size.y, .56);
+      if (ready && !running) draw(performance.now());
+    }
+
+    // Archive header: one still from the side, replacing the side cutout
+    function renderSide() {
+      var img = el.plate.querySelector(".unit img");
+      if (!img) return;
+      var w = 864, h = 544, cam = new T.PerspectiveCamera(18, w / h, .05, 50);
+      placeCamera(cam, 78, .16, size.z, size.y, .94);
+      rig.rotation.set(0, 0, 0);
+      pose(1.2);
+      var rt = new T.WebGLRenderTarget(w, h);
+      renderer.setRenderTarget(rt);
+      renderer.clear();
+      renderer.render(scene, cam);
+      var px = new Uint8Array(w * h * 4);
+      renderer.readRenderTargetPixels(rt, 0, 0, w, h, px);
+      renderer.setRenderTarget(null);
+      rt.dispose();
+      var big = document.createElement("canvas"), ctx = big.getContext("2d");
+      big.width = w; big.height = h;
+      var id = ctx.createImageData(w, h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var s = ((h - 1 - y) * w + x) * 4, o = (y * w + x) * 4;
+          var r = px[s], g = px[s + 1], b = px[s + 2], a = Math.max(px[s + 3], r, g, b); // additive glow keeps its light
+          if (!a) continue;
+          id.data[o] = r * 255 / a; id.data[o + 1] = g * 255 / a; id.data[o + 2] = b * 255 / a; id.data[o + 3] = a;
+        }
+      }
+      ctx.putImageData(id, 0, 0);
+      var out = document.createElement("canvas");
+      out.width = w / 2; out.height = h / 2;
+      out.getContext("2d").drawImage(big, 0, 0, w / 2, h / 2);
+      img.src = out.toDataURL("image/png");
+    }
+
+    // Pose everything for model time `at` (seconds)
+    function pose(at) {
+      mixer.setTime(at % clipLen);
+      mats.forEach(function (m) {
+        m.userData.uvAnim.forEach(function (a, slot) {
+          if (!a) return;
+          var v = sample(a.times, a.translate, a.period ? at % a.period : at);
+          m.uniforms[slot ? "uUv1Shift" : "uUv0Shift"].value.set(v[0], v[1]);
+        });
+      });
+      if (emitter) {
+        var born = at * emitter.rate, whole = Math.floor(born);
+        sprites.forEach(function (s, k) {
+          var f = Math.min(1, (born - whole + k) / emitter.rate / emitter.lifespan), u = s.material.uniforms;
+          var col = sample(emitter.color.t, emitter.color.v, f);
+          u.uColor.value.set(col[0], col[1], col[2]);
+          u.uAlpha.value = sample(emitter.alpha.t, emitter.alpha.v, f)[0];
+          u.uSize.value = sample(emitter.scale.t, emitter.scale.v, f)[0] * emitter.sizeScale;
+          u.uRot.value = (hash(whole - k) * 2 - 1) * emitter.spinVary;
+        });
+      }
+    }
+
+    function step(dt, now) {
+      var scanning = scanAt >= 0, since = scanning ? (now - scanAt) / 1000 : 0, k = Math.min(1, dt * 3);
+      speed += ((scanning ? .15 : 1) - speed) * Math.min(1, dt * 5);
+      t += dt * speed;
+      pose(reduced ? 1.2 : t);
+      hover += ((hovered ? 1 : 0) - hover) * Math.min(1, dt * 6);
+      yaw += ((reduced ? .32 : Math.sin(t * Math.PI * 2 / 17) * .38) + aimX * .35 - yaw) * (reduced ? 1 : k);
+      pitch += (aimY * .14 - pitch) * (reduced ? 1 : k);
+      rig.rotation.set(pitch, yaw, 0);
+      U.hover.value = hover;
+      U.glow.value = .5 + .5 * Math.sin(now / 1000 * Math.PI * 2 / 3.4);
+      U.flare.value = scanning ? (since < .34 ? since / .34 : 1 - .7 * Math.min(1, (since - .34) / 1.56)) : 0;
+      if (scanning && beam) {
+        var b = beam.getBoundingClientRect(), r = canvas.getBoundingClientRect(), m = getComputedStyle(tiltEl).transform;
+        var mx = m && m !== "none" && window.DOMMatrixReadOnly ? new DOMMatrixReadOnly(m) : null;
+        U.scanY.value = b.bottom - 1 - (r.top + r.height / 2);
+        U.tilt.value = mx ? Math.atan2(mx.b, mx.a) : 0;
+        U.scan.value = since < 1.45 ? 1 : Math.max(0, 1 - (since - 1.45) / .4);
+        U.wash.value = .14 * U.scan.value;
+      } else {
+        U.scan.value = U.wash.value = 0;
+      }
+      if (liftAmp && bone0) {
+        var lift = ((bone0.position.y - liftMin) / liftAmp).toFixed(2);
+        if (lift !== lastLift) { el.core.style.setProperty("--lift", lift); lastLift = lift; }
+      }
+    }
+    function draw(now) {
+      step(last && running ? Math.min(.1, (now - last) / 1000) : 0, now);
+      last = now;
+      renderer.render(scene, camera);
+    }
+    function frame(now) {
+      raf = 0;
+      if (!running) return;
+      draw(now);
+      raf = requestAnimationFrame(frame);
+    }
+    function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+
+    api.resume = function () {
+      if (!ready || running || document.hidden || el.archive.open || !onScreen) return;
+      if (reduced) { draw(performance.now()); return; }
+      running = true;
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+    api.pause = function () { stop(); scanAt = -1; };
+    api.scan = function () { if (ready && !reduced) scanAt = performance.now(); };
+
+    Promise.all([import(THREE_URL), import(GLTF_URL)]).then(function (mods) {
+      T = mods[0];
+      var loader = new mods[1].GLTFLoader();
+      loader.register(dataUriImages);
+      return new Promise(function (resolve, reject) { loader.parse(decode(SRC.model), "", resolve, reject); });
+    }).then(setup).catch(function (e) {
+      if (window.console) console.warn("Chalice model unavailable; showing the image instead.", e);
+    });
+    return api;
+  })();
+
   // ---------- Scan ----------
   var scanning = false;
   function readoutLines() {
@@ -945,6 +1370,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       el.scan.hidden = false;
       void el.scan.offsetWidth;
       el.scan.classList.add("run");
+      model3d.scan();
       var lines = readoutLines();
       el.scanReadout.textContent = "";
       lines.forEach(function (line, i) {
@@ -977,6 +1403,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     root.append(el.toast);
     disarm(el.detDelete); disarm(el.btnClearExamples);
     motes.resume();
+    model3d.resume();
     el.construct.focus({ preventScroll: true });
   });
   el.detBack.addEventListener("click", function () { showView("overview"); });
