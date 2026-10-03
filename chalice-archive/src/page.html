@@ -39,9 +39,12 @@ button, input, textarea { font: inherit; color: inherit; }
 .stage {
   position: relative; isolation: isolate; overflow: hidden; box-sizing: border-box; min-height: 100%;
   display: grid; place-items: center; padding: 16px;
-  background: radial-gradient(ellipse 70% 70% at 50% 50%, var(--void-2) 0%, var(--void) 64%);
+  background:
+    radial-gradient(ellipse 40% 44% at 50% 50%, rgb(var(--teal-rgb) / .08), transparent 70%),
+    radial-gradient(ellipse 70% 70% at 50% 50%, var(--void-2) 0%, var(--void) 64%);
 }
 .stage::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgb(var(--shade-rgb) / .7)); }
+.motes { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 .core { --size: min(58vmin, 460px); position: relative; display: grid; place-items: center; }
@@ -53,6 +56,10 @@ button, input, textarea { font: inherit; color: inherit; }
 @keyframes drift-x { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
 @keyframes bob { 0%, 100% { transform: translateY(6px); } 50% { transform: translateY(-14px); } }
 @keyframes tilt { from { transform: rotate(-2.4deg); } to { transform: rotate(2.2deg); } }
+.halo { position: absolute; left: 50%; top: 50%; width: 150%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, rgb(var(--teal-rgb) / .14), transparent 62%); animation: halo 5.6s ease-in-out infinite; }
+@keyframes halo { 0%, 100% { opacity: .65; scale: .96; } 50% { opacity: 1; scale: 1.04; } }
+.pool { position: absolute; left: 50%; top: 98%; width: 55%; height: 22px; translate: -50% 0; border-radius: 50%; pointer-events: none; background: radial-gradient(ellipse, rgb(var(--teal-rgb) / .22), transparent 70%); filter: blur(4px); animation: pool 5.6s ease-in-out infinite; }
+@keyframes pool { 0%, 100% { opacity: .9; scale: 1; } 50% { opacity: .45; scale: .8; } }
 .construct-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 0 22px rgb(var(--teal-rgb) / .16)) drop-shadow(0 24px 26px rgb(var(--shade-rgb) / .85)); transition: filter .4s, opacity .8s; }
 .gem { position: absolute; left: 50%; top: 80.2%; width: 34%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; background: radial-gradient(circle, rgb(var(--teal-rgb) / .55) 0%, rgb(var(--teal-rgb) / .16) 34%, transparent 66%); animation: gem 3.4s ease-in-out infinite; transition: opacity .8s; }
 @keyframes gem { 0%, 100% { opacity: .5; scale: .9; } 50% { opacity: 1; scale: 1.08; } }
@@ -71,7 +78,10 @@ button, input, textarea { font: inherit; color: inherit; }
 .construct-gl { position: absolute; left: -50%; top: -50%; width: 200%; height: 200%; pointer-events: none; opacity: 0; transition: opacity .8s; }
 .is-3d .construct-gl { opacity: 1; }
 .core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-scanning .gem, whose flare would bring the overlay back */
+.core { --lift: .5; }
 .core.is-3d .fx { animation: none; } /* the model hovers on its own, and the canvas must not drift under the cursor it aims at */
+.is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); } /* both follow the model's hover */
+.is-3d .pool { animation: none; opacity: calc(.9 - .45 * var(--lift)); scale: calc(1 - .2 * var(--lift)); }
 
 /* ---------- Scan overlay ---------- */
 .scan { position: fixed; inset: 0; z-index: 50; overflow: hidden; pointer-events: none; }
@@ -221,21 +231,24 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   .archive { width: calc(100% - 24px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fx-x, .fx-y, .fx-tilt, .gem { animation: none !important; }
+  .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool { animation: none !important; }
   .archive[open] .frame { animation: none; }
 }
 </style>
 <template id="ca-shell"><main class="stage" id="stage">
+  <canvas class="motes" id="motes" aria-hidden="true"></canvas>
   <h1 class="sr-only">The archive of <span id="pf-name">Unnamed Dracthyr</span></h1>
   <div class="core" id="core">
     <button class="construct" id="construct" type="button" aria-label="Scan the archive" aria-haspopup="dialog">
       <span class="fx fx-x"><span class="fx fx-y"><span class="fx fx-tilt">
+        <span class="halo"></span>
         <img class="construct-img" src="__FRONT__" alt="" width="364" height="410" draggable="false">
         <span class="gem"></span>
         <canvas class="construct-gl" id="construct-gl" aria-hidden="true"></canvas>
       </span></span></span>
       <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     </button>
+    <span class="pool" aria-hidden="true"></span>
   </div>
 </main>
 <div class="scan" id="scan" hidden aria-hidden="true">
@@ -439,7 +452,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   var root = byId("ca-root");
   root.replaceChildren(byId("ca-shell").content.cloneNode(true));
   var el = {};
-  ["stage", "core", "construct-gl", "pf-name", "construct",
+  ["stage", "motes", "core", "construct-gl", "pf-name", "construct",
    "scan", "archive", "btn-close", "plate", "ar-name", "ar-epithet", "unit-name", "unit-note", "btn-inscribe", "btn-profile", "ro-note",
    "view-overview", "view-detail", "view-form", "view-profile", "gap-head", "gap-bar", "legend", "examples", "examples-text", "btn-clear-examples",
    "recent", "recent-count", "index", "index-count", "det-back", "det-status", "det-glyph", "det-status-label", "det-domain", "det-date", "det-example",
@@ -606,6 +619,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     if (!el.archive.open) {
       try { el.archive.showModal(); } catch (e) { el.archive.setAttribute("open", ""); }
     }
+    motes.pause();
     model3d.pause();
     if (opts.view === "detail" && find(opts.id)) showDetail(opts.id);
     else showView("overview");
@@ -803,6 +817,57 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     t._t = setTimeout(function () { t.hidden = true; }, 4200);
   }
 
+  // ---------- Motes ----------
+  var motes = (function () {
+    var c = el.motes, ctx = c.getContext && c.getContext("2d");
+    if (!ctx) return { pause: function () {}, resume: function () {} };
+    var cs = getComputedStyle(document.documentElement);
+    function sprite(rgb) {
+      var s = document.createElement("canvas"); s.width = s.height = 32;
+      var g = s.getContext("2d"), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+      gr.addColorStop(0, "rgb(" + rgb + " / 1)"); gr.addColorStop(.28, "rgb(" + rgb + " / .5)"); gr.addColorStop(1, "rgb(" + rgb + " / 0)");
+      g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return s;
+    }
+    var teal = sprite(cs.getPropertyValue("--teal-rgb").trim() || "102 239 220");
+    var copper = sprite(cs.getPropertyValue("--copper-rgb").trim() || "207 138 85");
+    var w = 0, hgt = 0, parts = [], raf = 0, running = false;
+    function spawn(anywhere) {
+      return { x: Math.random() * w, y: anywhere ? Math.random() * hgt : hgt + 12, r: .6 + Math.random() * 1.8, vy: .05 + Math.random() * .2, ph: Math.random() * 6.283, sp: Math.random() < .28 ? copper : teal };
+    }
+    function draw(t) {
+      ctx.clearRect(0, 0, w, hgt);
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i], s = p.r * 7;
+        ctx.globalAlpha = .16 + .34 * (.5 + .5 * Math.sin(t * .0011 + p.ph));
+        ctx.drawImage(p.sp, p.x - s / 2, p.y - s / 2, s, s);
+      }
+      ctx.globalAlpha = 1;
+    }
+    function step(t) {
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        p.y -= p.vy; p.x += Math.sin(t * .0004 + p.ph) * .12;
+        if (p.y < -12) parts[i] = spawn(false);
+      }
+      draw(t);
+      raf = requestAnimationFrame(step);
+    }
+    function resize() {
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = c.clientWidth; hgt = c.clientHeight;
+      c.width = Math.round(w * dpr); c.height = Math.round(hgt * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var n = Math.round(Math.min(90, Math.max(26, w * hgt / 16000)));
+      parts = []; for (var i = 0; i < n; i++) parts.push(spawn(true));
+      draw(performance.now());
+    }
+    function resume() { if (reduced || running || document.hidden || el.archive.open) return; running = true; raf = requestAnimationFrame(step); }
+    function pause() { running = false; cancelAnimationFrame(raf); }
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(c); else { resize(); window.addEventListener("resize", resize); }
+    document.addEventListener("visibilitychange", function () { if (document.hidden) pause(); else resume(); });
+    return { pause: pause, resume: resume };
+  })();
+
   // ---------- Construct: the in-game model, drawn with three.js ----------
   // #ca-model is the Chalice's own M2 converted to GLB by tools/m2_to_glb.py. Its materials carry the game's
   // shading in extras.wow, and the shaders below reproduce those combiners. The cutout image stays in place
@@ -898,7 +963,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
     ].join("\n");
 
     var T, renderer, scene, camera, rig, mixer, U;
-    var mats = [], sprites = [], emitter = null, bone0 = null, liftAmp = 0, clipLen = 1;
+    var mats = [], sprites = [], emitter = null, bone0 = null, liftMin = 0, liftAmp = 0, lastLift = "", clipLen = 1;
     var size = null, PITCH = .2;
     var ready = false, running = false, onScreen = true, raf = 0, last = 0;
     var t = 0, speed = 1, hover = 0, hovered = false, scanAt = -1;
@@ -1032,7 +1097,8 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
         var track = bone0 && clip.tracks.filter(function (k) { return k.name === bone0.name + ".position"; })[0];
         if (track) {
           var ys = []; for (var i = 1; i < track.values.length; i += 3) ys.push(track.values[i]);
-          liftAmp = Math.max.apply(null, ys) - Math.min.apply(null, ys);
+          liftMin = Math.min.apply(null, ys);
+          liftAmp = Math.max.apply(null, ys) - liftMin;
         }
       }
       // Centre the opaque body on the rig, halfway through its hover
@@ -1184,6 +1250,10 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       } else {
         U.scan.value = U.wash.value = 0;
       }
+      if (liftAmp && bone0) {
+        var lift = ((bone0.position.y - liftMin) / liftAmp).toFixed(2);
+        if (lift !== lastLift) { el.core.style.setProperty("--lift", lift); lastLift = lift; }
+      }
     }
 
     // Turn toward the cursor, or sway gently when there is none (touch, pointer outside the window, reduced motion)
@@ -1208,7 +1278,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
       A.q.copy(A.looker.quaternion).invert();
       A.looker.lookAt(A.target);
       A.q.premultiply(A.looker.quaternion);
-      rig.quaternion.slerp(A.q, reduced || !dt ? 1 : 1 - Math.exp(-dt * 14));
+      rig.quaternion.slerp(A.q, reduced || !dt ? 1 : 1 - Math.exp(-dt * 10));
     }
     function draw(now) {
       step(last && running ? Math.min(.1, (now - last) / 1000) : 0, now);
@@ -1282,6 +1352,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
   el.archive.addEventListener("close", function () {
     root.append(el.toast);
     disarm(el.detDelete); disarm(el.btnClearExamples);
+    motes.resume();
     model3d.resume();
     el.construct.focus({ preventScroll: true });
   });
@@ -1292,6 +1363,7 @@ textarea.input { min-height: 140px; resize: vertical; line-height: 1.5; }
 
   // ---------- Boot ----------
   renderLanding();
+  motes.resume();
 
   var after = null;
   try { after = JSON.parse(sessionStorage.getItem("ca-after") || "null"); sessionStorage.removeItem("ca-after"); } catch (e) { after = null; }

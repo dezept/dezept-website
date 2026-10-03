@@ -2,8 +2,8 @@
 
 A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking it locks on, sweeps a teal scan line down the screen and over the model, then opens the archive: his name and epithet, his most recent records and a knowledge index of what he has re-learned since waking.
 
-- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 5 at handover.
-- **`dist/chalice-archive.html`** is what version 5 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
+- **Live page:** https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh. Published as a claude.ai Artifact, private until shared from its Share menu. Version 6 at handover.
+- **`dist/chalice-archive.html`** is what version 6 was published from. `python3 build.py` reproduces it from `src/` and `assets/`.
 
 ## Status
 
@@ -86,7 +86,7 @@ Rules that keep this working:
 
 **Outside claude.ai** (local file, GitHub Pages, …), `window.claude` doesn't exist. The page is read-only and still renders the embedded records and the model. Self-hosting needs another way to save, either by editing `seed.json` and rebuilding, or with a small backend.
 
-**Live data vs. `seed.json`:** records added through the live page exist only in the published Artifact. Before you rebuild from `seed.json` and republish, copy the current `ca-data` JSON from the live page into `src/seed.json`. Otherwise you overwrite his records. Before versions 3 to 5 were published, the live data still equalled `seed.json`.
+**Live data vs. `seed.json`:** records added through the live page exist only in the published Artifact. Before you rebuild from `seed.json` and republish, copy the current `ca-data` JSON from the live page into `src/seed.json`. Otherwise you overwrite his records. Before versions 3 to 6 were published, the live data still equalled `seed.json`.
 
 ### Data model
 
@@ -122,10 +122,12 @@ Rules that keep this working:
 
 - **Theme:** one deliberate dark theme (`color-scheme: dark`). Tokens live in `:root` of `ca-style`: void navy grounds, copper (the construct's frame) for structure, teal (the gem) for light and scan, plus amber and rose.
 - **Fonts:** Forum (display), Alegreya Sans (body), Martian Mono (labels, readouts, counts).
-- **Landing:** only the construct, centred on the dark stage. There is no visible text. The character's name is in a visually hidden `<h1>` and in the button's accessible name ("Scan the archive of …"), and the epithet is shown in the archive header instead.
+- **Landing:** only the construct, centred on the dark stage, with its ambient light: the teal stage glow, the halo behind it, the pool of light under it and the drifting motes. There is no visible text. The character's name is in a visually hidden `<h1>` and in the button's accessible name ("Scan the archive of …"), and the epithet is shown in the archive header instead.
 - **Float (cutout fallback only):** three nested wrappers with different periods, so the motion never visibly loops: `.fx-x` 13 s drift, `.fx-y` 5.6 s bob, `.fx-tilt` 9 s tilt. In 3D mode they stop: the model hovers on its own, and the canvas must stay put under the cursor it aims at.
 - **Scan:** `scan()` adds `.is-scanning` to the stage (corner brackets lock on, gem flares). It shows `#scan`: a beam plus a grid revealed by `clip-path`, both on the same 1.45 s easing. The dialog opens at about 1.95 s with a clip-path unfold.
-- **Reduced motion:** `prefers-reduced-motion` turns off the float, the sweep and the unfold. The model draws one still frame and does not follow the cursor.
+- **Halo and pool:** with the cutout they pulse with the CSS bob. In 3D mode the renderer writes the model's hover height to `--lift` on `.core` each frame, and `.halo` and `.pool` follow it.
+- **Motes:** a canvas particle field, paused while the dialog is open or the tab is hidden.
+- **Reduced motion:** `prefers-reduced-motion` turns off the float, the halo and pool pulse, the motes, the sweep and the unfold. The model draws one still frame and does not follow the cursor.
 
 ## The 3D construct
 
@@ -156,7 +158,7 @@ Raw downloads are cached in `tools/.cache/` (git-ignored). Only the converted GL
 - **Loading:** three.js 0.186.1 and its GLTFLoader load as ES modules from jsDelivr's `+esm` bundles with dynamic `import()`. The loader's bundle imports `three` from the same pinned URL, so there is one three.js instance and no import map. GLTFLoader normally decodes embedded images through `blob:` URLs and `fetch`, which the Artifact CSP may refuse, so a small plugin decodes them through `<img>` with data URIs instead.
 - **Shading:** a `ShaderMaterial` reproduces the game's combiners in gamma space. `Combiners_Opaque_Mod2xNA_Alpha` with a sphere-mapped env texture shades the body and gem. `Combiners_Mod_Mod` shades the additive shells, and `shell_edge` also gets the game's edge fade. Lighting is ambient plus a warm key and a teal under-fill, with a teal rim that strengthens on hover. Additive passes leave canvas alpha untouched, so they add light to the page instead of darkening it.
 - **Motion:** the model's own clip plays, the shell UVs scroll on their 4.033 s loop, and five glow sprites follow the emitter's colour, alpha and size curves. The sprites fade to zero at their edges, because the glow texture's background is near-black and would otherwise show as a faint square on the dark stage.
-- **Cursor:** `aim()` casts the cursor's ray through the camera and meets it with a pane facing the camera, `GAP` (1.2) model units in front of the construct. It then turns the construct so the gem's own line of sight, not the centre's, passes through that point. On screen the gem always points straight at the cursor. `GAP` sets how far it turns: 0.7 swings it nearly side-on at the window's corners. It eases in with a 70 ms time constant. With no cursor (touch after release, pointer outside the window) it sways ±22° on its own. Touch follows the finger while it is down.
+- **Cursor:** `aim()` casts the cursor's ray through the camera and meets it with a pane facing the camera, `GAP` (1.2) model units in front of the construct. It then turns the construct so the gem's own line of sight, not the centre's, passes through that point. On screen the gem always points straight at the cursor. `GAP` sets how far it turns: 0.7 swings it nearly side-on at the window's corners. It eases in with a 100 ms time constant (`Math.exp(-dt * 10)`). With no cursor (touch after release, pointer outside the window) it sways ±22° on its own. Touch follows the finger while it is down.
 - **Gem:** pulses on the CSS gem's 3.4 s rhythm and flares on scan.
 - **Scan:** each frame of the sweep reads the CSS beam's position and the tilt wrapper's rotation, and lights a teal band on the model exactly under the beam, with a fading wash above it. The model's animation slows to 15 % speed while it is being scanned.
 - **Archive header:** after loading, one side view is rendered off-screen at 2× and swapped into the header `<img>`.
