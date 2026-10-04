@@ -1,9 +1,15 @@
 # Chalice Archive: handover
 
-A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on, sweeps a teal scan line down the screen and over the model, then opens the archive. The archive is an old leather-bound tome in the style of the game's books and journals. It holds only his records: the most recent on the left page, and a chaptered index of everything he has re-learned since waking on the right.
+A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on and sweeps a teal scan line down the screen and over the model. The construct then rises and projects three choices beneath it: **About**, **Art** and **Knowledge**.
+
+Each choice opens its chapter of the archive, an old leather-bound tome in the style of the game's books and journals, with index tabs on its top edge to move between chapters:
+
+- **About:** his portrait on the left leaf, with his name and epithet; particulars (label and value) and sections of text on the right.
+- **Art:** the plates (pictures of him) as a list on the left, the chosen plate on the right, and a full-size view on a dark ground.
+- **Knowledge:** his records, as before: the most recent on the left, and a chaptered index of everything he has re-learned since waking on the right.
 
 - **Self-hosted** on the owner's VPS: Cloudflare in front, then Caddy, then a small Node server (`server/server.mjs`, no dependencies) that serves the page and the model, stores the records, and checks the keeper's word. **`deploy/README.md` is the step-by-step setup.**
-- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build.
+- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters.
   - Before the move, its data (no records, no word) matched `src/seed.json`, so nothing needed migrating.
 
 ## Status
@@ -11,13 +17,17 @@ A one-page RP site for a Dracthyr character. The landing page is nothing but his
 | Area | State |
 |---|---|
 | Landing (the construct alone, no text), scan animation, archive tome, record detail | Done |
+| **Hub** (About, Art, Knowledge beneath the construct after the scan) and the tome's chapter tabs | Done |
+| **About** page: portrait, name, epithet, particulars, sections; amended by the keeper | Done, through the server's API |
+| **Art**: plates uploaded from the keeper's browser, ordered, captioned, shown full size, one chosen as the portrait | Done, through the server's API |
+| Addresses: `#about`, `#art`, `#knowledge`, `#art/<plate>` and `#knowledge/<record>` open there at once | Done |
 | Inscribe / revise / remove record, remove examples | Done, through the server's API |
 | **Keeper's seal** | **Done.** A brass clasp on the tome's edge opens a small panel. The keeper's word is checked on the server and gives a session; **Seal it again** ends it. The word is set on the VPS with `set-password` and can be changed from the panel. |
-| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (67 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
-| Profile (name, epithet, construct name and note) | Kept in the data, not shown or editable. The name is only used for screen readers. To change it, stop the service and edit `profile` in `/var/lib/chalice-archive/archive.json`. |
+| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (100 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's; its per-route body limits were checked again with Caddy 2.10.2. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
+| Profile (name, epithet, construct name and note) | The name and epithet are shown on the About page and amended there. The construct's name and note are kept in the data but not shown. |
 | **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutout remains as the fallback. |
-| Preview on claude.ai | Done. The Artifact shows the current build with an in-page stand-in for the server (version 13). |
-| Content | No records yet. |
+| Preview on claude.ai | Done. The Artifact shows the current build with an in-page stand-in for the server (version 14). |
+| Content | No records, no About text and no plates yet. The preview shows example plates and an example About page; the real site starts empty. |
 
 ## Files
 
@@ -26,6 +36,7 @@ build.py                         builds dist/ from src/ + assets/
 src/page.html                    the page: CSS, markup, app script, with placeholders
 src/seed.json                    the starting archive, copied to DATA_DIR/archive.json on the server's first start
 src/preview.js                   the server's stand-in for the claude.ai preview (only in dist/preview.html)
+src/preview-examples.json        the preview's example About page and plates (only in dist/preview.html)
 server/server.mjs                the server (Node 20+, no dependencies); `set-password` sets the keeper's word
 deploy/README.md                 VPS setup: Node, Caddy, Cloudflare, firewall, backups, what protects what
 deploy/Caddyfile                 Caddy in front of the server: Origin Certificate, Authenticated Origin Pulls, real client IP
@@ -34,9 +45,11 @@ deploy/firewall.sh               ufw: 443 only from Cloudflare, SSH rate-limited
 assets/model/chalice.glb         the construct's 3D model (made by tools/m2_to_glb.py, 544 KB)
 assets/front.webp|png            front-view cutout (fallback while/if the model can't load)
 assets/screenshots/              the original in-game screenshots
+assets/examples/                 the preview's example plates: the construct rendered by tools/example_plates.js
 tools/m2.py                      minimal reader for M2 models and .skin files
 tools/m2_to_glb.py               downloads the game files and writes assets/model/chalice.glb
 tools/smoke.js                   starts the server and tests the API and the page; npm install in tools/ first
+tools/example_plates.js          renders assets/examples/ from the preview build (only needed to remake them)
 tools/cutout.py                  background removal used to make the cutouts (ISNet via onnxruntime)
 dist/index.html                  the built page (committed, so the VPS needs no build step)
 dist/chalice.<hash>.glb          the model, named by its SHA-256 so it can be cached forever
@@ -76,18 +89,21 @@ The repo-root `CLAUDE.md` says the same, so future sessions do it without being 
 How the preview differs from the real page:
 
 - **Fragment:** `dist/preview.html` is a page fragment, because the viewer wraps it in its own `<html>`/`<head>`. The model preload is dropped.
-- **No network:** the viewer's CSP has `connect-src 'none'`, so the page can't fetch anything. The model is embedded as base64 in `#ca-model`.
-- **Stand-in server:** `<script id="ca-preview">` (`src/preview.js`) sets `window.CA_PREVIEW`. `ca-app` then sends its requests there instead of to `fetch`. That covers the model and every API route, with the same validation and error messages as the server.
+- **No network:** the viewer's CSP has `connect-src 'none'` and `img-src data:`, so the page can't fetch anything. The model is embedded as base64 in `#ca-model`, and the example plates' images as data: URIs in `#ca-files`.
+- **Stand-in server:** `<script id="ca-preview">` (`src/preview.js`) sets `window.CA_PREVIEW`. `ca-app` then sends its requests there instead of to `fetch`, and asks `CA_PREVIEW.src(name)` for each plate's image instead of `art/<name>`. That covers the model and every API route, image uploads included, with the same validation and error messages as the server.
+- **Examples:** the preview adds `src/preview-examples.json` to `src/seed.json`: an About page and four plates (renders of the construct). They are marked as examples in their titles and never reach the real site.
 - **The word** is `preview`, and the seal panel says so. Changing the word works until reload.
-- **Records** start from `src/seed.json` and live only in memory, so a reload forgets them and seals the archive again.
-- **The real page carries none of this:** `dist/index.html` has no `ca-preview`, and `window.CA_PREVIEW` can't be set there, because its CSP runs no other inline script. The smoke test checks both.
+- **Records, the About page and plates** start from the seed and the examples and live only in memory (uploaded images as data: URIs), so a reload forgets every change and seals the archive again.
+- **The real page carries none of this:** `dist/index.html` has no `ca-preview`, `ca-model` or `ca-files`, and `window.CA_PREVIEW` can't be set there, because its CSP runs no other inline script. The smoke test checks both.
 - **Never put real records or the real word into the preview.** Never use the Artifact's own capabilities (`artifact.publish`) to save; that path was removed on purpose.
 
 ## How the page works
 
 ### Structure
 
-`dist/index.html` is an ordinary document: `<head>` with the title, an inline SVG favicon, a preload of the model, the Google Fonts `<link>` and `<style id="ca-style">`; `<body>` with the markup (stage, scan overlay, the `<dialog>` tome, the toast), `<script type="application/json" id="ca-data">` and `<script id="ca-app">`. The model is fetched from `MODEL_URL`.
+`dist/index.html` is an ordinary document: `<head>` with the title, an inline SVG favicon, a preload of the model, the Google Fonts `<link>` and `<style id="ca-style">`; `<body>` with the markup (stage with the hub, scan overlay, the `<dialog>` with the chapter tabs, the tome and the full-size plate view, the toast), `<script type="application/json" id="ca-data">` and `<script id="ca-app">`. The model is fetched from `MODEL_URL`, and plates' images from `art/<name>`.
+
+In `ca-app`, `el` holds every element with an id, in camelCase (`det-title` is `el.detTitle`).
 
 The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and puts them in the Content-Security-Policy, so they are the only inline script and style that can run. **Any other inline `<script>`, `<style>`, `style="…"` attribute or `on…=` handler is blocked.** Add styles to `ca-style`, code to `ca-app`, and set styles from JS through `el.style` (allowed), not `setAttribute("style", …)`.
 
@@ -99,6 +115,7 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 | `GET /chalice.<hash>.glb` | anyone | the model, cached for a year (`immutable`) |
 | `GET /api/session` | anyone | `{owner, csrf}`: whether this browser holds the keeper's session, and its CSRF token |
 | `GET /api/archive` | anyone | `{archive}` |
+| `GET /art/<name>` | anyone | a plate's image, only while a plate uses it; cached for a year by browsers and a day by Cloudflare |
 | `POST /api/login` | anyone, throttled | `{password}` → session cookie + `{csrf}` |
 | `POST /api/logout` | keeper | ends the session |
 | `POST /api/password` | keeper | `{current, next}` → new word, every other session ended |
@@ -106,10 +123,23 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 | `PUT /api/records/:id` | keeper | revise → `{archive, id}` |
 | `DELETE /api/records/:id` | keeper | remove → `{archive}` |
 | `POST /api/records/clear-examples` | keeper | remove example records → `{archive}` |
+| `PUT /api/about` | keeper | `{name, epithet, portrait, facts, sections}` → `{archive}` |
+| `POST /api/uploads` | keeper | an image's raw bytes, sent with its type (PNG, JPEG or WebP, at most 8 MiB) → `{file, width, height}` |
+| `POST /api/art` | keeper | new plate `{file, thumb, title, artist, link, date, note}` → `{archive, id}`; it goes first |
+| `PUT /api/art/:id` | keeper | revise; `file` and `thumb` only to replace the image → `{archive, id}` |
+| `DELETE /api/art/:id` | keeper | remove; clears it as the portrait → `{archive}` |
+| `POST /api/art/order` | keeper | `{ids}`, every plate once, in the new order → `{archive}` |
 
-- **Keeper-only routes** need the session cookie, an `X-CSRF-Token` header equal to the session's token and an `Origin` equal to `PUBLIC_ORIGIN`. Bodies must be JSON (`Content-Type: application/json`, at most 64 KB).
-- **Server-side cleaning:** ids, `added` and `example` are set by the server. Text is trimmed, stripped of control characters and capped (title 120, domain 60, note 4000, source 160). Unknown states become `fragment`, bad dates become today, an empty domain becomes "Unsorted".
-- **Storage:** `DATA_DIR/archive.json`, written atomically (temp file, fsync, rename). The previous version goes to `DATA_DIR/backups/` first, keeping the last 50. `auth.json` holds the scrypt hash. All are mode 0600 in a 0700 directory.
+- **Keeper-only routes** need the session cookie, an `X-CSRF-Token` header equal to the session's token and an `Origin` equal to `PUBLIC_ORIGIN`. Bodies must be a JSON object (`Content-Type: application/json`, at most 64 KiB; 256 KiB for the About page), except uploads.
+- **Server-side cleaning:** ids, `added` and `example` are set by the server. Text is trimmed, stripped of control characters and capped:
+  - records: title 120, domain 60, note 4000, source 160. Unknown states become `fragment`, bad dates become today, an empty domain becomes "Unsorted".
+  - About: name 60, epithet 280, up to 16 particulars (label 40, value 160) and 12 sections (heading 80, text 6000). Empty rows are dropped. A portrait that names no plate is cleared.
+  - plates: title 120, artist 80, note 1000, at most 500 plates. A link must be `http(s)` (a bare `artstation.com/x` becomes `https://artstation.com/x`); anything else, `javascript:` included, is dropped. Width and height come from the image file, never from the request.
+- **Uploads:** the type is read from the bytes and must match the `Content-Type` (PNG, JPEG or WebP; never SVG or HTML). At most 8 MiB and 10000 pixels on a side. The file is stored as `DATA_DIR/art/<first 32 hex digits of its SHA-256>.<png|jpg|webp>`, so the same image is stored once.
+- **The keeper's browser prepares each image:** it scales it to at most 2400 pixels on the long side and re-encodes it as WebP (JPEG on browsers that can't write WebP), which drops any metadata such as a photo's location. It also makes an 800-pixel thumbnail for the list and the portrait. Both are uploaded, then the plate is saved.
+- **Serving art:** only files a plate uses right now, by exact name, with their type, `nosniff` and the CSP. Removing a plate stops serving its image at once; Cloudflare's copy expires within a day (`s-maxage=86400`).
+- **The sweep** (at start, every 6 hours and after a plate is revised or removed) deletes an image once neither the archive nor any of its 50 backups uses it and it is over a day old. So restoring a backup always finds its images, and an upload whose plate was never saved disappears after a day.
+- **Storage:** `DATA_DIR/archive.json`, written atomically (temp file, fsync, rename). The previous version goes to `DATA_DIR/backups/` first, keeping the last 50. `auth.json` holds the scrypt hash. `art/` holds the images. All are mode 0600 in 0700 directories.
 - **Sessions** are kept in memory (at most 50), so a restart signs the keeper out. Only each token's SHA-256 is stored.
 - **In the page** (`ca-app`): `call(method, url, body)` wraps `fetch` with the CSRF header. `save()` sends a change and re-renders from the archive the server returns. A 401/403 asks the server about the session again: if it has ended, the seal panel opens without closing an open form, so the keeper can unseal and press Inscribe again.
 - **Deletes** are two-step buttons: the first click arms, the second confirms, and they disarm after 5 s.
@@ -119,6 +149,19 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 ```jsonc
 {
   "profile": { "name": "", "epithet": "", "construct": "", "constructNote": "" },
+  "about": {
+    "portrait": "",           // a plate's id, or ""
+    "facts": [{ "label": "Race", "value": "Dracthyr" }],
+    "sections": [{ "heading": "Appearance", "body": "" }]
+  },
+  "art": [{                   // in the keeper's order; a new plate goes first
+    "id": "a…",               // set by the server: "a" + 12 random base64url characters
+    "file": "<32 hex>.webp",  // up to 2400 px on the long side
+    "thumb": "<32 hex>.webp", // up to 800 px
+    "width": 0, "height": 0,  // of `file`, read by the server
+    "title": "", "artist": "", "link": "", "note": "",
+    "date": "YYYY-MM-DD", "added": 0, "example": false
+  }],
   "records": [{
     "id": "r…",               // set by the server: "r" + 12 random base64url characters
     "title": "",
@@ -145,27 +188,34 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 
 ### Design
 
-- **Two worlds, one token set** (`:root` of `ca-style`): the landing is the dark void (navy grounds, teal light, copper). The archive is the tome (leather, parchment, sepia ink, red rubric ink, brass, and the game's red-and-gold buttons). It is a single deliberate look, not light and dark themes.
+- **Two worlds, one token set** (`:root` of `ca-style`): the landing and the hub are the dark void (navy grounds, teal light, copper). The archive is the tome (leather, parchment, sepia ink, red rubric ink, brass, and the game's red-and-gold buttons). The full-size plate goes back to the dark ground. It is a single deliberate look, not light and dark themes.
+- **The hub** (`#hub`, inside `.core`): after the scan, `.has-hub` on the stage lifts the construct 56 px and three choices appear beneath it, each a glyph (a slit-pupilled eye, a framed picture, an open book), a label and an italic line. They are dark panes with teal corner brackets like the scan's lock, and they flicker in one after another as the beam reaches the bottom. On short landscape screens they stand beside the construct instead. A scan started from the keyboard moves the focus to the first. The hub stays once shown; closing the tome returns the focus to the choice that opened it.
+- **Chapter tabs** (`#tabs`): leather index tabs on the tome's top edge; the open chapter's tab is a parchment leaf. While a form is open, they only say to finish or cancel it, so nothing written is lost.
+- **Views:** each view lives on the right leaf and belongs to a chapter, whose own left leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`) shows beside it (`VIEWS` in `ca-app`). `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`.
+- **About:** the portrait is the plate's thumbnail in an oval inside a parchment mount, the way old books print a frontispiece; a click shows it full size. Without one, a dashed oval says "No likeness yet". The name has the record title's rule and red dot beneath it. On the right, the particulars are a two-column list, and each section has a red rubric heading; the first section's text opens with a red drop capital. The keeper's form has rows for particulars and sections, each with ↑, ↓ and × buttons, and a list to choose the portrait.
+- **Art:** the plates are mounted thumbnails cropped to 4 : 5, numbered with roman numerals in the keeper's order. The chosen plate shows on the right at its own shape, with its number, title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. The keeper can revise it, make it the portrait, move it earlier or later, or remove it.
+- **Full-size plate** (`#lightbox`, inside the dialog): the image on the dark ground with its number, title and artist in the game's gold; the game's round red buttons step through the plates (arrow keys too) and close it. It shows the thumbnail at once and swaps in the full image when it has loaded. While it is open, the tome is `inert`; Escape closes only it. On narrow screens the step buttons sit at the bottom.
+- **Addresses:** the open chapter is written into the address with `history.replaceState` (`#about`, `#art/<plate>`, `#knowledge/<record>`), so it can be copied and shared. Opening such an address goes straight to it, without the scan, and so does changing the hash.
 - **Fonts:** Cinzel (titles, buttons, the game's inscriptional capitals), IM Fell English (the book's text, an 18th-century typeface with old-style numerals) and IM Fell English SC (labels and dates).
 - **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon in the gutter.
   - **Pages:** two parchment leaves either side of a shadowed spine (`.book`, `#page-l`, `#page-r`). The paper is fine SVG grain plus a stretched low-frequency stain (`--grain`, `--mottle`); a tiled stain showed a seam. Stacked page edges show beneath.
   - **Left leaf:** the keeper's buttons (Inscribe record, and Remove examples while any exist; shown only during the keeper's session), then "Recent accessions", the latest six records with date, state and the start of the note.
   - **Right leaf:** the "Index of knowledge" as a table of contents. Domains are numbered chapters with roman numerals, and each entry runs to its state on dotted leaders. A record or a form opens on this leaf. A record has a red drop capital and its sources as marginalia. Forms are written on ruled lines.
   - **Game styling:** buttons copy the game's red panel buttons (gold text, brass rim). The close button is the round red one, and notices are dark tooltips with gold text.
-  - **Narrow screens (≤ 860 px):** one leaf at a time. Opening a record or a form hides the recent accessions (`.book[data-view]`), so it is not buried below them.
-- **Landing:** only the construct, centred on the dark stage, with its ambient light (below). There is no visible text and no ring. The character's name is only in a visually hidden `<h1>`, the button's accessible name ("Scan the archive of …") and the archive's hidden heading.
-- **Not shown anywhere:** the profile (name, epithet, construct name and note), the state-of-knowledge ledger and filters, and "Example" tags. The removed pieces are gone from the code, not hidden. The `example` flag stays in the data so **Remove examples** still works.
+  - **Narrow screens (≤ 860 px):** one leaf at a time. Opening a record, a plate or a form hides the left leaf (`.book[data-solo]`), so it is not buried below it. In Art, the list of plates shows alone, and a plate opens on its own with "← Return to the plates".
+- **Landing:** only the construct, centred on the dark stage, with its ambient light (below). There is no visible text and no ring until the scan reveals the hub. The character's name is in a visually hidden `<h1>`, the button's accessible name ("Scan the archive of …") and the archive's hidden heading, and visibly on the About page.
+- **Not shown anywhere:** the construct's name and note from the profile, the state-of-knowledge ledger and filters, and "Example" tags. The removed pieces are gone from the code, not hidden. The `example` flag stays in the data so **Remove examples** still works.
 - **Float (cutout fallback only):** three nested wrappers with different periods, so the motion never visibly loops: `.fx-x` 13 s drift, `.fx-y` 5.6 s bob, `.fx-tilt` 9 s tilt. In 3D mode they stop: the model hovers on its own, and the canvas must stay put under the cursor it aims at.
 - **Starting a scan:** only the gem starts it. A pointer click must land on the gem: `model3d.gemAt(x, y)` raycasts the gem mesh in its current pose, with slack inside 55 % of its projected bounding circle. While the pointer is over the gem, the stage gets `.on-gem` (hand cursor) and the gem brightens. Clicks anywhere else do nothing. Keyboard activation of the construct button (Tab, then Enter or Space; the click reports `detail` 0) always scans. Without the 3D model, the hit area is the cutout's gem overlay.
-- **Scan:** `scan()` adds `.is-scanning` to the stage (corner brackets lock on, gem flares). It shows `#scan`: a beam plus a grid revealed by `clip-path`, both on the same 1.45 s easing. The dialog opens at about 1.95 s with a clip-path unfold.
+- **Scan:** `scan()` adds `.is-scanning` to the stage (corner brackets lock on, gem flares). It shows `#scan`: a beam plus a grid revealed by `clip-path`, both on the same 1.45 s easing. The hub appears at 1.35 s, and the scan clears at 1.95 s.
 - **Halo and pool:** with the cutout they pulse with the CSS bob. In 3D mode the renderer writes the model's hover height to `--lift` on `.core` each frame, and `.halo` and `.pool` follow it.
 - **Ambient light.** The idea is a lamp in the void that gathers drifting memories.
   - **Haze (`.nebula`, CSS):** three large indigo, teal and copper clouds that drift over 70 to 110 s with `mix-blend-mode: screen`. They only move by transform, so they stay cheap.
-  - **Light shafts (`#motes` canvas):** nine soft wedges fanning from the construct. They turn slowly in both directions and brighten as the model rises (`model3d.lift()`). Each wedge is drawn three times at narrowing widths for a soft edge. They are on the canvas rather than in CSS because a rotating CSS layer that large costs tens of MB of GPU memory at 2× pixel density.
+  - **Light shafts (`#motes` canvas):** nine soft wedges fanning from the construct. They turn slowly in both directions and brighten as the model rises (`model3d.lift()`). Each wedge is drawn three times at narrowing widths for a soft edge. They are on the canvas rather than in CSS because a rotating CSS layer that large costs tens of MB of GPU memory at 2× pixel density. The canvas finds the construct's centre every frame, so the shafts and wisps follow it when it rises for the hub.
   - **Motes (`#motes`):** at random depths. Near ones are larger, brighter and faster, and slide against the cursor more than far ones, for parallax.
   - **Anima wisps (`#motes`):** six glowing teal or copper streaks with tapered trails. They drift in from the edges on a slow flow field and orbit the construct. Some spiral in, and each arrival flickers the gem (`model3d.absorb()`). Clicking to scan pulls every wisp in flight into the construct (`motes.gather()`).
   - **Paused** while the archive is open (`.is-paused` on the stage) or the tab is hidden.
-- **Reduced motion:** `prefers-reduced-motion` turns off the float, the halo and pool pulse, the haze drift, the motes, the wisps, the sweep and the unfold. The shafts stay as a still frame. The model draws one still frame and does not follow the cursor.
+- **Reduced motion:** `prefers-reduced-motion` turns off the float, the halo and pool pulse, the haze drift, the motes, the wisps, the sweep, the unfold, the hub's flicker and the construct's rise (it moves at once). The shafts stay as a still frame. The model draws one still frame and does not follow the cursor.
 
 ## The keeper's seal and what keeps the archive safe
 
@@ -178,7 +228,8 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 - **Encryption:**
   - In transit: visitor ↔ Cloudflare uses Cloudflare's edge certificate, and Cloudflare ↔ Caddy uses the Origin Certificate in Full (strict) mode with Authenticated Origin Pulls, TLS 1.2+. Caddy ↔ Node is plain HTTP on loopback only.
   - At rest: the records are not encrypted, because they are published to every visitor. The word is hashed, not encrypted, so it cannot be recovered from `auth.json`.
-- **Untrusted input:** every record field is rendered with `textContent`, never as HTML. The data block escapes `<`, `>`, `&`, U+2028 and U+2029. The CSP blocks any script that is not the page's own.
+- **Untrusted input:** every record, About and plate field is rendered with `textContent`, never as HTML. A plate's link becomes an `<a>` only if it starts with `http(s)://`, on the server and again in the page. The data block escapes `<`, `>`, `&`, U+2028 and U+2029. The CSP blocks any script that is not the page's own.
+- **Images:** only PNG, JPEG and WebP whose bytes match their type, served with that type and `nosniff`, so an upload can never be read as a page or a script. Uploads need the keeper's session like every other write.
 - **Headers on every response:** the CSP (`default-src 'none'`; scripts: the page's hash and jsDelivr's `/npm/`; styles: the page's hash and Google Fonts; `connect-src 'self'`; `frame-ancestors 'none'`), HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, COOP/CORP same-origin and a restrictive Permissions-Policy.
 
 ## The 3D construct
@@ -236,29 +287,42 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - field cleaning and size limits;
   - stored markup escaping;
   - backups;
+  - the About page's cleaning;
+  - uploads: session, CSRF and Origin; SVG, HTML and JSON refused; bytes that don't match their type; size and dimension limits; storage under the content hash; a JPEG's size from its header;
+  - plates: links, sizes from the file, order, the portrait, serving only the images in use, the sweep;
   - changing the word, which signs older sessions out;
   - logout;
   - per-address throttling via `X-Real-IP`.
-- **Browser checks** run Chromium against the server's real CSP and treat any console error or CSP violation as a failure. They walk the gem, then:
+- **Browser checks** run Chromium against the server's real CSP and treat any console error or CSP violation as a failure. They walk the gem until it reveals the hub, open Knowledge from it, then:
   - try a wrong word, then the right one, confirming the cookie stays invisible to scripts;
   - inscribe a record containing markup, which must stay text;
   - reload, still unsealed, then revise and remove the record;
+  - amend the About page, moving a particular up, with markup that must stay text;
+  - upload a plate (re-encoded to WebP in the browser, then served under the CSP) with a `javascript:` link that must be dropped, view it full size, make it the portrait, open `#about` and the plate's own address, and remove it;
   - change the word;
   - seal, reload, and unseal with the new word.
 - **Preview checks** load `dist/preview.html` inside the Artifact skeleton, under a CSP like the viewer's, with no network requests allowed. They check that:
-  - the model loads from the page itself;
+  - the model and the example plates load from the page itself;
+  - the About page shows its examples;
   - the seal panel names the preview word;
   - only `preview` unseals;
-  - a record can be inscribed;
-  - a reload forgets it;
+  - a record can be inscribed, and a plate uploaded and shown from memory;
+  - a reload forgets them;
   - there are no console errors;
   - `dist/index.html` carries no stand-in.
 
-Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`.
+Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`. In a Claude Code cloud session:
+
+```
+CHROME=/opt/pw-browsers/chromium-1194/chrome-linux/chrome \
+CHROME_ARGS="--ignore-certificate-errors-spki-list=$(openssl x509 -in /root/.ccr/agent-proxy-ca.crt -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64)" \
+node smoke.js
+```
 
 ## Open items for the owner
 
 - **Deploy:** follow `deploy/README.md`. Replace `archive.example.com` in the Caddyfile and in `PUBLIC_ORIGIN` in the unit.
 - **Set the keeper's word on the VPS** with `set-password` (step 3). Don't share it in chats or files.
-- **Optional:** set `profile.name` for screen readers. It lives in `archive.json` on the server once deployed, or in `src/seed.json` before the first start.
+- **Write the About page and add art** once deployed: open About or Art, unseal with the clasp, then **Amend this page** or **Add a plate**. Credit artists in the Artist field and link their page.
+- **When updating an existing deployment**, copy the new `deploy/Caddyfile` too: uploads need its larger body limit for `/api/uploads`.
 - **Preview:** the claude.ai Artifact stays private until you share it from its Share menu. It is for you to check changes; the real site is the VPS.

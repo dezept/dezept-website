@@ -11,24 +11,28 @@ Environment:
 
 Checks:
   1. Over HTTP, against a server set up as in production (Secure cookies, PUBLIC_ORIGIN, TRUST_PROXY):
-     security headers and a CSP whose hashes match the page; nothing outside the page, the model and the API
-     can be fetched; logins and writes refuse a foreign or missing Origin, a missing or wrong CSRF token, and
-     non-JSON bodies; the session cookie's flags; field validation and size limits; stored markup cannot end
-     the page's data block; backups; the password file; changing the word signs other sessions out;
-     failed logins are throttled per client IP.
+     security headers and a CSP whose hashes match the page; nothing outside the page, the model, the API and
+     the art in use can be fetched; logins and writes refuse a foreign or missing Origin, a missing or wrong CSRF
+     token, and non-JSON bodies; the session cookie's flags; field validation and size limits; stored markup
+     cannot end the page's data block; backups; the About page's cleaning; image uploads (type sniffed from the
+     bytes, size, dimensions), plates, their order and links, art served only while used, the sweep of unused
+     uploads; the password file; changing the word signs other sessions out; failed logins are throttled per IP.
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
-     the gem opens the archive; a wrong word is refused; the right word shows the tools; records can be
-     inscribed, revised and removed, and markup in them stays text; the session survives a reload; the word
-     can be changed from the page; sealing it again hides the tools.
+     the gem starts the scan, which reveals the three choices; a wrong word is refused; the right word shows the
+     tools; records can be inscribed, revised and removed, and markup in them stays text; the About page can be
+     amended; a plate can be uploaded, shown full size, made the portrait, linked to and removed; the session
+     survives a reload; the word can be changed from the page; sealing it again hides the tools.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
-     network requests at all): the model loads from the page, the stand-in server accepts only "preview", records
-     can be inscribed, and a reload forgets them. The real page carries no trace of the stand-in.
+     network requests at all): the model and the example plates load from the page, the stand-in server accepts
+     only "preview", records and plates can be added, and a reload forgets them. The real page carries no trace
+     of the stand-in.
 Screenshots go to tools/.smoke/.
 */
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const { spawn } = require('child_process');
 const { chromium } = require('playwright-core');
 
@@ -84,7 +88,7 @@ async function startServer(name, env) {
 
 function request(port, method, urlPath, { headers = {}, body } = {}) {
   return new Promise((resolve, reject) => {
-    const data = body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body);
+    const data = body === undefined ? undefined : typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body);
     const all = { ...(data !== undefined ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}), ...headers };
     for (const k of Object.keys(all)) if (all[k] === undefined) delete all[k]; // { Origin: undefined } sends no Origin
     const req = http.request({ host: '127.0.0.1', port, method, path: urlPath, headers: all }, (res) => {
@@ -102,6 +106,28 @@ function request(port, method, urlPath, { headers = {}, body } = {}) {
     req.end();
   });
 }
+
+// A small RGB PNG with a gradient; its size makes each one different
+function makePng(w, h) {
+  const table = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+  const crc = (buf) => { let c = 0xffffffff; for (const b of buf) c = table[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  const chunk = (type, data) => {
+    const body = Buffer.concat([Buffer.from(type, 'latin1'), data]), len = Buffer.alloc(4), sum = Buffer.alloc(4);
+    len.writeUInt32BE(data.length); sum.writeUInt32BE(crc(body));
+    return Buffer.concat([len, body, sum]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2; // 8-bit RGB
+  const raw = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * (w * 3 + 1) + 1 + x * 3;
+    raw[i] = (x * 255 / w) | 0; raw[i + 1] = (y * 255 / h) | 0; raw[i + 2] = 160;
+  }
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}
+// The start of a JPEG, up to its frame header (48 x 32): enough for the server, which reads only the header
+const JPEG_HEAD = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
+  0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x20, 0x00, 0x30, 0x03, 0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xd9]);
 
 const cookieOf = (res) => ((res.headers['set-cookie'] || [])[0] || '').split(';')[0];
 const inlineHash = (html, re) => "'sha256-" + crypto.createHash('sha256').update((html.match(re) || [])[1] || '', 'utf8').digest('base64') + "'";
@@ -206,6 +232,83 @@ async function apiChecks() {
     const archiveMode = fs.statSync(path.join(s.dataDir, 'archive.json')).mode & 0o777;
     check(backups.length >= 3 && archiveMode === 0o600, `each change keeps a backup of the previous archive (${backups.length} so far), and archive.json is 0600`);
 
+    // the About page
+    const about = await write('PUT', '/api/about', {
+      name: 'Smoke ' + evil, epithet: 'e'.repeat(400), portrait: 'nope',
+      facts: [{ label: 'Race', value: 'Dracthyr' }, { label: ' ', value: '' }, ...Array.from({ length: 30 }, (_, i) => ({ label: 'L' + i, value: 'v' }))],
+      sections: [{ heading: 'History', body: 'b'.repeat(7000) }, 'junk', null, { heading: '', body: '' }],
+    });
+    const ab = about.json && about.json.archive;
+    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && ab.about.portrait === '' &&
+      ab.about.facts.length === 16 && ab.about.facts[0].label === 'Race' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 6000,
+      'the About page is cleaned: lengths and counts capped, empty rows dropped, an unknown portrait cleared');
+    const aboutPage = await call('GET', '/');
+    check(!aboutPage.text.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/)[1].includes('<') && archiveIn(aboutPage.text).profile.name.startsWith('Smoke </script>'),
+      "markup in the About page is escaped in the page's data block");
+    check((await write('PUT', '/api/about', [1, 2])).status === 400 && (await write('PUT', '/api/about', 'null')).status === 400, 'a JSON body that is not an object is refused');
+
+    // uploading images
+    const upload = (body, type, extra = {}) => call('POST', '/api/uploads', { headers: { Cookie: cookie, Origin: ORIGIN, 'X-CSRF-Token': csrf, 'Content-Type': type, ...extra }, body });
+    const pngA = makePng(40, 30), pngB = makePng(41, 30), pngC = makePng(42, 30);
+    check((await call('POST', '/api/uploads', { headers: { Origin: ORIGIN, 'Content-Type': 'image/png' }, body: pngA })).status === 401 &&
+      (await upload(pngA, 'image/png', { 'X-CSRF-Token': undefined })).status === 403 && (await upload(pngA, 'image/png', { Origin: 'https://evil.test' })).status === 403,
+      'an upload needs the session, the CSRF token and the right Origin');
+    check((await upload(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'), 'image/svg+xml')).status === 415 &&
+      (await upload(Buffer.from('<html><script>alert(1)</script></html>'), 'text/html')).status === 415 &&
+      (await upload(Buffer.from('{"title":"x"}'), 'application/json')).status === 415, 'SVG, HTML and JSON are refused as images');
+    check((await upload(pngA, 'image/jpeg')).status === 415 && (await upload(Buffer.concat([Buffer.from('GIF89a'), pngA]), 'image/png')).status === 415,
+      'an image whose bytes are not the type it claims is refused');
+    // declares 9 MB but sends 16 bytes, so the connection must not be reused
+    check((await upload(Buffer.alloc(16), 'image/png', { 'Content-Length': String(9 * 1024 * 1024), Connection: 'close' })).status === 413, 'an image over 8 MB is refused (413)');
+    const huge = makePng(1, 1);
+    huge.writeUInt32BE(20000, 16); // claims 20000 pixels wide
+    check((await upload(huge, 'image/png')).status === 400, 'an image over 10000 pixels on a side is refused');
+    const upA = await upload(pngA, 'image/png');
+    check(upA.status === 200 && /^[0-9a-f]{32}\.png$/.test(upA.json.file) && upA.json.width === 40 && upA.json.height === 30 &&
+      fs.readFileSync(path.join(s.dataDir, 'art', upA.json.file)).equals(pngA), 'a PNG is stored under its content hash, with its size read from the file');
+    check((await upload(pngA, 'image/png')).json.file === upA.json.file, 'the same image uploaded twice is stored once');
+    const upJ = await upload(JPEG_HEAD, 'image/jpeg');
+    check(upJ.status === 200 && /\.jpg$/.test(upJ.json.file) && upJ.json.width === 48 && upJ.json.height === 32, "a JPEG's size is read from its frame header");
+    const upB = await upload(pngB, 'image/png'), upC = await upload(pngC, 'image/png');
+    check((await call('GET', '/art/' + upA.json.file)).status === 404, 'an upload no plate uses is not served');
+
+    // plates
+    check((await write('POST', '/api/art', { file: 'f'.repeat(32) + '.png', thumb: upA.json.file })).status === 400 &&
+      (await write('POST', '/api/art', { file: '../auth.json', thumb: upA.json.file })).status === 400 && (await write('POST', '/api/art', { title: 'x' })).status === 400,
+      'a plate must use uploaded images');
+    const plateA = await write('POST', '/api/art', { file: upA.json.file, thumb: upA.json.file, title: evil, artist: 'An artist', link: 'javascript:alert(1)', date: 'soon', note: 'n'.repeat(2000), width: 9999 });
+    const pa = plateA.json && plateA.json.archive.art.find((a) => a.id === plateA.json.id);
+    check(plateA.status === 200 && pa.title === evil.slice(0, 120) && pa.link === '' && pa.width === 40 && pa.height === 30 && /^\d{4}-\d{2}-\d{2}$/.test(pa.date) && pa.note.length === 1000,
+      'a new plate is cleaned: a script link dropped, its size taken from the image, lengths capped');
+    const plateB = await write('POST', '/api/art', { file: upB.json.file, thumb: upJ.json.file, title: 'B', link: 'artstation.com/someone' });
+    const pb = plateB.json && plateB.json.archive.art.find((a) => a.id === plateB.json.id);
+    check(plateB.status === 200 && pb.link === 'https://artstation.com/someone' && plateB.json.archive.art[0].id === pb.id, 'a bare address becomes https, and the newest plate comes first');
+    const served = await call('GET', '/art/' + upA.json.file);
+    check(served.status === 200 && served.headers['content-type'] === 'image/png' && /immutable/.test(served.headers['cache-control']) && /s-maxage=86400/.test(served.headers['cache-control']) &&
+      served.headers['x-content-type-options'] === 'nosniff' && /default-src 'none'/.test(served.headers['content-security-policy'] || '') && Number(served.headers['content-length']) === pngA.length,
+      "a plate's image is served with its type, nosniff, the CSP and a long cache lifetime");
+    check((await call('HEAD', '/art/' + upJ.json.file)).headers['content-type'] === 'image/jpeg' && (await call('GET', '/art/' + upA.json.file.replace('.png', '.webp'))).status === 404 &&
+      (await call('GET', '/art/..%2fauth.json')).status === 404, 'only the exact names in use are served');
+    const revisedPlate = await write('PUT', '/api/art/' + pa.id, { title: 'Revised plate', artist: 'An artist' });
+    const rp = revisedPlate.json && revisedPlate.json.archive.art.find((a) => a.id === pa.id);
+    check(revisedPlate.status === 200 && rp.title === 'Revised plate' && rp.file === upA.json.file && rp.added === pa.added, 'a plate can be revised and keeps its image');
+    check((await write('POST', '/api/art/order', { ids: [pa.id] })).status === 409 && (await write('POST', '/api/art/order', { ids: [pa.id, pa.id] })).status === 409,
+      'a new order must name every plate once');
+    const ordered = await write('POST', '/api/art/order', { ids: [pa.id, pb.id] });
+    check(ordered.status === 200 && ordered.json.archive.art.map((a) => a.id).join() === [pa.id, pb.id].join(), 'the plates can be put in a new order');
+    const withPortrait = await write('PUT', '/api/about', { name: 'Smoke', portrait: pa.id });
+    check(withPortrait.json.archive.about.portrait === pa.id, 'a plate can be made the portrait');
+    const removedPlate = await write('DELETE', '/api/art/' + pa.id);
+    check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pa.id) && removedPlate.json.archive.about.portrait === '' &&
+      (await call('GET', '/art/' + upA.json.file)).status === 404 && (await call('GET', '/art/' + upB.json.file)).status === 200,
+      'removing a plate clears it as the portrait and stops serving its image');
+    const old = new Date(Date.now() - 2 * 24 * 3600e3);
+    fs.utimesSync(path.join(s.dataDir, 'art', upC.json.file), old, old);
+    fs.utimesSync(path.join(s.dataDir, 'art', upA.json.file), old, old);
+    await write('DELETE', '/api/art/' + pb.id); // removing a plate sweeps
+    check(!fs.existsSync(path.join(s.dataDir, 'art', upC.json.file)) && fs.existsSync(path.join(s.dataDir, 'art', upA.json.file)) && fs.existsSync(path.join(s.dataDir, 'art', upB.json.file)),
+      'the sweep removes an old upload no plate used, and keeps images a backup still uses');
+
     // changing the word signs every other session out
     const other = cookieOf(await login({ Origin: ORIGIN }));
     check((await write('POST', '/api/password', { current: 'not the word', next: NEW_WORD })).status === 401, 'changing the word needs the current word');
@@ -236,6 +339,16 @@ async function apiChecks() {
   } finally {
     s.stop();
   }
+}
+
+// The construct by keyboard (which always scans), then a chapter from the hub
+async function enter(page, book) {
+  await page.waitForSelector('.core.is-3d', { timeout: 30000 });
+  await page.focus('#construct');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('#hub:not([hidden])', { timeout: 5000 });
+  await page.click(`.hub-opt[data-book="${book}"]`);
+  await page.waitForSelector('#archive[open]', { timeout: 5000 });
 }
 
 // ---------- 2. the page in Chromium, under the server's CSP ----------
@@ -278,12 +391,17 @@ async function browserChecks() {
       await page.waitForTimeout(1500);
       await page.mouse.move(gem[0], gem[1] + 1);
       await page.mouse.click(gem[0], gem[1]);
-      opened = await page.waitForSelector('#archive[open]', { timeout: 4000 }).then(() => true, () => false);
+      opened = await page.waitForSelector('#hub:not([hidden])', { timeout: 4000 }).then(() => true, () => false);
       if (!opened) await page.mouse.move(cx - box.width, cy);
     }
     check(!!gem, 'pointing at the gem shows the hand cursor');
-    check(opened, 'clicking the gem opens the archive');
-    if (!opened) throw new Error('the archive did not open');
+    check(opened && !(await page.$('#archive[open]')), 'clicking the gem reveals the three choices, About, Art and Knowledge');
+    if (!opened) throw new Error('the hub did not appear');
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: path.join(OUT, 'hub.png') });
+    await page.click('.hub-opt[data-book="knowledge"]');
+    check(await page.waitForSelector('#archive[open] #view-overview:not([hidden])', { timeout: 4000 }).then(() => true, () => false) &&
+      await page.evaluate(() => location.hash === '#knowledge'), 'Knowledge opens the tome at the index, and the address names the chapter');
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, 'archive.png') });
     check(await page.$('#btn-inscribe[hidden]') !== null, 'a visitor sees no editing tools');
@@ -311,11 +429,8 @@ async function browserChecks() {
       await page.evaluate(() => !window.__xss && !document.querySelector('#archive img')), 'an inscribed record is shown, and markup in it stays text');
     await page.screenshot({ path: path.join(OUT, 'record.png') });
 
-    await page.reload();
-    await page.waitForSelector('.core.is-3d', { timeout: 30000 });
-    await page.focus('#construct');
-    await page.keyboard.press('Enter'); // keyboard activation always scans
-    await page.waitForSelector('#archive[open]', { timeout: 5000 });
+    await page.goto(s.url); // without the address of the record
+    await enter(page, 'knowledge');
     check(await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 5000 }).then(() => true, () => false), 'after a reload the keeper is still unsealed');
     check(await page.$$eval('#index .topic-title', (n) => n.some((x) => x.textContent === 'Smoke record')), 'the record is in the index after a reload');
     await page.click('#index .topic');
@@ -328,6 +443,64 @@ async function browserChecks() {
     await page.click('#det-delete'); // confirm
     await page.waitForSelector('#view-overview:not([hidden])', { timeout: 10000 });
     check(!(await page.$$eval('#index .topic-title', (n) => n.some((x) => x.textContent.startsWith('Smoke record')))), 'a record can be removed');
+
+    // the About page
+    await page.click('.tab[data-book="about"]');
+    await page.click('#btn-amend');
+    await page.fill('#abf-name', 'Smoke ' + xss);
+    await page.fill('#abf-facts .row >> nth=0 >> [data-k="label"]', 'Race');
+    await page.fill('#abf-facts .row >> nth=0 >> [data-k="value"]', 'Dracthyr');
+    await page.click('#abf-add-fact');
+    await page.fill('#abf-facts .row >> nth=1 >> [data-k="label"]', 'Eyes');
+    await page.fill('#abf-facts .row >> nth=1 >> [data-k="value"]', 'Teal');
+    await page.click('#abf-facts .row >> nth=1 >> [data-act="up"]');
+    await page.fill('#abf-sections .row >> nth=0 >> [data-k="heading"]', 'Appearance');
+    await page.fill('#abf-sections .row >> nth=0 >> [data-k="body"]', 'Scales the colour of old copper.');
+    await page.click('#abf-submit');
+    await page.waitForSelector('#view-about:not([hidden])', { timeout: 10000 });
+    check((await page.textContent('#ab-name')) === 'Smoke ' + xss && (await page.$$eval('#ab-facts dt', (n) => n.map((x) => x.textContent).join())) === 'Eyes,Race' &&
+      (await page.textContent('#ab-sections')).includes('old copper') && await page.evaluate(() => !window.__xss && !document.querySelector('#ab-name img')),
+      'the About page can be amended, rows keep the order they were moved to, and markup stays text');
+
+    // a plate: uploaded from the keeper's browser, shown, linked to, made the portrait, removed
+    await page.click('.tab[data-book="art"]');
+    await page.click('#btn-add-art');
+    await page.setInputFiles('#af-file', { name: 'smoke.png', mimeType: 'image/png', buffer: makePng(300, 200) });
+    await page.waitForFunction(() => /300 × 200/.test(document.getElementById('af-help').textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.fill('#af-title', 'Smoke plate');
+    await page.fill('#af-artist', 'Smoke artist');
+    await page.fill('#af-link', 'javascript:alert(1)');
+    await page.click('#af-submit');
+    await page.waitForFunction(() => document.getElementById('pl-title').textContent === 'Smoke plate' && !document.getElementById('view-plate').hidden, null, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    const plate = await page.evaluate(() => {
+      const i = document.querySelector('#pl-open img');
+      return { title: document.getElementById('pl-title').textContent, src: i && i.getAttribute('src'), w: i && i.naturalWidth, link: !!document.querySelector('#pl-credit a'), hash: location.hash };
+    });
+    check(plate.title === 'Smoke plate' && /^art\/[0-9a-f]{32}\.webp$/.test(plate.src) && plate.w === 300 && !plate.link && /^#art\/a[\w-]+$/.test(plate.hash),
+      'a plate can be added: the image is re-encoded in the browser, uploaded, served under the CSP, and a script link is dropped');
+    await page.screenshot({ path: path.join(OUT, 'plate.png') });
+    await page.click('#pl-open');
+    await page.waitForSelector('#lightbox:not([hidden])', { timeout: 3000 });
+    await page.keyboard.press('Escape');
+    check(await page.$('#lightbox[hidden]') !== null && await page.$('#archive[open]') !== null, 'the plate opens full size, and Escape closes only that');
+    await page.click('#pl-portrait');
+    await page.waitForFunction(() => document.getElementById('pl-portrait').textContent.startsWith('Stop'), null, { timeout: 10000 }).catch(() => {});
+    const plateHash = plate.hash;
+    await page.goto(s.url + '#about');
+    await page.reload();
+    await page.waitForSelector('#archive[open] #view-about:not([hidden])', { timeout: 10000 });
+    check(await page.waitForFunction(() => { const i = document.querySelector('#frontis-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).then(() => true, () => false),
+      'an address with #about opens the About page at once, with the plate as its portrait');
+    await page.goto(s.url + plateHash);
+    check(await page.waitForFunction(() => document.getElementById('pl-title').textContent === 'Smoke plate' && !document.getElementById('view-plate').hidden, null, { timeout: 10000 }).then(() => true, () => false),
+      "a plate's own address opens it");
+    await page.click('#pl-delete');
+    await page.click('#pl-delete'); // confirm
+    await page.waitForFunction(() => !document.getElementById('pl-empty').hidden, null, { timeout: 10000 }).catch(() => {});
+    await page.click('.tab[data-book="about"]');
+    check(await page.$('#frontis-open[hidden]') !== null && await page.$('#frontis-empty:not([hidden])') !== null, 'removing the plate clears the portrait');
+    await page.click('.tab[data-book="knowledge"]');
 
     // change the word from the page, then seal it again
     await page.click('#clasp');
@@ -344,11 +517,8 @@ async function browserChecks() {
     await page.click('#clasp');
     await page.click('#seal-lock');
     await page.waitForSelector('#btn-inscribe', { state: 'hidden', timeout: 10000 });
-    await page.reload();
-    await page.waitForSelector('.core.is-3d', { timeout: 30000 });
-    await page.focus('#construct');
-    await page.keyboard.press('Enter');
-    await page.waitForSelector('#archive[open]', { timeout: 5000 });
+    await page.goto(s.url);
+    await enter(page, 'knowledge');
     await page.waitForTimeout(800);
     check(await page.$('#btn-inscribe[hidden]') !== null, 'sealing it again hides the tools, also after a reload');
     await page.click('#clasp');
@@ -365,7 +535,7 @@ async function browserChecks() {
 // ---------- 3. the claude.ai Artifact preview ----------
 async function previewChecks() {
   const index = fs.readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8');
-  check(!/ca-preview|CA_PREVIEW =|ca-model/.test(index), 'the real page carries no preview stand-in and no embedded model');
+  check(!/ca-preview|CA_PREVIEW =|ca-model|ca-files/.test(index), 'the real page carries no preview stand-in, no embedded model and no example images');
   const html = ARTIFACT_SKELETON + fs.readFileSync(path.join(ROOT, 'dist', 'preview.html'), 'utf8') + '</body></html>';
   const server = http.createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html); });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -375,14 +545,17 @@ async function previewChecks() {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });
-    const open = async () => {
-      await page.waitForSelector('.core.is-3d', { timeout: 30000 });
-      await page.focus('#construct');
-      await page.keyboard.press('Enter');
-      await page.waitForSelector('#archive[open]', { timeout: 5000 });
-    };
+    const open = () => enter(page, 'knowledge');
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
-    check(await open().then(() => true, () => false), 'preview: the 3D model loads from the page itself under the Artifact CSP');
+    check(await open().then(() => true, () => false), 'preview: the 3D model loads from the page itself under the Artifact CSP, and the hub opens the tome');
+    await page.click('.tab[data-book="art"]');
+    check(await page.waitForFunction(() => {
+      const imgs = [...document.querySelectorAll('#plates img')];
+      return imgs.length === 4 && imgs.every((i) => i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/jpeg'));
+    }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: the example plates load from the page itself');
+    await page.click('.tab[data-book="about"]');
+    check((await page.textContent('#ab-facts')).includes('Dracthyr') && await page.$('#frontis-open img') !== null, 'preview: the About page shows its examples');
+    await page.click('.tab[data-book="knowledge"]');
     await page.click('#clasp');
     check((await page.textContent('#seal-text')).includes('preview'), 'preview: the seal panel says it is the preview and gives the word');
     await page.fill('#seal-word', 'not the word');
@@ -396,6 +569,17 @@ async function previewChecks() {
     await page.click('#f-submit');
     await page.waitForSelector('#view-detail:not([hidden])', { timeout: 5000 });
     check((await page.textContent('#det-title')) === 'Preview record', 'preview: records can be inscribed');
+    await page.click('.tab[data-book="art"]');
+    await page.click('#btn-add-art');
+    await page.setInputFiles('#af-file', { name: 'preview.png', mimeType: 'image/png', buffer: makePng(120, 90) });
+    await page.waitForFunction(() => /120 × 90/.test(document.getElementById('af-help').textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.fill('#af-title', 'Preview plate');
+    await page.click('#af-submit');
+    check(await page.waitForFunction(() => {
+      const i = document.querySelector('#pl-open img');
+      return document.getElementById('pl-title').textContent === 'Preview plate' && i && i.complete && i.naturalWidth === 120 && i.src.startsWith('data:image/webp');
+    }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: a plate can be uploaded and is shown from memory');
+    await page.click('.tab[data-book="knowledge"]');
     await page.screenshot({ path: path.join(OUT, 'preview.png') });
     await page.reload();
     await open();

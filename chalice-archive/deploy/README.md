@@ -6,7 +6,7 @@ visitor ──HTTPS──▶ Cloudflare ──HTTPS (Origin Certificate, client 
 
 - **Cloudflare** holds the public certificate. It hides the VPS's address and absorbs junk traffic.
 - **Caddy** terminates the connection from Cloudflare, using a Cloudflare Origin Certificate. It accepts only Cloudflare's client certificate, compresses responses and passes each visitor's real address on.
-- **Node** (`server/server.mjs`) serves the page and the model, keeps the records, and checks the keeper's word. It listens on 127.0.0.1 only.
+- **Node** (`server/server.mjs`) serves the page, the model and the art, keeps the records, the About page and the plates, and checks the keeper's word. It listens on 127.0.0.1 only.
 
 The firewall lets port 443 in only from Cloudflare's addresses. Nothing else is reachable except SSH.
 
@@ -99,7 +99,7 @@ What the Caddyfile does:
 - It requires Cloudflare's client certificate (Authenticated Origin Pulls), so connections that don't come through Cloudflare fail during the TLS handshake.
   - If you leave Authenticated Origin Pulls off in Cloudflare, delete the `client_auth` block, or every request fails with error 525/526.
 - It trusts `CF-Connecting-IP`, the visitor's address, only when the request comes from Cloudflare's ranges. It hands that address to Node as `X-Real-IP`, overwriting anything the request carried.
-- It caps request bodies at 128 KB, compresses responses and drops the `Server` and `Via` headers.
+- It caps request bodies at 10 MB for image uploads (`/api/uploads`) and 320 KB for everything else, compresses responses and drops the `Server` and `Via` headers. The server's own limits are lower (8 MiB, and 256 KiB or 64 KiB), so it is the one that answers with a clear message.
 
 ## 6. Firewall
 
@@ -122,9 +122,9 @@ journalctl -u chalice-archive -n 20         # "Chalice Archive listening on http
 
 Then open the site:
 
-1. Click the gem to open the archive.
+1. Click the gem. After the scan, choose About, Art or Knowledge beneath the construct.
 2. Click the small brass clasp on the tome's right edge and speak the word.
-3. The editing tools appear.
+3. The editing tools appear: **Amend this page** in About, **Add a plate** in Art, **Inscribe record** in Knowledge.
 
 ## Day to day
 
@@ -135,10 +135,19 @@ Then open the site:
   ```
 
   Sessions live in memory, so a restart signs the keeper out.
+  If `deploy/Caddyfile` changed (it did when art uploads were added), copy it again and reload Caddy, keeping your hostname:
+
+  ```sh
+  sudo cp /opt/dezept-website/chalice-archive/deploy/Caddyfile /etc/caddy/Caddyfile
+  sudo nano /etc/caddy/Caddyfile                 # set your hostname
+  sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
+  ```
 - **Backups**:
   - Each change keeps the previous `archive.json` in `/var/lib/chalice-archive/backups/`, up to the last 50.
-  - Copy the directory off the VPS now and then.
+  - The images are in `/var/lib/chalice-archive/art/`. An image stays there while the archive or any of those 50 backups uses it, so restoring a backup finds its images.
+  - Copy the whole `/var/lib/chalice-archive` directory off the VPS now and then.
   - To restore, stop the service, copy a backup over `archive.json`, then start the service.
+- **Removing a picture for good**: removing its plate stops the server serving it at once. Cloudflare keeps its copy for up to a day; to clear it sooner, purge the image's address under Caching → Configuration → Custom Purge.
 - **Logs**:
   - The server logs only startup messages and unexpected errors, to the journal.
   - Caddy keeps no access log with this Caddyfile.
@@ -157,7 +166,8 @@ Then open the site:
   - Sessions end after 12 hours (`SESSION_HOURS`), on "Seal it again", or when the word changes.
 - **Writes**:
   - Each needs the session, a CSRF token in a header, a JSON body, and an `Origin` equal to `PUBLIC_ORIGIN`.
-  - Every field is validated and capped on the server.
+  - Image uploads are the one exception to JSON: PNG, JPEG or WebP only, checked by their bytes, at most 8 MiB, stored under their content hash and served with their own type and `nosniff`. SVG is never accepted.
+  - Every field is validated and capped on the server. Artists' links must be `http(s)`.
   - The page shows all of it as text, never as markup.
 - **The page**:
   - The CSP allows only its own inline script and style, by hash, plus three.js from jsDelivr and the fonts from Google.

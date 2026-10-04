@@ -1,0 +1,21 @@
+{
+  "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The particulars and the first section come from src/seed.json's profile; the images are rendered from the game's model by tools/example_plates.js.",
+  "about": {
+    "portrait": "aexamplefacing",
+    "facts": [
+      { "label": "Race", "value": "Dracthyr" },
+      { "label": "Slumber", "value": "Ten thousand years, in the Forbidden Reach" },
+      { "label": "Construct", "value": "Eternal Gladiator's Chalice" }
+    ],
+    "sections": [
+      { "heading": "The construct", "body": "An archival construct of Shadowlands make, bought from a broker who asked no questions and answered fewer." },
+      { "heading": "An example section", "body": "This page holds examples for the preview. Unseal the archive with the word “preview” and choose Amend this page to see how his own particulars and sections are written.\nNothing written here is kept: a reload brings the examples back." }
+    ]
+  },
+  "art": [
+    { "id": "aexamplefacing", "image": "assets/examples/facing.jpg", "title": "Example: the construct, facing", "artist": "", "link": "", "date": "2026-10-04", "note": "An example plate, only in the preview. The real site starts with no plates." },
+    { "id": "aexampleturning", "image": "assets/examples/turning.jpg", "title": "Example: the construct, turning", "artist": "", "link": "", "date": "2026-10-03", "note": "" },
+    { "id": "aexamplescan", "image": "assets/examples/scan.jpg", "title": "Example: a scan in progress", "artist": "", "link": "", "date": "2026-10-02", "note": "" },
+    { "id": "aexamplebelow", "image": "assets/examples/below.jpg", "title": "Example: from below", "artist": "", "link": "", "date": "2026-10-01", "note": "" }
+  ]
+}
