@@ -16,12 +16,16 @@ Checks:
      token, and non-JSON bodies; the session cookie's flags; field validation and size limits; stored markup
      cannot end the page's data block; backups; the About page's cleaning; image uploads (type sniffed from the
      bytes, size, dimensions), plates, their order and links, art served only while used, the sweep of unused
-     uploads; the password file; changing the word signs other sessions out; failed logins are throttled per IP.
+     uploads; plates of several images, flagged mature one by one, never a mature portrait; plates saved before
+     they had several images; the password file; changing the word signs other sessions out; failed logins are
+     throttled per IP.
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
      the gem starts the scan, which reveals the three choices; a wrong word is refused; the right word shows the
      tools; records can be inscribed, revised and removed, and markup in them stays text; the About page can be
-     amended; a plate can be uploaded, shown full size, made the portrait, linked to and removed; the session
-     survives a reload; the word can be changed from the page; sealing it again hides the tools.
+     amended; a plate of two images, one mature, can be uploaded, shown full size, made the portrait, linked to
+     and removed; a mature image stays covered and unloaded until a visitor says they are 18 or older, is covered
+     again once they move on, and stays covered for someone under 18; the session survives a reload; the word can
+     be changed from the page; sealing it again hides the tools.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model and the example plates load from the page, the stand-in server accepts
      only "preview", records and plates can be added, and a reload forgets them. The real page carries no trace
@@ -65,11 +69,12 @@ function run(args, env, input) {
   });
 }
 
-async function startServer(name, env) {
+async function startServer(name, env, prepare) {
   const dataDir = path.join(OUT, 'data-' + name);
   fs.rmSync(dataDir, { recursive: true, force: true });
   const set = await run(['set-password'], { DATA_DIR: dataDir }, `${WORD}\n${WORD}\n`);
   if (set.code !== 0) throw new Error('set-password failed: ' + set.out);
+  if (prepare) prepare(dataDir);
   const proc = spawn(process.execPath, [SERVER], { env: { ...process.env, DATA_DIR: dataDir, PORT: '0', ...env } });
   let log = '';
   const port = await new Promise((resolve, reject) => {
@@ -249,7 +254,7 @@ async function apiChecks() {
 
     // uploading images
     const upload = (body, type, extra = {}) => call('POST', '/api/uploads', { headers: { Cookie: cookie, Origin: ORIGIN, 'X-CSRF-Token': csrf, 'Content-Type': type, ...extra }, body });
-    const pngA = makePng(40, 30), pngB = makePng(41, 30), pngC = makePng(42, 30);
+    const pngA = makePng(40, 30), pngB = makePng(41, 30), pngC = makePng(42, 30), pngD = makePng(43, 30);
     check((await call('POST', '/api/uploads', { headers: { Origin: ORIGIN, 'Content-Type': 'image/png' }, body: pngA })).status === 401 &&
       (await upload(pngA, 'image/png', { 'X-CSRF-Token': undefined })).status === 403 && (await upload(pngA, 'image/png', { Origin: 'https://evil.test' })).status === 403,
       'an upload needs the session, the CSRF token and the right Origin');
@@ -269,44 +274,63 @@ async function apiChecks() {
     check((await upload(pngA, 'image/png')).json.file === upA.json.file, 'the same image uploaded twice is stored once');
     const upJ = await upload(JPEG_HEAD, 'image/jpeg');
     check(upJ.status === 200 && /\.jpg$/.test(upJ.json.file) && upJ.json.width === 48 && upJ.json.height === 32, "a JPEG's size is read from its frame header");
-    const upB = await upload(pngB, 'image/png'), upC = await upload(pngC, 'image/png');
+    const upB = await upload(pngB, 'image/png'), upC = await upload(pngC, 'image/png'), upD = await upload(pngD, 'image/png');
     check((await call('GET', '/art/' + upA.json.file)).status === 404, 'an upload no plate uses is not served');
 
-    // plates
-    check((await write('POST', '/api/art', { file: 'f'.repeat(32) + '.png', thumb: upA.json.file })).status === 400 &&
-      (await write('POST', '/api/art', { file: '../auth.json', thumb: upA.json.file })).status === 400 && (await write('POST', '/api/art', { title: 'x' })).status === 400,
-      'a plate must use uploaded images');
-    const plateA = await write('POST', '/api/art', { file: upA.json.file, thumb: upA.json.file, title: evil, artist: 'An artist', link: 'javascript:alert(1)', date: 'soon', note: 'n'.repeat(2000), width: 9999 });
-    const pa = plateA.json && plateA.json.archive.art.find((a) => a.id === plateA.json.id);
-    check(plateA.status === 200 && pa.title === evil.slice(0, 120) && pa.link === '' && pa.width === 40 && pa.height === 30 && /^\d{4}-\d{2}-\d{2}$/.test(pa.date) && pa.note.length === 1000,
-      'a new plate is cleaned: a script link dropped, its size taken from the image, lengths capped');
-    const plateB = await write('POST', '/api/art', { file: upB.json.file, thumb: upJ.json.file, title: 'B', link: 'artstation.com/someone' });
+    // plates: each is one or more images, the first its main image, and any of them can be flagged mature
+    const img = (up, extra = {}) => ({ file: up.json.file, thumb: up.json.file, ...extra });
+    check((await write('POST', '/api/art', { versions: [{ file: 'f'.repeat(32) + '.png', thumb: upA.json.file }] })).status === 400 &&
+      (await write('POST', '/api/art', { versions: [{ file: '../auth.json', thumb: upA.json.file }] })).status === 400 &&
+      (await write('POST', '/api/art', { title: 'x' })).status === 400 && (await write('POST', '/api/art', { title: 'x', versions: [] })).status === 400,
+      'a plate needs an image, and may use only uploaded ones');
+    const plateA = await write('POST', '/api/art', {
+      versions: [img(upA, { width: 9999, label: 'l'.repeat(100), mature: 'yes' })], title: evil, artist: 'An artist', link: 'javascript:alert(1)', date: 'soon', note: 'n'.repeat(2000),
+    });
+    const pa = plateA.json && plateA.json.archive.art.find((a) => a.id === plateA.json.id), va = pa && pa.versions[0];
+    check(plateA.status === 200 && pa.title === evil.slice(0, 120) && pa.link === '' && va.width === 40 && va.height === 30 && va.label.length === 60 && va.mature === false &&
+      /^v[\w-]+$/.test(va.id) && /^\d{4}-\d{2}-\d{2}$/.test(pa.date) && pa.note.length === 1000,
+      'a new plate is cleaned: a script link dropped, sizes taken from the image, lengths capped, and only true flags an image mature');
+    const plateB = await write('POST', '/api/art', { versions: [{ file: upB.json.file, thumb: upJ.json.file, mature: true }, img(upA, { label: 'Alternate' })], title: 'B', link: 'artstation.com/someone' });
     const pb = plateB.json && plateB.json.archive.art.find((a) => a.id === plateB.json.id);
-    check(plateB.status === 200 && pb.link === 'https://artstation.com/someone' && plateB.json.archive.art[0].id === pb.id, 'a bare address becomes https, and the newest plate comes first');
+    check(plateB.status === 200 && pb.link === 'https://artstation.com/someone' && plateB.json.archive.art[0].id === pb.id && pb.versions.length === 2 &&
+      pb.versions[0].mature === true && pb.versions[1].mature === false && pb.versions[1].label === 'Alternate',
+      'a plate keeps its images in order with their own flags, a bare address becomes https, and the newest plate comes first');
     const served = await call('GET', '/art/' + upA.json.file);
     check(served.status === 200 && served.headers['content-type'] === 'image/png' && /immutable/.test(served.headers['cache-control']) && /s-maxage=86400/.test(served.headers['cache-control']) &&
       served.headers['x-content-type-options'] === 'nosniff' && /default-src 'none'/.test(served.headers['content-security-policy'] || '') && Number(served.headers['content-length']) === pngA.length,
       "a plate's image is served with its type, nosniff, the CSP and a long cache lifetime");
     check((await call('HEAD', '/art/' + upJ.json.file)).headers['content-type'] === 'image/jpeg' && (await call('GET', '/art/' + upA.json.file.replace('.png', '.webp'))).status === 404 &&
       (await call('GET', '/art/..%2fauth.json')).status === 404, 'only the exact names in use are served');
+    check((await write('PUT', '/api/about', { name: 'Smoke', portrait: pb.id })).json.archive.about.portrait === '', 'a plate whose main image is mature cannot be the portrait');
     const revisedPlate = await write('PUT', '/api/art/' + pa.id, { title: 'Revised plate', artist: 'An artist' });
     const rp = revisedPlate.json && revisedPlate.json.archive.art.find((a) => a.id === pa.id);
-    check(revisedPlate.status === 200 && rp.title === 'Revised plate' && rp.file === upA.json.file && rp.added === pa.added, 'a plate can be revised and keeps its image');
+    check(revisedPlate.status === 200 && rp.title === 'Revised plate' && rp.versions.length === 1 && rp.versions[0].id === va.id && rp.versions[0].file === upA.json.file && rp.added === pa.added,
+      'a plate can be revised and keeps its images');
+    const reshaped = await write('PUT', '/api/art/' + pb.id, { title: 'B', versions: [{ id: pb.versions[1].id, label: 'Now first' }, { id: pb.versions[0].id, mature: true }, img(upC, { mature: true })] });
+    const rb = reshaped.json && reshaped.json.archive.art.find((a) => a.id === pb.id);
+    check(reshaped.status === 200 && rb.versions.map((v) => v.file).join() === [upA.json.file, upB.json.file, upC.json.file].join() && rb.versions[0].id === pb.versions[1].id &&
+      rb.versions[0].label === 'Now first' && rb.versions[1].thumb === upJ.json.file && rb.versions[1].mature && rb.versions[2].mature && /^v/.test(rb.versions[2].id),
+      "a plate's images can be reordered, relabelled, reflagged and added to, each keeping its own files");
+    check((await write('PUT', '/api/art/' + pb.id, { versions: [{ id: 'not-one-of-its-images' }] })).status === 400 && (await write('PUT', '/api/art/' + pb.id, { versions: [] })).status === 400,
+      "an image that is neither the plate's own nor uploaded is refused, and a plate cannot be left without images");
     check((await write('POST', '/api/art/order', { ids: [pa.id] })).status === 409 && (await write('POST', '/api/art/order', { ids: [pa.id, pa.id] })).status === 409,
       'a new order must name every plate once');
     const ordered = await write('POST', '/api/art/order', { ids: [pa.id, pb.id] });
     check(ordered.status === 200 && ordered.json.archive.art.map((a) => a.id).join() === [pa.id, pb.id].join(), 'the plates can be put in a new order');
     const withPortrait = await write('PUT', '/api/about', { name: 'Smoke', portrait: pa.id });
     check(withPortrait.json.archive.about.portrait === pa.id, 'a plate can be made the portrait');
-    const removedPlate = await write('DELETE', '/api/art/' + pa.id);
-    check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pa.id) && removedPlate.json.archive.about.portrait === '' &&
-      (await call('GET', '/art/' + upA.json.file)).status === 404 && (await call('GET', '/art/' + upB.json.file)).status === 200,
-      'removing a plate clears it as the portrait and stops serving its image');
+    const flagged = await write('PUT', '/api/art/' + pa.id, { versions: [{ id: va.id, mature: true }] });
+    check(flagged.json.archive.about.portrait === '', "flagging the portrait's image as mature takes it off the About page");
+    await write('PUT', '/api/about', { name: 'Smoke', portrait: pb.id }); // its main image is no longer mature
+    const removedPlate = await write('DELETE', '/api/art/' + pb.id);
+    check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pb.id) && removedPlate.json.archive.about.portrait === '' &&
+      (await call('GET', '/art/' + upB.json.file)).status === 404 && (await call('GET', '/art/' + upC.json.file)).status === 404 && (await call('GET', '/art/' + upA.json.file)).status === 200,
+      'removing a plate clears it as the portrait and stops serving the images only it used');
     const old = new Date(Date.now() - 2 * 24 * 3600e3);
-    fs.utimesSync(path.join(s.dataDir, 'art', upC.json.file), old, old);
-    fs.utimesSync(path.join(s.dataDir, 'art', upA.json.file), old, old);
-    await write('DELETE', '/api/art/' + pb.id); // removing a plate sweeps
-    check(!fs.existsSync(path.join(s.dataDir, 'art', upC.json.file)) && fs.existsSync(path.join(s.dataDir, 'art', upA.json.file)) && fs.existsSync(path.join(s.dataDir, 'art', upB.json.file)),
+    fs.utimesSync(path.join(s.dataDir, 'art', upD.json.file), old, old);
+    fs.utimesSync(path.join(s.dataDir, 'art', upB.json.file), old, old);
+    await write('DELETE', '/api/art/' + pa.id); // removing a plate sweeps
+    check(!fs.existsSync(path.join(s.dataDir, 'art', upD.json.file)) && fs.existsSync(path.join(s.dataDir, 'art', upB.json.file)) && fs.existsSync(path.join(s.dataDir, 'art', upA.json.file)),
       'the sweep removes an old upload no plate used, and keeps images a backup still uses');
 
     // changing the word signs every other session out
@@ -336,6 +360,28 @@ async function apiChecks() {
     check(locked.status === 429, 'while locked out, even the right word is not checked');
     const bystander = await call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': '203.0.113.10' }, body: { password: NEW_WORD } });
     check(bystander.status === 200, "another client address (from Caddy's X-Real-IP) is not affected");
+  } finally {
+    s.stop();
+  }
+}
+
+// ---------- 1b. an archive saved before plates had several images ----------
+async function legacyChecks() {
+  const png = makePng(20, 10);
+  const name = crypto.createHash('sha256').update(png).digest('hex').slice(0, 32) + '.png';
+  const s = await startServer('legacy', { COOKIE_SECURE: 'false' }, (dir) => {
+    fs.mkdirSync(path.join(dir, 'art'), { recursive: true, mode: 0o700 });
+    fs.writeFileSync(path.join(dir, 'art', name), png);
+    fs.writeFileSync(path.join(dir, 'archive.json'), JSON.stringify({
+      profile: { name: 'Old' }, records: [], about: { portrait: 'aold', facts: [], sections: [] },
+      art: [{ id: 'aold', file: name, thumb: name, width: 20, height: 10, title: 'Old plate', date: '2026-01-01', added: 1 }],
+    }));
+  });
+  try {
+    const a = archiveIn((await request(s.port, 'GET', '/')).text);
+    const v = a.art[0] && a.art[0].versions && a.art[0].versions[0];
+    check(v && v.file === name && v.width === 20 && v.mature === false && v.id === 'v' + name.slice(0, 12) && a.about.portrait === 'aold' &&
+      (await request(s.port, 'GET', '/art/' + name)).status === 200, 'a plate saved with one image becomes a plate of one image, still the portrait and still served');
   } finally {
     s.stop();
   }
@@ -395,7 +441,8 @@ async function browserChecks() {
       if (!opened) await page.mouse.move(cx - box.width, cy);
     }
     check(!!gem, 'pointing at the gem shows the hand cursor');
-    check(opened && !(await page.$('#archive[open]')), 'clicking the gem reveals the three choices, About, Art and Knowledge');
+    check(opened && !(await page.$('#archive[open]')) && (await page.$$eval('.hub-opt', (n) => n.map((x) => x.textContent.trim()).join('|'))) === 'About|Art|Character Knowledge',
+      'clicking the gem reveals the three choices, About, Art and Character Knowledge, with no other text');
     if (!opened) throw new Error('the hub did not appear');
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, 'hub.png') });
@@ -462,11 +509,18 @@ async function browserChecks() {
       (await page.textContent('#ab-sections')).includes('old copper') && await page.evaluate(() => !window.__xss && !document.querySelector('#ab-name img')),
       'the About page can be amended, rows keep the order they were moved to, and markup stays text');
 
-    // a plate: uploaded from the keeper's browser, shown, linked to, made the portrait, removed
+    // a plate of two images, the second mature: uploaded from the keeper's browser, shown, linked to, made the portrait, removed
+    const requested = [];
+    page.on('request', (r) => requested.push(r.url()));
     await page.click('.tab[data-book="art"]');
     await page.click('#btn-add-art');
-    await page.setInputFiles('#af-file', { name: 'smoke.png', mimeType: 'image/png', buffer: makePng(300, 200) });
-    await page.waitForFunction(() => /300 × 200/.test(document.getElementById('af-help').textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', { name: 'smoke.png', mimeType: 'image/png', buffer: makePng(300, 200) });
+    await page.waitForFunction(() => /300 × 200/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.click('#af-add');
+    await page.setInputFiles('#af-versions .row >> nth=1 >> [data-k="file"]', { name: 'mature.png', mimeType: 'image/png', buffer: makePng(200, 300) });
+    await page.waitForFunction(() => /200 × 300/.test(document.querySelectorAll('#af-versions [data-k="status"]')[1].textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.fill('#af-versions .row >> nth=1 >> [data-k="label"]', 'Mature version');
+    await page.check('#af-versions .row >> nth=1 >> [data-k="mature"]');
     await page.fill('#af-title', 'Smoke plate');
     await page.fill('#af-artist', 'Smoke artist');
     await page.fill('#af-link', 'javascript:alert(1)');
@@ -479,11 +533,54 @@ async function browserChecks() {
     });
     check(plate.title === 'Smoke plate' && /^art\/[0-9a-f]{32}\.webp$/.test(plate.src) && plate.w === 300 && !plate.link && /^#art\/a[\w-]+$/.test(plate.hash),
       'a plate can be added: the image is re-encoded in the browser, uploaded, served under the CSP, and a script link is dropped');
+    const saved = (await page.evaluate(() => fetch('api/archive').then((r) => r.json()))).archive.art[0];
+    const matureNames = [saved.versions[1].file, saved.versions[1].thumb];
+    const loadedMature = (list) => list.some((u) => matureNames.some((n) => u.includes(n)));
+    check(saved.versions.length === 2 && saved.versions[1].mature && saved.versions[1].label === 'Mature version' &&
+      await page.$$eval('#pl-versions .ver-btn', (n) => n.length === 2 && !n[0].querySelector('.spoiler') && !!n[1].querySelector('.spoiler') && !n[1].querySelector('img')) && !loadedMature(requested),
+      'a plate keeps an alternate image; the mature one shows only its cover, and its image is not loaded');
     await page.screenshot({ path: path.join(OUT, 'plate.png') });
+    await page.click('#pl-versions .ver-btn >> nth=1');
+    await page.waitForSelector('#gate:not([hidden])', { timeout: 3000 });
+    await page.fill('#gate-age', '0');
+    await page.click('#gate-go');
+    check(await page.$('#gate-error:not([hidden])') !== null && await page.$('#pl-open .spoiler') !== null, 'the age check wants an age in years');
+    await page.fill('#gate-age', '30');
+    await page.click('#gate-go');
+    check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return document.getElementById('gate').hidden && i && i.complete && i.naturalWidth === 200; }, null, { timeout: 10000 }).then(() => true, () => false) &&
+      loadedMature(requested), 'selecting the mature image asks for an age, and at 18 or older shows it');
+    await page.screenshot({ path: path.join(OUT, 'mature-shown.png') });
+    await page.click('.tab[data-book="art"]'); // back to the plates
+    check(await page.$('#pl-open .spoiler') !== null && !(await page.$('#pl-open img')), 'back at the plates, the mature image is covered again');
+    await page.click('#pl-open');
+    check(await page.waitForFunction(() => document.getElementById('gate').hidden && !!document.querySelector('#pl-open img'), null, { timeout: 5000 }).then(() => true, () => false),
+      'the answer holds for the visit: the cover opens on a click without asking again');
+    await page.click('#pl-versions .ver-btn >> nth=0');
     await page.click('#pl-open');
     await page.waitForSelector('#lightbox:not([hidden])', { timeout: 3000 });
+    await page.keyboard.press('ArrowRight');
+    check(await page.waitForSelector('#lb-frame .lb-cover', { timeout: 3000 }).then(() => true, () => false), 'in the full-size view, the mature image arrives covered');
     await page.keyboard.press('Escape');
-    check(await page.$('#lightbox[hidden]') !== null && await page.$('#archive[open]') !== null, 'the plate opens full size, and Escape closes only that');
+    check(await page.$('#lightbox[hidden]') !== null && await page.$('#archive[open]') !== null, 'Escape closes only the full-size view');
+
+    // someone under 18, in a browser of their own
+    const minorCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const minor = await minorCtx.newPage();
+    const minorSeen = [];
+    minor.on('request', (r) => minorSeen.push(r.url()));
+    await minor.goto(s.url + plate.hash);
+    await minor.waitForSelector('#archive[open] #view-plate:not([hidden])', { timeout: 10000 });
+    await minor.click('#pl-versions .ver-btn >> nth=1');
+    await minor.waitForSelector('#gate:not([hidden])', { timeout: 3000 });
+    await minor.fill('#gate-age', '15');
+    await minor.click('#gate-go');
+    const refusedText = await minor.textContent('#gate-text');
+    await minor.click('#gate-back');
+    await minor.click('#pl-open');
+    const askedAgain = await minor.$('#gate-field:not([hidden])') !== null;
+    check(/18 or older/.test(refusedText) && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
+      'under 18, the mature image stays covered for the visit and is never loaded');
+    await minorCtx.close();
     await page.click('#pl-portrait');
     await page.waitForFunction(() => document.getElementById('pl-portrait').textContent.startsWith('Stop'), null, { timeout: 10000 }).catch(() => {});
     const plateHash = plate.hash;
@@ -551,8 +648,13 @@ async function previewChecks() {
     await page.click('.tab[data-book="art"]');
     check(await page.waitForFunction(() => {
       const imgs = [...document.querySelectorAll('#plates img')];
-      return imgs.length === 4 && imgs.every((i) => i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/jpeg'));
-    }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: the example plates load from the page itself');
+      return imgs.length === 2 && imgs.every((i) => i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/jpeg')) && document.querySelectorAll('#plates .spoiler').length === 1;
+    }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: the example plates load from the page itself, and the one flagged mature shows only its cover');
+    await page.click('#pl-versions .ver-btn >> nth=2');
+    await page.fill('#gate-age', '30');
+    await page.click('#gate-go');
+    check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false),
+      'preview: the age check works without storage');
     await page.click('.tab[data-book="about"]');
     check((await page.textContent('#ab-facts')).includes('Dracthyr') && await page.$('#frontis-open img') !== null, 'preview: the About page shows its examples');
     await page.click('.tab[data-book="knowledge"]');
@@ -571,8 +673,8 @@ async function previewChecks() {
     check((await page.textContent('#det-title')) === 'Preview record', 'preview: records can be inscribed');
     await page.click('.tab[data-book="art"]');
     await page.click('#btn-add-art');
-    await page.setInputFiles('#af-file', { name: 'preview.png', mimeType: 'image/png', buffer: makePng(120, 90) });
-    await page.waitForFunction(() => /120 × 90/.test(document.getElementById('af-help').textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', { name: 'preview.png', mimeType: 'image/png', buffer: makePng(120, 90) });
+    await page.waitForFunction(() => /120 × 90/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 10000 }).catch(() => {});
     await page.fill('#af-title', 'Preview plate');
     await page.click('#af-submit');
     check(await page.waitForFunction(() => {
@@ -603,7 +705,7 @@ function launch() {
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  for (const [name, fn] of [['API checks', apiChecks], ['browser checks', browserChecks], ['preview checks', previewChecks]]) {
+  for (const [name, fn] of [['API checks', apiChecks], ['older archive checks', legacyChecks], ['browser checks', browserChecks], ['preview checks', previewChecks]]) {
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }
   console.log(failures.length ? `\n${failures.length} check(s) failed` : '\nall checks passed');

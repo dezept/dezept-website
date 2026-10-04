@@ -6,7 +6,7 @@
 (function () {
   "use strict";
   var LIMIT = {
-    title: 120, domain: 60, note: 4000, source: 160, upload: 8 * 1024 * 1024, art: 500,
+    title: 120, domain: 60, note: 4000, source: 160, upload: 8 * 1024 * 1024, art: 500, versions: 12, label: 60,
     artist: 80, link: 300, caption: 1000, facts: 16, factLabel: 40, factValue: 160, sections: 12, heading: 80, section: 6000
   };
   var STATUSES = ["remembered", "superseded", "relearned", "fragment", "sought"];
@@ -67,15 +67,32 @@
   function stored(name) {
     if (typeof name !== "string" || !FILE_RE.test(name)) throw fail(400, "Upload the image first.");
     if (!fileMap()[name]) throw fail(400, "That image is gone. Upload it again.");
-    var used = data().art.filter(function (a) { return a.file === name; })[0];
-    return sizes[name] || (used ? [used.width, used.height] : [1, 1]);
+    return sizes[name] || [1, 1];
+  }
+  // A plate's images as sent, as the server takes them: the first is the main image; one that names an image of
+  // the plate keeps its files unless it brings new ones
+  function cleanVersions(input, prev) {
+    var old = {}, used = {};
+    (prev || []).forEach(function (v) { old[v.id] = v; });
+    var out = (Array.isArray(input) ? input : []).filter(function (v) { return v && typeof v === "object"; }).slice(0, LIMIT.versions).map(function (v) {
+      var was = typeof v.id === "string" && !used[v.id] ? old[v.id] : null, base;
+      if (was) used[was.id] = true;
+      if (was && v.file === undefined) base = was;
+      else {
+        var size = stored(v.file);
+        stored(v.thumb);
+        base = { id: was && was.id, file: v.file, thumb: v.thumb, width: size[0], height: size[1] };
+      }
+      return { id: base.id || "v" + token().slice(0, 8), file: base.file, thumb: base.thumb, width: base.width, height: base.height, label: str(v.label, LIMIT.label), mature: v.mature === true };
+    });
+    if (!out.length) throw fail(400, "A plate needs an image.");
+    return out;
   }
   function cleanArt(input, prev) {
     if (!input || typeof input !== "object") throw fail(400, "The plate is malformed.");
-    var file = prev ? prev.file : "", thumb = prev ? prev.thumb : "", size = prev ? [prev.width, prev.height] : [1, 1];
-    if (input.file !== undefined || !prev) { size = stored(input.file); stored(input.thumb); file = input.file; thumb = input.thumb; }
     return {
-      id: prev ? prev.id : "a" + token().slice(0, 12), file: file, thumb: thumb, width: size[0], height: size[1],
+      id: prev ? prev.id : "a" + token().slice(0, 12),
+      versions: input.versions === undefined && prev ? prev.versions : cleanVersions(input.versions, prev && prev.versions),
       title: str(input.title, LIMIT.title), artist: str(input.artist, LIMIT.artist), link: cleanLink(input.link),
       date: validDate(input.date) ? input.date : today(), note: str(input.note, LIMIT.caption),
       added: prev ? prev.added : Date.now(), example: false
@@ -85,7 +102,7 @@
     var a = input && typeof input === "object" ? input : {};
     function list(v) { return (Array.isArray(v) ? v : []).filter(function (x) { return x && typeof x === "object"; }); }
     return {
-      portrait: typeof a.portrait === "string" && art.some(function (x) { return x.id === a.portrait; }) ? a.portrait : "",
+      portrait: typeof a.portrait === "string" && art.some(function (x) { return x.id === a.portrait && !x.versions[0].mature; }) ? a.portrait : "",
       facts: list(a.facts).map(function (f) { return { label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }; })
         .filter(function (f) { return f.label || f.value; }).slice(0, LIMIT.facts),
       sections: list(a.sections).map(function (x) { return { heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }; })
@@ -173,8 +190,8 @@
       var was = a.art.filter(function (x) { return x.id === pid; })[0];
       if (!was) return reply(404, { error: "That plate is gone." });
       if (method === "PUT") {
-        var revised = cleanArt(body, was);
-        return reply(200, { archive: change({ art: a.art.map(function (x) { return x.id === pid ? revised : x; }) }), id: pid });
+        var revised = cleanArt(body, was), list = a.art.map(function (x) { return x.id === pid ? revised : x; });
+        return reply(200, { archive: change({ art: list, about: cleanAbout(a.about, list) }), id: pid });
       }
       if (method === "DELETE") {
         var art = a.art.filter(function (x) { return x.id !== pid; });

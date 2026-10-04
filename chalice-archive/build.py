@@ -58,12 +58,14 @@ def preview_archive() -> tuple[dict, dict]:
     examples = json.loads((ROOT / "src/preview-examples.json").read_text(encoding="utf-8"))
     files, art = {}, []
     for n, ex in enumerate(examples["art"]):
-        image = (ROOT / ex["image"]).read_bytes()
-        name = hashlib.sha256(image).hexdigest()[:32] + ".jpg"  # named the way the server names uploads
-        width, height = jpeg_size(image)
-        files[name] = "data:image/jpeg;base64," + base64.b64encode(image).decode()
-        plate = {k: v for k, v in ex.items() if k != "image"}
-        art.append({**plate, "file": name, "thumb": name, "width": width, "height": height, "added": n, "example": True})
+        versions = []
+        for v in ex["versions"]:
+            image = (ROOT / v["image"]).read_bytes()
+            name = hashlib.sha256(image).hexdigest()[:32] + ".jpg"  # named the way the server names uploads
+            width, height = jpeg_size(image)
+            files[name] = "data:image/jpeg;base64," + base64.b64encode(image).decode()
+            versions.append({"id": v["id"], "file": name, "thumb": name, "width": width, "height": height, "label": v["label"], "mature": v["mature"]})
+        art.append({**ex, "versions": versions, "added": n, "example": True})
     archive["art"] = art
     archive["about"] = examples["about"]
     return archive, files

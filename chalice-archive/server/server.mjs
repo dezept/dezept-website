@@ -58,7 +58,7 @@ const WORD = { min: 12, max: 1024 };
 const LIMIT = {
   body: 64 * 1024, aboutBody: 256 * 1024, upload: 8 * 1024 * 1024, records: 5000, sessions: 50,
   title: 120, domain: 60, note: 4000, source: 160,
-  art: 500, files: 2000, side: 10000, artist: 80, link: 300, caption: 1000,
+  art: 500, versions: 12, files: 2000, side: 10000, artist: 80, link: 300, caption: 1000, label: 60,
   facts: 16, factLabel: 40, factValue: 160, sections: 12, heading: 80, section: 6000,
 };
 const STATUSES = ["remembered", "superseded", "relearned", "fragment", "sought"];
@@ -211,20 +211,47 @@ function cleanLink(v) {
   } catch { return ""; }
 }
 
-// A plate. On a write the image files must exist (check), and their size is read from the large one.
+// One image of a plate: its files and size come from `base`; its label and mature flag from the request.
+// A mature image stays hidden behind the page's age check.
+const side = (n) => Math.min(LIMIT.side, Math.max(1, Math.round(Number(n)) || 1));
+function versionOf(v, base) {
+  return {
+    id: base.id || "v" + crypto.randomBytes(6).toString("base64url"),
+    file: base.file, thumb: base.thumb, width: side(base.width), height: side(base.height),
+    label: str(v.label, LIMIT.label), mature: v.mature === true,
+  };
+}
+
+// A plate's images as sent, in their new order; the first is the main image. One that names an image of the plate
+// keeps that image's files unless it brings new ones; any other must name uploaded files.
+function cleanVersions(input, prev) {
+  const old = new Map((prev || []).map((v) => [v.id, v]));
+  const used = new Set();
+  const out = (Array.isArray(input) ? input : []).filter((v) => v && typeof v === "object").slice(0, LIMIT.versions).map((v) => {
+    const was = typeof v.id === "string" && !used.has(v.id) ? old.get(v.id) : undefined;
+    if (was) used.add(was.id);
+    if (was && v.file === undefined) return versionOf(v, was);
+    const info = storedImage(v.file);
+    storedImage(v.thumb);
+    return versionOf(v, { id: was && was.id, file: v.file, thumb: v.thumb, width: info.width, height: info.height });
+  });
+  if (!out.length) throw new HttpError(400, "A plate needs an image.");
+  return out;
+}
+
+// A plate's images as stored. A plate saved before plates had several images kept its one image on itself.
+function storedVersions(a) {
+  return (Array.isArray(a.versions) ? a.versions : [{ ...a, id: undefined, label: "", mature: false }]).filter((v) => v && ART_FILE.test(v.file) && ART_FILE.test(v.thumb)).slice(0, LIMIT.versions)
+    .map((v) => versionOf(v, { ...v, id: validId(v.id) ? v.id : "v" + v.file.slice(0, 12) }));
+}
+
+// A plate. On a write (check) its images must have been uploaded, and their sizes are read from the files.
 function cleanArt(input, prev, check) {
   if (!input || typeof input !== "object") throw new HttpError(400, "The plate is malformed.");
-  let file = prev ? prev.file : "", thumb = prev ? prev.thumb : "", width = prev ? prev.width : 1, height = prev ? prev.height : 1;
-  if (check && (input.file !== undefined || !prev)) {
-    const info = storedImage(input.file);
-    storedImage(input.thumb);
-    file = input.file; thumb = input.thumb; width = info.width; height = info.height;
-  }
+  const versions = !check ? storedVersions(input) : input.versions === undefined && prev ? prev.versions : cleanVersions(input.versions, prev && prev.versions);
   return {
     id: prev ? prev.id : "a" + crypto.randomBytes(9).toString("base64url"),
-    file, thumb,
-    width: Math.min(LIMIT.side, Math.max(1, Math.round(Number(width)) || 1)),
-    height: Math.min(LIMIT.side, Math.max(1, Math.round(Number(height)) || 1)),
+    versions,
     title: str(input.title, LIMIT.title),
     artist: str(input.artist, LIMIT.artist),
     link: cleanLink(input.link),
@@ -235,12 +262,12 @@ function cleanArt(input, prev, check) {
   };
 }
 
-// The About page: particulars (label and value) and sections (heading and text), plus a plate as its frontispiece
+// The About page: particulars (label and value) and sections (heading and text), plus a plate's main image as its portrait
 function cleanAbout(input, art) {
   const a = input && typeof input === "object" ? input : {};
   const list = (v) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === "object");
   return {
-    portrait: typeof a.portrait === "string" && art.some((x) => x.id === a.portrait) ? a.portrait : "",
+    portrait: typeof a.portrait === "string" && art.some((x) => x.id === a.portrait && !x.versions[0].mature) ? a.portrait : "", // never a mature image
     facts: list(a.facts).map((f) => ({ label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }))
       .filter((f) => f.label || f.value).slice(0, LIMIT.facts),
     sections: list(a.sections).map((x) => ({ heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }))
@@ -259,8 +286,8 @@ function cleanArchive(raw) {
   const p = (raw && raw.profile) || {};
   const records = (Array.isArray(raw && raw.records) ? raw.records : []).filter((r) => r && validId(r.id) && str(r.title, LIMIT.title)).slice(0, LIMIT.records)
     .map((r) => ({ ...cleanRecord(r, { id: r.id, added: Number(r.added) || 0 }), example: Boolean(r.example) }));
-  const art = (Array.isArray(raw && raw.art) ? raw.art : []).filter((a) => a && validId(a.id) && ART_FILE.test(a.file) && ART_FILE.test(a.thumb)).slice(0, LIMIT.art)
-    .map((a) => ({ ...cleanArt(a, { id: a.id, file: a.file, thumb: a.thumb, width: a.width, height: a.height, added: Number(a.added) || 0 }, false), example: Boolean(a.example) }));
+  const art = (Array.isArray(raw && raw.art) ? raw.art : []).filter((a) => a && validId(a.id)).slice(0, LIMIT.art)
+    .map((a) => ({ ...cleanArt(a, { id: a.id, added: Number(a.added) || 0 }, false), example: Boolean(a.example) })).filter((a) => a.versions.length);
   return { profile: cleanProfile(p), about: cleanAbout(raw && raw.about, art), art, records };
 }
 
@@ -289,7 +316,9 @@ function commit(next) {
 let artFiles = new Set();
 function filesOf(a) {
   const out = new Set();
-  for (const x of (a && Array.isArray(a.art) ? a.art : [])) if (x) { out.add(x.file); out.add(x.thumb); }
+  for (const x of (a && Array.isArray(a.art) ? a.art : [])) {
+    for (const v of x && Array.isArray(x.versions) ? x.versions : [x]) if (v) { out.add(v.file); out.add(v.thumb); }
+  }
   return out;
 }
 function sweepArt() {
@@ -613,7 +642,7 @@ async function handle(req, res) {
   if (req.method === "POST" && pathname === "/api/art") {
     if (archive.art.length >= LIMIT.art) throw new HttpError(413, "There is no room for more plates.");
     const plate = cleanArt(await readJson(req), null, true);
-    commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first
+    commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first; it cannot be the portrait yet
     return sendJson(req, res, 200, { archive, id: plate.id });
   }
   if (req.method === "POST" && pathname === "/api/art/order") {
@@ -631,7 +660,8 @@ async function handle(req, res) {
     if (!prev) throw new HttpError(404, "That plate is gone.");
     if (req.method === "PUT") {
       const plate = cleanArt(await readJson(req), prev, true);
-      commit({ ...archive, art: archive.art.map((a) => (a.id === prev.id ? plate : a)) });
+      const art = archive.art.map((a) => (a.id === prev.id ? plate : a));
+      commit({ ...archive, art, about: cleanAbout(archive.about, art) }); // a portrait whose main image became mature is cleared
       sweepArt();
       return sendJson(req, res, 200, { archive, id: plate.id });
     }

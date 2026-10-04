@@ -122,9 +122,9 @@ journalctl -u chalice-archive -n 20         # "Chalice Archive listening on http
 
 Then open the site:
 
-1. Click the gem. After the scan, choose About, Art or Knowledge beneath the construct.
+1. Click the gem. After the scan, choose About, Art or Character Knowledge beneath the construct.
 2. Click the small brass clasp on the tome's right edge and speak the word.
-3. The editing tools appear: **Amend this page** in About, **Add a plate** in Art, **Inscribe record** in Knowledge.
+3. The editing tools appear: **Amend this page** in About, **Add a plate** in Art, **Inscribe record** in Character Knowledge.
 
 ## Day to day
 

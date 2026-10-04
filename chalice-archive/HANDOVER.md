@@ -1,15 +1,15 @@
 # Chalice Archive: handover
 
-A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on and sweeps a teal scan line down the screen and over the model. The construct then rises and projects three choices beneath it: **About**, **Art** and **Knowledge**.
+A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on and sweeps a teal scan line down the screen and over the model. The construct then rises and projects three choices beneath it: **About**, **Art** and **Character Knowledge**.
 
 Each choice opens its chapter of the archive, an old leather-bound tome in the style of the game's books and journals, with index tabs on its top edge to move between chapters:
 
 - **About:** his portrait on the left leaf, with his name and epithet; particulars (label and value) and sections of text on the right.
-- **Art:** the plates (pictures of him) as a list on the left, the chosen plate on the right, and a full-size view on a dark ground.
-- **Knowledge:** his records, as before: the most recent on the left, and a chaptered index of everything he has re-learned since waking on the right.
+- **Art:** the plates (pictures of him) as a list on the left, the chosen plate on the right, and a full-size view on a dark ground. A plate is one or more images: its main image and alternate versions. Any image can be flagged **mature**: it stays covered, and is not even loaded, until a visitor says they are 18 or older, and it is covered again once they move on.
+- **Character Knowledge:** his records, as before: the most recent on the left, and a chaptered index of everything he has re-learned since waking on the right.
 
 - **Self-hosted** on the owner's VPS: Cloudflare in front, then Caddy, then a small Node server (`server/server.mjs`, no dependencies) that serves the page and the model, stores the records, and checks the keeper's word. **`deploy/README.md` is the step-by-step setup.**
-- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters.
+- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check.
   - Before the move, its data (no records, no word) matched `src/seed.json`, so nothing needed migrating.
 
 ## Status
@@ -17,13 +17,14 @@ Each choice opens its chapter of the archive, an old leather-bound tome in the s
 | Area | State |
 |---|---|
 | Landing (the construct alone, no text), scan animation, archive tome, record detail | Done |
-| **Hub** (About, Art, Knowledge beneath the construct after the scan) and the tome's chapter tabs | Done |
+| **Hub** (About, Art, Character Knowledge beneath the construct after the scan, no other text) and the tome's chapter tabs | Done |
 | **About** page: portrait, name, epithet, particulars, sections; amended by the keeper | Done, through the server's API |
 | **Art**: plates uploaded from the keeper's browser, ordered, captioned, shown full size, one chosen as the portrait | Done, through the server's API |
+| **Alternate versions** (up to 12 images per plate) and **mature** images behind an age check | Done |
 | Addresses: `#about`, `#art`, `#knowledge`, `#art/<plate>` and `#knowledge/<record>` open there at once | Done |
 | Inscribe / revise / remove record, remove examples | Done, through the server's API |
 | **Keeper's seal** | **Done.** A brass clasp on the tome's edge opens a small panel. The keeper's word is checked on the server and gives a session; **Seal it again** ends it. The word is set on the VPS with `set-password` and can be changed from the panel. |
-| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (100 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's; its per-route body limits were checked again with Caddy 2.10.2. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
+| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (113 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's; its per-route body limits were checked again with Caddy 2.10.2. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
 | Profile (name, epithet, construct name and note) | The name and epithet are shown on the About page and amended there. The construct's name and note are kept in the data but not shown. |
 | **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutout remains as the fallback. |
 | Preview on claude.ai | Done. The Artifact shows the current build with an in-page stand-in for the server (version 14). |
@@ -91,7 +92,7 @@ How the preview differs from the real page:
 - **Fragment:** `dist/preview.html` is a page fragment, because the viewer wraps it in its own `<html>`/`<head>`. The model preload is dropped.
 - **No network:** the viewer's CSP has `connect-src 'none'` and `img-src data:`, so the page can't fetch anything. The model is embedded as base64 in `#ca-model`, and the example plates' images as data: URIs in `#ca-files`.
 - **Stand-in server:** `<script id="ca-preview">` (`src/preview.js`) sets `window.CA_PREVIEW`. `ca-app` then sends its requests there instead of to `fetch`, and asks `CA_PREVIEW.src(name)` for each plate's image instead of `art/<name>`. That covers the model and every API route, image uploads included, with the same validation and error messages as the server.
-- **Examples:** the preview adds `src/preview-examples.json` to `src/seed.json`: an About page and four plates (renders of the construct). They are marked as examples in their titles and never reach the real site.
+- **Examples:** the preview adds `src/preview-examples.json` to `src/seed.json`: an About page and three plates (renders of the construct), one with alternate versions. Two images are flagged mature only to show the cover and the age check; none is really mature. They are marked as examples in their titles and never reach the real site.
 - **The word** is `preview`, and the seal panel says so. Changing the word works until reload.
 - **Records, the About page and plates** start from the seed and the examples and live only in memory (uploaded images as data: URIs), so a reload forgets every change and seals the archive again.
 - **The real page carries none of this:** `dist/index.html` has no `ca-preview`, `ca-model` or `ca-files`, and `window.CA_PREVIEW` can't be set there, because its CSP runs no other inline script. The smoke test checks both.
@@ -125,8 +126,8 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 | `POST /api/records/clear-examples` | keeper | remove example records → `{archive}` |
 | `PUT /api/about` | keeper | `{name, epithet, portrait, facts, sections}` → `{archive}` |
 | `POST /api/uploads` | keeper | an image's raw bytes, sent with its type (PNG, JPEG or WebP, at most 8 MiB) → `{file, width, height}` |
-| `POST /api/art` | keeper | new plate `{file, thumb, title, artist, link, date, note}` → `{archive, id}`; it goes first |
-| `PUT /api/art/:id` | keeper | revise; `file` and `thumb` only to replace the image → `{archive, id}` |
+| `POST /api/art` | keeper | new plate `{title, artist, link, date, note, versions: [{file, thumb, label, mature}]}` → `{archive, id}`; it goes first |
+| `PUT /api/art/:id` | keeper | revise; `versions` (if sent) lists every image in its new order: `{id, label, mature}` keeps one of the plate's images, `{file, thumb, label, mature}` adds an uploaded one → `{archive, id}` |
 | `DELETE /api/art/:id` | keeper | remove; clears it as the portrait → `{archive}` |
 | `POST /api/art/order` | keeper | `{ids}`, every plate once, in the new order → `{archive}` |
 
@@ -134,7 +135,8 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 - **Server-side cleaning:** ids, `added` and `example` are set by the server. Text is trimmed, stripped of control characters and capped:
   - records: title 120, domain 60, note 4000, source 160. Unknown states become `fragment`, bad dates become today, an empty domain becomes "Unsorted".
   - About: name 60, epithet 280, up to 16 particulars (label 40, value 160) and 12 sections (heading 80, text 6000). Empty rows are dropped. A portrait that names no plate is cleared.
-  - plates: title 120, artist 80, note 1000, at most 500 plates. A link must be `http(s)` (a bare `artstation.com/x` becomes `https://artstation.com/x`); anything else, `javascript:` included, is dropped. Width and height come from the image file, never from the request.
+  - plates: title 120, artist 80, note 1000, at most 500 plates of 1 to 12 images each, image labels 60. Only `"mature": true` flags an image. A link must be `http(s)` (a bare `artstation.com/x` becomes `https://artstation.com/x`); anything else, `javascript:` included, is dropped. Width and height come from the image file, never from the request.
+  - the portrait: a plate whose main image is mature can't be the portrait, and flagging the portrait's main image as mature clears it.
 - **Uploads:** the type is read from the bytes and must match the `Content-Type` (PNG, JPEG or WebP; never SVG or HTML). At most 8 MiB and 10000 pixels on a side. The file is stored as `DATA_DIR/art/<first 32 hex digits of its SHA-256>.<png|jpg|webp>`, so the same image is stored once.
 - **The keeper's browser prepares each image:** it scales it to at most 2400 pixels on the long side and re-encodes it as WebP (JPEG on browsers that can't write WebP), which drops any metadata such as a photo's location. It also makes an 800-pixel thumbnail for the list and the portrait. Both are uploaded, then the plate is saved.
 - **Serving art:** only files a plate uses right now, by exact name, with their type, `nosniff` and the CSP. Removing a plate stops serving its image at once; Cloudflare's copy expires within a day (`s-maxage=86400`).
@@ -156,9 +158,14 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
   },
   "art": [{                   // in the keeper's order; a new plate goes first
     "id": "a…",               // set by the server: "a" + 12 random base64url characters
-    "file": "<32 hex>.webp",  // up to 2400 px on the long side
-    "thumb": "<32 hex>.webp", // up to 800 px
-    "width": 0, "height": 0,  // of `file`, read by the server
+    "versions": [{            // 1 to 12 images; the first is the main one, shown in the list and as the portrait
+      "id": "v…",             // set by the server
+      "file": "<32 hex>.webp",  // up to 2400 px on the long side
+      "thumb": "<32 hex>.webp", // up to 800 px
+      "width": 0, "height": 0,  // of `file`, read by the server
+      "label": "",            // e.g. "Without armour"; shown as "Main" or "Version 2" when empty
+      "mature": false         // covered until the visitor says they are 18 or older
+    }],
     "title": "", "artist": "", "link": "", "note": "",
     "date": "YYYY-MM-DD", "added": 0, "example": false
   }],
@@ -185,16 +192,24 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 
 - **Recent accessions:** sorted by `date` desc, then `added` desc, top 6.
 - **Knowledge index:** grouped by domain.
+- **Plates saved with a single image** (before plates had versions) carry `file`, `thumb`, `width` and `height` on the plate itself. The server reads them as a plate of one image, with the id `v` + the first 12 hex digits of its file name, and writes them in the new form on the next change.
 
 ### Design
 
 - **Two worlds, one token set** (`:root` of `ca-style`): the landing and the hub are the dark void (navy grounds, teal light, copper). The archive is the tome (leather, parchment, sepia ink, red rubric ink, brass, and the game's red-and-gold buttons). The full-size plate goes back to the dark ground. It is a single deliberate look, not light and dark themes.
-- **The hub** (`#hub`, inside `.core`): after the scan, `.has-hub` on the stage lifts the construct 56 px and three choices appear beneath it, each a glyph (a slit-pupilled eye, a framed picture, an open book), a label and an italic line. They are dark panes with teal corner brackets like the scan's lock, and they flicker in one after another as the beam reaches the bottom. On short landscape screens they stand beside the construct instead. A scan started from the keyboard moves the focus to the first. The hub stays once shown; closing the tome returns the focus to the choice that opened it.
+- **The hub** (`#hub`, inside `.core`): after the scan, `.has-hub` on the stage lifts the construct 56 px and three choices appear beneath it, each a glyph (a slit-pupilled eye, a framed picture, an open book) and its label: About, Art, Character Knowledge. There is no other text. They are dark panes with teal corner brackets like the scan's lock, and they flicker in one after another as the beam reaches the bottom. On short landscape screens they stand beside the construct instead. A scan started from the keyboard moves the focus to the first. The hub stays once shown; closing the tome returns the focus to the choice that opened it.
 - **Chapter tabs** (`#tabs`): leather index tabs on the tome's top edge; the open chapter's tab is a parchment leaf. While a form is open, they only say to finish or cancel it, so nothing written is lost.
 - **Views:** each view lives on the right leaf and belongs to a chapter, whose own left leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`) shows beside it (`VIEWS` in `ca-app`). `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`.
 - **About:** the portrait is the plate's thumbnail in an oval inside a parchment mount, the way old books print a frontispiece; a click shows it full size. Without one, a dashed oval says "No likeness yet". The name has the record title's rule and red dot beneath it. On the right, the particulars are a two-column list, and each section has a red rubric heading; the first section's text opens with a red drop capital. The keeper's form has rows for particulars and sections, each with ↑, ↓ and × buttons, and a list to choose the portrait.
-- **Art:** the plates are mounted thumbnails cropped to 4 : 5, numbered with roman numerals in the keeper's order. The chosen plate shows on the right at its own shape, with its number, title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. The keeper can revise it, make it the portrait, move it earlier or later, or remove it.
-- **Full-size plate** (`#lightbox`, inside the dialog): the image on the dark ground with its number, title and artist in the game's gold; the game's round red buttons step through the plates (arrow keys too) and close it. It shows the thumbnail at once and swaps in the full image when it has loaded. While it is open, the tome is `inert`; Escape closes only it. On narrow screens the step buttons sit at the bottom.
+- **Art:** the plates are mounted thumbnails of their main image, cropped to 4 : 5 and numbered with roman numerals in the keeper's order; a plate of several images says how many. The chosen plate shows on the right at its own shape, with its number (and the image's label), title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. Beneath the image, a strip of small thumbnails switches between the plate's images. The keeper can revise it, make it the portrait, move it earlier or later, or remove it.
+- **The plate form** has a row per image, in order (the first is the main image): its thumbnail, a label, a **Mature (18+)** box, and ↑ ↓ × buttons. **+ Add an image** adds a row with a file input. To change an image, add the new one and remove the old.
+- **Mature images and the age check:**
+  - A mature image shows only a cover (`.spoiler`: a dark hatched panel with a red **18+** seal and "Mature"), in the list, in the strip, on the right leaf and in the full-size view. The image itself is not loaded until it is shown, so its pixels never reach the browser before then.
+  - Selecting a cover (or a plate in the list whose main image is mature) opens the age check (`#gate`): "How old are you?" with a number. 18 or older shows the image; under 18 says mature images are only for those 18 or older and keeps it covered.
+  - The answer is kept for the browser tab (`sessionStorage`, in memory where storage is blocked), so later covers open on a click without asking again, and someone under 18 is not asked again.
+  - Whatever the answer, a mature image is covered again as soon as another image takes its place, the visitor goes back to the plates or another chapter, or the tome closes (`shown` in `ca-app` holds the one image on view). In the full-size view, stepping onto a mature image shows its cover.
+  - It is an honest question, not proof of age, as on most sites: nothing stops someone from claiming to be 18, and the image addresses are in the page's data for anyone who digs. What it guarantees is that nobody sees a mature image without choosing to and saying they are an adult.
+- **Full-size plate** (`#lightbox`, inside the dialog): the image on the dark ground with its number, title, label and artist in the game's gold; the game's round red buttons step through every image of every plate in order (arrow keys too) and close it. It shows the thumbnail at once and swaps in the full image when it has loaded. While it is open, the tome is `inert`; Escape closes only it. On narrow screens the step buttons sit at the bottom.
 - **Addresses:** the open chapter is written into the address with `history.replaceState` (`#about`, `#art/<plate>`, `#knowledge/<record>`), so it can be copied and shared. Opening such an address goes straight to it, without the scan, and so does changing the hash.
 - **Fonts:** Cinzel (titles, buttons, the game's inscriptional capitals), IM Fell English (the book's text, an 18th-century typeface with old-style numerals) and IM Fell English SC (labels and dates).
 - **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon in the gutter.
@@ -289,7 +304,8 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - backups;
   - the About page's cleaning;
   - uploads: session, CSRF and Origin; SVG, HTML and JSON refused; bytes that don't match their type; size and dimension limits; storage under the content hash; a JPEG's size from its header;
-  - plates: links, sizes from the file, order, the portrait, serving only the images in use, the sweep;
+  - plates: links, sizes from the file, several images per plate (reordered, relabelled, flagged, added), order, the portrait (never a mature image), serving only the images in use, the sweep;
+  - an archive saved before plates had several images (a separate server start);
   - changing the word, which signs older sessions out;
   - logout;
   - per-address throttling via `X-Real-IP`.
@@ -298,11 +314,15 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - inscribe a record containing markup, which must stay text;
   - reload, still unsealed, then revise and remove the record;
   - amend the About page, moving a particular up, with markup that must stay text;
-  - upload a plate (re-encoded to WebP in the browser, then served under the CSP) with a `javascript:` link that must be dropped, view it full size, make it the portrait, open `#about` and the plate's own address, and remove it;
+  - upload a plate of two images, the second flagged mature (re-encoded to WebP in the browser, then served under the CSP), with a `javascript:` link that must be dropped;
+  - check the mature image is covered and not loaded; answer the age check (0 is refused, 30 shows it); see it covered again back at the plates, and open without a second question; see it covered in the full-size view;
+  - in a second browser, answer 15: the image stays covered for the visit and is never requested;
+  - make the plate the portrait, open `#about` and the plate's own address, and remove it;
   - change the word;
   - seal, reload, and unseal with the new word.
 - **Preview checks** load `dist/preview.html` inside the Artifact skeleton, under a CSP like the viewer's, with no network requests allowed. They check that:
-  - the model and the example plates load from the page itself;
+  - the model and the example plates load from the page itself, and the plate flagged mature shows only its cover;
+  - the age check works where the page has no storage;
   - the About page shows its examples;
   - the seal panel names the preview word;
   - only `preview` unseals;
