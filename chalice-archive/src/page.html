@@ -453,6 +453,10 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   var ORDER = Object.keys(STATUS);
   var SUGGESTED_DOMAINS = ["Dragonkind & the Aspects", "Peoples & factions", "Wars & catastrophes", "Places", "Cosmology & the beyond"];
   var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // The preview build (dist/preview.html, published as the claude.ai Artifact) answers requests in the page itself,
+  // because the Artifact viewer allows no network requests. The real page has no such script, so it uses fetch.
+  var PREVIEW = window.CA_PREVIEW || null;
+  var request = PREVIEW ? PREVIEW.fetch : function (url, opts) { return fetch(url, opts); };
 
   function byId(id) { return document.getElementById(id); }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -729,7 +733,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     var headers = { Accept: "application/json" };
     if (method !== "GET") headers["X-CSRF-Token"] = csrf;
     if (body !== undefined) headers["Content-Type"] = "application/json";
-    return fetch(url, { method: method, headers: headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: "same-origin", cache: "no-store" })
+    return request(url, { method: method, headers: headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: "same-origin", cache: "no-store" })
       .then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (data) {
           if (res.ok) return data;
@@ -797,6 +801,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     change: ["A new word", "Speak the current word, then choose a new one of at least " + WORD_MIN + " characters, used nowhere else. Every other session is sealed."],
     open: ["The archive is unsealed", "The quill is yours until you seal it again or the session runs out."]
   };
+  if (PREVIEW && PREVIEW.note) SEAL_COPY.unlock[1] += " " + PREVIEW.note;
   function renderSeal(mode) {
     sealMode = mode;
     var change = mode === "change";
@@ -1489,7 +1494,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     api.lift = function () { return liftNow; };
     api.gemAt = gemAt;
 
-    var glb = fetch(MODEL_URL).then(function (r) { if (!r.ok) throw new Error("model: HTTP " + r.status); return r.arrayBuffer(); });
+    var glb = request(MODEL_URL).then(function (r) { if (!r.ok) throw new Error("model: HTTP " + r.status); return r.arrayBuffer(); });
     Promise.all([import(THREE_URL), import(GLTF_URL), glb]).then(function (got) {
       T = got[0];
       var loader = new got[1].GLTFLoader();

@@ -20,6 +20,9 @@ Checks:
      the gem opens the archive; a wrong word is refused; the right word shows the tools; records can be
      inscribed, revised and removed, and markup in them stays text; the session survives a reload; the word
      can be changed from the page; sealing it again hides the tools.
+  3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
+     network requests at all): the model loads from the page, the stand-in server accepts only "preview", records
+     can be inscribed, and a reload forgets them. The real page carries no trace of the stand-in.
 Screenshots go to tools/.smoke/.
 */
 const fs = require('fs');
@@ -35,6 +38,14 @@ const OUT = path.join(__dirname, '.smoke');
 const WORD = 'a long smoke-test passphrase';
 const NEW_WORD = 'another long smoke-test passphrase';
 const ORIGIN = 'https://archive.test';
+const ARTIFACT_CSP = "default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net/npm/ https://unpkg.com " +
+  "https://cdn.tailwindcss.com https://code.jquery.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; " +
+  "img-src data:; connect-src 'none'";
+const ARTIFACT_SKELETON = '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">' +
+  `<meta http-equiv="Content-Security-Policy" content="${ARTIFACT_CSP}">` +
+  '<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}' +
+  'html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}' +
+  'img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>\n';
 const failures = [];
 function check(ok, what) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${what}`); if (!ok) failures.push(what); }
 
@@ -230,11 +241,7 @@ async function apiChecks() {
 // ---------- 2. the page in Chromium, under the server's CSP ----------
 async function browserChecks() {
   const s = await startServer('browser', { COOKIE_SECURE: 'false' });
-  const browser = await chromium.launch({
-    executablePath: process.env.CHROME || undefined,
-    proxy: process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypass: '127.0.0.1,localhost' } : undefined,
-    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'].concat((process.env.CHROME_ARGS || '').split(' ').filter(Boolean)),
-  });
+  const browser = await launch();
   try {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
     await ctx.addInitScript(() => {
@@ -355,9 +362,64 @@ async function browserChecks() {
   }
 }
 
+// ---------- 3. the claude.ai Artifact preview ----------
+async function previewChecks() {
+  const index = fs.readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8');
+  check(!/ca-preview|CA_PREVIEW =|ca-model/.test(index), 'the real page carries no preview stand-in and no embedded model');
+  const html = ARTIFACT_SKELETON + fs.readFileSync(path.join(ROOT, 'dist', 'preview.html'), 'utf8') + '</body></html>';
+  const server = http.createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html); });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const browser = await launch();
+  try {
+    const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });
+    const open = async () => {
+      await page.waitForSelector('.core.is-3d', { timeout: 30000 });
+      await page.focus('#construct');
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('#archive[open]', { timeout: 5000 });
+    };
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    check(await open().then(() => true, () => false), 'preview: the 3D model loads from the page itself under the Artifact CSP');
+    await page.click('#clasp');
+    check((await page.textContent('#seal-text')).includes('preview'), 'preview: the seal panel says it is the preview and gives the word');
+    await page.fill('#seal-word', 'not the word');
+    await page.click('#seal-go');
+    await page.waitForSelector('#seal-error:not([hidden])', { timeout: 5000 });
+    await page.fill('#seal-word', 'preview');
+    await page.click('#seal-go');
+    check(await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 5000 }).then(() => true, () => false), 'preview: a wrong word is refused, "preview" unseals');
+    await page.click('#btn-inscribe');
+    await page.fill('#f-title', 'Preview record');
+    await page.click('#f-submit');
+    await page.waitForSelector('#view-detail:not([hidden])', { timeout: 5000 });
+    check((await page.textContent('#det-title')) === 'Preview record', 'preview: records can be inscribed');
+    await page.screenshot({ path: path.join(OUT, 'preview.png') });
+    await page.reload();
+    await open();
+    await page.waitForTimeout(500);
+    check(await page.$('#btn-inscribe[hidden]') !== null && !(await page.$$eval('#index .topic-title', (n) => n.some((x) => x.textContent === 'Preview record'))),
+      'preview: a reload forgets the record and seals the archive again');
+    check(errors.length === 0, `preview: no console errors or CSP violations${errors.length ? ': ' + errors.join(' | ') : ''}`);
+  } finally {
+    await browser.close();
+    server.close();
+  }
+}
+
+function launch() {
+  return chromium.launch({
+    executablePath: process.env.CHROME || undefined,
+    proxy: process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypass: '127.0.0.1,localhost' } : undefined,
+    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'].concat((process.env.CHROME_ARGS || '').split(' ').filter(Boolean)),
+  });
+}
+
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  for (const [name, fn] of [['API checks', apiChecks], ['browser checks', browserChecks]]) {
+  for (const [name, fn] of [['API checks', apiChecks], ['browser checks', browserChecks], ['preview checks', previewChecks]]) {
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }
   console.log(failures.length ? `\n${failures.length} check(s) failed` : '\nall checks passed');

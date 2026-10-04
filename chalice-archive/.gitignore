@@ -3,3 +3,4 @@ tools/.smoke/
 tools/node_modules/
 __pycache__/
 server/data/
+dist/preview.html

@@ -3,7 +3,8 @@
 A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on, sweeps a teal scan line down the screen and over the model, then opens the archive. The archive is an old leather-bound tome in the style of the game's books and journals. It holds only his records: the most recent on the left page, and a chaptered index of everything he has re-learned since waking on the right.
 
 - **Self-hosted** on the owner's VPS: Cloudflare in front, then Caddy, then a small Node server (`server/server.mjs`, no dependencies) that serves the page and the model, stores the records, and checks the keeper's word. **`deploy/README.md` is the step-by-step setup.**
-- **The old claude.ai Artifact** (https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh, version 12) is left as it was: a frozen snapshot that no longer matches this code. Its data (no records, no word) matched `src/seed.json` when the move was made, so nothing needed migrating.
+- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build.
+  - Before the move, its data (no records, no word) matched `src/seed.json`, so nothing needed migrating.
 
 ## Status
 
@@ -12,9 +13,10 @@ A one-page RP site for a Dracthyr character. The landing page is nothing but his
 | Landing (the construct alone, no text), scan animation, archive tome, record detail | Done |
 | Inscribe / revise / remove record, remove examples | Done, through the server's API |
 | **Keeper's seal** | **Done.** A brass clasp on the tome's edge opens a small panel. The keeper's word is checked on the server and gives a session; **Seal it again** ends it. The word is set on the VPS with `set-password` and can be changed from the panel. |
-| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (60 checks). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
+| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (67 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
 | Profile (name, epithet, construct name and note) | Kept in the data, not shown or editable. The name is only used for screen readers. To change it, stop the service and edit `profile` in `/var/lib/chalice-archive/archive.json`. |
 | **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutout remains as the fallback. |
+| Preview on claude.ai | Done. The Artifact shows the current build with an in-page stand-in for the server (version 13). |
 | Content | No records yet. |
 
 ## Files
@@ -23,6 +25,7 @@ A one-page RP site for a Dracthyr character. The landing page is nothing but his
 build.py                         builds dist/ from src/ + assets/
 src/page.html                    the page: CSS, markup, app script, with placeholders
 src/seed.json                    the starting archive, copied to DATA_DIR/archive.json on the server's first start
+src/preview.js                   the server's stand-in for the claude.ai preview (only in dist/preview.html)
 server/server.mjs                the server (Node 20+, no dependencies); `set-password` sets the keeper's word
 deploy/README.md                 VPS setup: Node, Caddy, Cloudflare, firewall, backups, what protects what
 deploy/Caddyfile                 Caddy in front of the server: Origin Certificate, Authenticated Origin Pulls, real client IP
@@ -37,6 +40,8 @@ tools/smoke.js                   starts the server and tests the API and the pag
 tools/cutout.py                  background removal used to make the cutouts (ISNet via onnxruntime)
 dist/index.html                  the built page (committed, so the VPS needs no build step)
 dist/chalice.<hash>.glb          the model, named by its SHA-256 so it can be cached forever
+dist/preview.html                the claude.ai preview build (git-ignored; rebuilt by build.py)
+CLAUDE.md (repo root)            standing instructions for future Claude sessions: publish the preview after each change
 ```
 
 Placeholders in `src/page.html`:
@@ -45,7 +50,7 @@ Placeholders in `src/page.html`:
 |---|---|---|
 | `__FRONT__` | `build.py` | WebP data URI of the front cutout |
 | `__MODEL_URL__` | `build.py` | `chalice.<first 12 hex of SHA-256>.glb` |
-| `__ARCHIVE__` | the server, per request | the archive JSON, with `<`, `>`, `&`, U+2028 and U+2029 escaped |
+| `__ARCHIVE__` | the server, per request; `build.py` in the preview | the archive JSON, with `<`, `>`, `&`, U+2028 and U+2029 escaped (`src/seed.json` in the preview) |
 
 ### Running it locally
 
@@ -56,6 +61,27 @@ COOKIE_SECURE=false node server/server.mjs           # http://127.0.0.1:8080
 ```
 
 `COOKIE_SECURE=false` drops the cookie's `Secure` flag and `__Host-` prefix and HSTS, which plain http needs. Never set it in production.
+
+### Previewing changes on claude.ai
+
+The owner looks at changes on the claude.ai Artifact before deploying them. After every change:
+
+1. Run `python3 build.py`.
+2. Run the smoke test.
+3. Publish `dist/preview.html` to https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh, updating it in place.
+4. Send the owner the link.
+
+The repo-root `CLAUDE.md` says the same, so future sessions do it without being asked.
+
+How the preview differs from the real page:
+
+- **Fragment:** `dist/preview.html` is a page fragment, because the viewer wraps it in its own `<html>`/`<head>`. The model preload is dropped.
+- **No network:** the viewer's CSP has `connect-src 'none'`, so the page can't fetch anything. The model is embedded as base64 in `#ca-model`.
+- **Stand-in server:** `<script id="ca-preview">` (`src/preview.js`) sets `window.CA_PREVIEW`. `ca-app` then sends its requests there instead of to `fetch`. That covers the model and every API route, with the same validation and error messages as the server.
+- **The word** is `preview`, and the seal panel says so. Changing the word works until reload.
+- **Records** start from `src/seed.json` and live only in memory, so a reload forgets them and seals the archive again.
+- **The real page carries none of this:** `dist/index.html` has no `ca-preview`, and `window.CA_PREVIEW` can't be set there, because its CSP runs no other inline script. The smoke test checks both.
+- **Never put real records or the real word into the preview.** Never use the Artifact's own capabilities (`artifact.publish`) to save; that path was removed on purpose.
 
 ## How the page works
 
@@ -219,6 +245,14 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - reload, still unsealed, then revise and remove the record;
   - change the word;
   - seal, reload, and unseal with the new word.
+- **Preview checks** load `dist/preview.html` inside the Artifact skeleton, under a CSP like the viewer's, with no network requests allowed. They check that:
+  - the model loads from the page itself;
+  - the seal panel names the preview word;
+  - only `preview` unseals;
+  - a record can be inscribed;
+  - a reload forgets it;
+  - there are no console errors;
+  - `dist/index.html` carries no stand-in.
 
 Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy CA's key to Chromium with `CHROME_ARGS="--ignore-certificate-errors-spki-list=<sha256 of the CA's SPKI, base64>"`.
 
@@ -227,4 +261,4 @@ Screenshots go to `tools/.smoke/`. Behind an intercepting proxy, pass the proxy 
 - **Deploy:** follow `deploy/README.md`. Replace `archive.example.com` in the Caddyfile and in `PUBLIC_ORIGIN` in the unit.
 - **Set the keeper's word on the VPS** with `set-password` (step 3). Don't share it in chats or files.
 - **Optional:** set `profile.name` for screen readers. It lives in `archive.json` on the server once deployed, or in `src/seed.json` before the first start.
-- **Optional:** once the site is live, the old claude.ai Artifact can be deleted, or left private.
+- **Preview:** the claude.ai Artifact stays private until you share it from its Share menu. It is for you to check changes; the real site is the VPS.
