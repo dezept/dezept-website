@@ -1088,8 +1088,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function pad2(n) { return String(n).padStart(2, "0"); }
   function today() { var d = new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
   function fmtDate(iso) {
-    var p = String(iso).split("-").map(Number);
-    var d = new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
+    var p = String(iso).split("-").map(Number), d = new Date(2000, 0, 1);
+    d.setFullYear(p[0], (p[1] || 1) - 1, p[2] || 1); // new Date(35, …) would be 1935: it takes years 0 to 99 as 1900 to 1999
     return isNaN(d) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   }
   function isDate(v) { // a day that exists, as the server takes it: not 2024-02-30
@@ -1451,6 +1451,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var e = r.encounter && findEnc(r.encounter), from = e ? e.title : r.source;
       return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), r.note, function () { showDetail(r.id); });
     }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." }))]);
+    if (currentView === "detail") renderDetail();
   }
 
   // Encounters: newest first; each tells what happened, and, to the keeper alone, its private section. Those only
@@ -1644,6 +1645,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError", galleryForm: "gfError", encounterForm: "efError" };
   function showView(name) {
     var v = VIEWS[name], book = v[1];
+    awaited = null; // the keeper has moved on from the address they opened
     Object.keys(VIEWS).forEach(function (k) { el[VIEWS[k][0]].hidden = VIEWS[k][0] !== v[0]; });
     Object.keys(BOOKS).forEach(function (b) { el["leaf" + b[0].toUpperCase() + b.slice(1)].hidden = b !== book; });
     if (name !== "plate") { shown = null; clearMedia(); } // a mature image is covered again once the visitor moves on, and a video stops
@@ -1686,9 +1688,18 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
 
   function showDetail(id) {
-    var r = find(id);
-    if (!r) { showView("overview"); return; }
+    if (!find(id)) { showView("overview"); return; }
     detailId = id;
+    renderDetail();
+    disarm(el.detDelete);
+    renderOwnerUI();
+    showView("detail");
+  }
+  // A record on its own page. It is drawn again whenever the archive changes, so a link to an encounter only for the
+  // keeper appears once the keeper's archive has arrived, and goes once the archive is sealed.
+  function renderDetail() {
+    var r = find(detailId);
+    if (!r) return;
     el.detDate.textContent = r.date ? fmtDate(r.date) : "";
     el.detDate.setAttribute("datetime", r.date);
     el.detTitle.textContent = r.title;
@@ -1701,9 +1712,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       e && e.sealed ? h("span", { class: "opt", text: " (only you see this link)" }) : null,
       e && r.source ? "; " : null, r.source || null, !e && !r.source ? "Not recorded" : null
     ].filter(Boolean));
-    disarm(el.detDelete);
-    renderOwnerUI();
-    showView("detail");
   }
   // An encounter: what happened; the private section only for the keeper, once it has been fetched; and what he
   // learned from it
@@ -2544,9 +2552,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     owner = on;
     csrf = on ? token || "" : "";
     if (!on) { privates = {}; privatesLoaded = false; forgetSealed(); wipeForms(); } // sealed: the private sections and the keeper's own encounters leave the page's memory too
-    renderAll();
+    renderAll(); // a record on view too, which loses its link to one of them
     if (!on && currentView === "encounter" && !findEnc(encounterId)) showView("encounters");
-    else if (!on && currentView === "detail" && find(detailId)) showDetail(detailId); // without its link to one of them
     if (on) loadPrivate();
     watchSession();
   }
@@ -2587,7 +2594,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       privates = d.encounters || {};
       privatesLoaded = true;
       if (d.archive) applyArchive(d.archive); else if (currentView === "encounter") renderEncounter();
-    }, function () {});
+      // the address asked for an encounter only for the keeper, which has only now arrived
+      if (awaited && currentView === "encounters" && findEnc(awaited)) showEncounter(awaited);
+      awaited = null;
+    }, function () { awaited = null; });
   }
   // Only a change re-renders the page: the check every minute must not disturb what is open
   function refreshSession() {
@@ -3530,11 +3540,16 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   // A shared address opens its chapter at once, without waking the construct: #about, #art, #knowledge, #encounters,
   // #art/<form>, #art/<art piece>, #knowledge/<record>, #encounters/<encounter>
+  // An encounter only for the keeper is not in the page until the keeper's archive arrives, after the session is
+  // known: until then its address shows the list, and `awaited` keeps it, to be opened then unless the keeper has
+  // moved on meanwhile (showView lets go of it).
+  var awaited = null;
   function route() {
     var m = /^#(about|art|knowledge|encounters)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
     if (!m || (el.archive.open && FORMS[currentView])) return;
     showHub(false);
     openArchive({ book: m[1], id: m[2] });
+    awaited = m[1] === "encounters" && m[2] && !findEnc(m[2]) && !privatesLoaded ? m[2] : null;
   }
   window.addEventListener("hashchange", route);
 
