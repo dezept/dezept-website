@@ -16,26 +16,28 @@ Checks:
      token, and non-JSON bodies; the session cookie's flags; field validation and size limits; stored markup
      cannot end the page's data block; backups; the About page's cleaning; image uploads (type sniffed from the
      bytes, size, dimensions), plates, their order and links, art served only while used, the sweep of unused
-     uploads; plates of several images, flagged mature one by one; encounters, whose private sections are stored
+     uploads; plates of several images, flagged mature one by one; his forms, which hold the plates; GIFs and MP4s,
+     which lose their metadata, and WebM videos; videos served in byte ranges; encounters, whose private sections are stored
      encrypted, never reach visitors, and need the session and its CSRF token; plates saved before
      they had several images; the password file; changing the word signs other sessions out; failed logins are
      throttled per IP.
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
-     the gem wakes the construct, which reveals the three choices; a wrong word is refused; the right word shows the
+     the gem wakes the construct, which reveals the choices, and they go again when the tome closes; a wrong word is refused; the right word shows the
      tools; records can be inscribed, revised and removed, and markup in them stays text; an encounter with a private
      section can be recorded, a record can name it and link to it, and the private section shows only while unsealed; the About page can be
      amended in Total RP 3's terms (directory, standard traits, glances, a description whose TRP markup becomes
      headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved writing, and
-     the page has no portrait; a plate of two images, one mature, can be uploaded, shown full size, linked to
-     and removed; a mature image stays covered and unloaded until a visitor says they are 18 or older, is covered
+     the page has no portrait; a form can be added, and a plate of two images, one mature, uploaded into it, shown full
+     size, linked to and removed; a video and a GIF play in their players; a mature image stays covered and unloaded until a visitor says they are 18 or older, is covered
      again once they move on, and stays covered for someone under 18; the session survives a reload; the word can
      be changed from the page; sealing it again hides the tools.
   1c. The private sections across server restarts: still readable with the word, carried over to a new word set from
      the command line (which needs the current word), unreadable when moved onto another encounter, and gone after
      set-password --forget-private.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
-     network requests at all): the model and the example plates load from the page, the stand-in server accepts
-     only "preview", the About page can be amended and records and plates added, and a reload forgets them. The real page carries no trace
+     network requests at all): the model, the example forms and their plates, GIF and video load from the page, the
+     stand-in server accepts only "preview", the About page can be amended and records and plates added, and a reload
+     forgets them. The real page carries no trace
      of the stand-in.
 Screenshots go to tools/.smoke/.
 */
@@ -53,9 +55,12 @@ const OUT = path.join(__dirname, '.smoke');
 const WORD = 'a long smoke-test passphrase';
 const NEW_WORD = 'another long smoke-test passphrase';
 const ORIGIN = 'https://archive.test';
+// The viewer plays media embedded in the page (its contract says muted autoplay works), so media-src takes data: and
+// blob: here; if it ever does not, the page says the preview could not play the video.
 const ARTIFACT_CSP = "default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net/npm/ https://unpkg.com " +
   "https://cdn.tailwindcss.com https://code.jquery.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; " +
-  "img-src data:; connect-src 'none'";
+  "img-src data:; media-src data: blob:; connect-src 'none'";
+const FIXTURES = path.join(__dirname, 'fixtures'); // smoke.webm (96 x 64, 1.5 s) and smoke.gif (48 x 32, four frames)
 const ARTIFACT_SKELETON = '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">' +
   `<meta http-equiv="Content-Security-Policy" content="${ARTIFACT_CSP}">` +
   '<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}' +
@@ -369,6 +374,79 @@ async function apiChecks() {
       'a new order must name every plate once');
     const ordered = await write('POST', '/api/art/order', { ids: [pa.id, pb.id] });
     check(ordered.status === 200 && ordered.json.archive.art.map((a) => a.id).join() === [pa.id, pb.id].join(), 'the plates can be put in a new order');
+
+    // his forms: each holds plates ("art pieces" on the page)
+    check((await write('POST', '/api/galleries', { name: '  ' })).status === 400, 'a form needs a name');
+    const formA = await write('POST', '/api/galleries', { name: 'Smoke (Dracthyr) ' + 'n'.repeat(100), id: 'gnope', example: true });
+    const ga = formA.json && formA.json.archive.galleries.find((g) => g.id === formA.json.id);
+    check(formA.status === 200 && ga && ga.name.length === 80 && /^g[\w-]{12}$/.test(ga.id) && ga.example === false, 'a form is cleaned: its name capped, its id and flags set by the server');
+    const gb = (await write('POST', '/api/galleries', { name: 'Smoke (visage)' })).json.id;
+    check((await write('POST', '/api/art', { gallery: 'gnot-a-form', versions: [img(upA)] })).status === 400, 'a plate cannot name a form that does not exist');
+    const inForm = await write('POST', '/api/art', { gallery: ga.id, title: 'In a form', versions: [img(upA)] });
+    const pf = inForm.json && inForm.json.archive.art.find((a) => a.id === inForm.json.id);
+    check(inForm.status === 200 && pf.gallery === ga.id && ordered.json.archive.art.every((a) => a.gallery === ''), 'a plate belongs to the form it names, or to none');
+    const keptForm = await write('PUT', '/api/art/' + pf.id, { title: 'Still in it' });
+    const movedForm = await write('PUT', '/api/art/' + pf.id, { title: 'Moved', gallery: gb });
+    check(keptForm.json.archive.art.find((a) => a.id === pf.id).gallery === ga.id && movedForm.json.archive.art.find((a) => a.id === pf.id).gallery === gb,
+      'revising a plate keeps its form unless another is named, which moves it there');
+    check((await write('PUT', '/api/galleries/' + gb, { name: 'Renamed' })).json.archive.galleries.find((g) => g.id === gb).name === 'Renamed', 'a form can be renamed');
+    check((await write('POST', '/api/galleries/order', { ids: [gb] })).status === 409 &&
+      (await write('POST', '/api/galleries/order', { ids: [gb, ga.id] })).json.archive.galleries.map((g) => g.id).join() === [gb, ga.id].join(), 'the forms can be put in a new order, naming each once');
+    check((await write('DELETE', '/api/galleries/' + gb)).status === 409, 'a form that holds plates cannot be removed');
+    await write('DELETE', '/api/art/' + pf.id);
+    const goneForm = await write('DELETE', '/api/galleries/' + gb);
+    check(goneForm.status === 200 && !goneForm.json.archive.galleries.some((g) => g.id === gb), 'an empty form can be removed');
+
+    // GIFs and videos
+    const gifFile = fs.readFileSync(path.join(FIXTURES, 'smoke.gif')), webm = fs.readFileSync(path.join(FIXTURES, 'smoke.webm'));
+    const gct = gifFile[10] & 0x80 ? 3 * 2 ** ((gifFile[10] & 7) + 1) : 0;
+    const gifNote = Buffer.concat([Buffer.from([0x21, 0xfe, 22]), Buffer.from('made at a secret place', 'latin1'), Buffer.from([0])]);
+    const gifXmp = Buffer.concat([Buffer.from([0x21, 0xff, 0x0b]), Buffer.from('XMP DataXMP', 'latin1'), Buffer.from([10]), Buffer.from('GPS secret', 'latin1'), Buffer.from([0])]);
+    const gifIn = Buffer.concat([gifFile.subarray(0, 13 + gct), gifNote, gifXmp, gifFile.subarray(13 + gct)]);
+    const upG = await upload(gifIn, 'image/gif');
+    const gifKept = upG.status === 200 && fs.readFileSync(path.join(s.dataDir, 'art', upG.json.file));
+    check(upG.status === 200 && /^[0-9a-f]{32}\.gif$/.test(upG.json.file) && upG.json.width === 48 && upG.json.height === 32 && !gifKept.includes('secret') && gifKept.equals(gifFile),
+      'a GIF keeps its frames and its size, and loses its comments and XMP');
+    check((await upload(gifIn.subarray(0, gifIn.length - 40), 'image/gif')).status === 415, 'a GIF cut off in the middle is refused');
+    const mbox = (type, ...parts) => {
+      const body = Buffer.concat(parts.map((x) => (typeof x === 'string' ? Buffer.from(x, 'latin1') : x))), len = Buffer.alloc(4);
+      len.writeUInt32BE(8 + body.length);
+      return Buffer.concat([len, Buffer.from(type, 'latin1'), body]);
+    };
+    const mdat = mbox('mdat', Buffer.alloc(64, 7)), tkhd = mbox('tkhd', Buffer.alloc(84, 1));
+    const mp4 = (brand) => Buffer.concat([mbox('ftyp', brand, '\0\0\0\0', 'isommp41'),
+      mbox('moov', mbox('mvhd', Buffer.alloc(100)), mbox('trak', tkhd, mbox('udta', mbox('name', 'secret track'))),
+        mbox('udta', mbox('\xa9xyz', '+48.8566+002.3522/ secret')), mbox('meta', Buffer.alloc(4), mbox('ilst', 'secret tag'))),
+      mbox('uuid', Buffer.alloc(16), 'secret xmp'), mdat]);
+    const mp4In = mp4('isom'), upM = await upload(mp4In, 'video/mp4');
+    const mp4Kept = upM.status === 200 && fs.readFileSync(path.join(s.dataDir, 'art', upM.json.file));
+    check(upM.status === 200 && /\.mp4$/.test(upM.json.file) && mp4Kept.length === mp4In.length && !mp4Kept.includes('secret') && !mp4Kept.includes('+48.85') &&
+      mp4Kept.includes(mdat) && mp4Kept.includes(tkhd) && mp4Kept.indexOf(mdat) === mp4In.indexOf(mdat),
+      'an MP4 keeps its picture data where it was, and loses its metadata (where it was made, its tags, its XMP)');
+    check((await upload(mp4('qt  '), 'video/mp4')).status === 415 && (await upload(Buffer.from('not a video, not even close'), 'video/mp4')).status === 415 &&
+      (await upload(webm, 'video/mp4')).status === 415, 'a QuickTime file, or anything else that is not an MP4, is refused as one');
+    const upW = await upload(webm, 'video/webm');
+    check(upW.status === 200 && /\.webm$/.test(upW.json.file) && fs.readFileSync(path.join(s.dataDir, 'art', upW.json.file)).equals(webm) &&
+      (await upload(mp4In, 'video/webm')).status === 415, 'a WebM video is taken as it is, and nothing else as one');
+    check((await upload(Buffer.alloc(16), 'video/mp4', { 'Content-Length': String(91 * 1024 * 1024), Connection: 'close' })).status === 413 &&
+      (await upload(Buffer.alloc(16), 'image/gif', { 'Content-Length': String(41 * 1024 * 1024), Connection: 'close' })).status === 413, 'a video over 90 MB and a GIF over 40 MB are refused (413)');
+    check(!fs.readdirSync(path.join(s.dataDir, 'art')).some((f) => f.endsWith('.tmp')), 'no temporary upload is left behind');
+    check((await write('POST', '/api/art', { versions: [{ file: upW.json.file, thumb: upG.json.file }] })).status === 400 &&
+      (await write('POST', '/api/art', { versions: [{ file: upW.json.file, thumb: upM.json.file }] })).status === 400, "a video's poster and a GIF's still must be still images");
+    const moving = await write('POST', '/api/art', { gallery: ga.id, title: 'Moving', versions: [
+      { file: upW.json.file, thumb: upJ.json.file, width: 96, height: 64, loop: true, mature: true }, { file: upG.json.file, thumb: upA.json.file, width: 9999, loop: true }] });
+    const pv = moving.json && moving.json.archive.art.find((a) => a.id === moving.json.id);
+    check(moving.status === 200 && pv.versions[0].width === 96 && pv.versions[0].height === 64 && pv.versions[0].loop === true && pv.versions[0].mature === true &&
+      pv.versions[1].width === 48 && pv.versions[1].loop === false, "a video's size comes from the keeper's browser, a GIF's from its file, and only a video can loop");
+    const ranged = await call('GET', '/art/' + upW.json.file, { headers: { Range: 'bytes=10-19' } });
+    check(ranged.status === 206 && ranged.headers['content-range'] === `bytes 10-19/${webm.length}` && ranged.headers['content-length'] === '10' &&
+      ranged.headers['accept-ranges'] === 'bytes' && ranged.headers['content-type'] === 'video/webm', 'a video is served in byte ranges, as players ask for them');
+    const tail = await call('GET', '/art/' + upW.json.file, { headers: { Range: 'bytes=-5' } });
+    const beyond = await call('GET', '/art/' + upW.json.file, { headers: { Range: `bytes=${webm.length}-` } });
+    check(tail.status === 206 && tail.headers['content-range'] === `bytes ${webm.length - 5}-${webm.length - 1}/${webm.length}` &&
+      beyond.status === 416 && beyond.headers['content-range'] === `bytes */${webm.length}`, 'the last bytes can be asked for, and a range past the end is refused (416)');
+    check(/media-src 'self' blob:/.test(csp), "the CSP lets the art's videos play, and nothing else");
+    await write('DELETE', '/api/art/' + pv.id);
     const removedPlate = await write('DELETE', '/api/art/' + pb.id);
     check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pb.id) &&
       (await call('GET', '/art/' + upB.json.file)).status === 404 && (await call('GET', '/art/' + upC.json.file)).status === 404 && (await call('GET', '/art/' + upA.json.file)).status === 200,
@@ -549,6 +627,10 @@ async function browserChecks() {
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, 'archive.png') });
     check(await page.$('#btn-inscribe[hidden]') !== null, 'a visitor sees no editing tools');
+    await page.click('#btn-close');
+    check(await page.waitForFunction(() => !document.getElementById('archive').open && document.getElementById('hub').hidden && !document.getElementById('stage').classList.contains('has-hub'),
+      null, { timeout: 5000 }).then(() => true, () => false), 'closing the tome takes the choices away, and the construct sinks back until its gem is woken again');
+    await enter(page, 'knowledge');
 
     // the seal
     await page.click('#clasp');
@@ -682,7 +764,13 @@ async function browserChecks() {
     const requested = [];
     page.on('request', (r) => requested.push(r.url()));
     await page.click('.tab[data-book="art"]');
+    await page.click('#btn-add-gallery');
+    await page.fill('#gf-name', 'Smoke (Dracthyr)');
+    await page.click('#gf-submit');
+    check(await page.waitForFunction(() => document.getElementById('gl-title').textContent === 'Smoke (Dracthyr)' && !document.getElementById('view-gallery').hidden, null, { timeout: 10000 }).then(() => true, () => false) &&
+      /^#art\/g[\w-]+$/.test(await page.evaluate(() => location.hash)), 'a form can be added; it opens at its own address');
     await page.click('#btn-add-art');
+    check((await page.$eval('#af-gallery', (n) => n.options[n.selectedIndex].text)) === 'Smoke (Dracthyr)', 'a new art piece goes into the form it is added from');
     await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', { name: 'smoke.png', mimeType: 'image/png', buffer: makePng(300, 200) });
     await page.waitForFunction(() => /300 × 200/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 10000 }).catch(() => {});
     await page.click('#af-add');
@@ -702,10 +790,10 @@ async function browserChecks() {
     });
     check(plate.title === 'Smoke plate' && /^art\/[0-9a-f]{32}\.webp$/.test(plate.src) && plate.w === 300 && !plate.link && /^#art\/a[\w-]+$/.test(plate.hash),
       'a plate can be added: the image is re-encoded in the browser, uploaded, served under the CSP, and a script link is dropped');
-    const saved = (await page.evaluate(() => fetch('api/archive').then((r) => r.json()))).archive.art[0];
+    const savedAll = (await page.evaluate(() => fetch('api/archive').then((r) => r.json()))).archive, saved = savedAll.art[0];
     const matureNames = [saved.versions[1].file, saved.versions[1].thumb];
     const loadedMature = (list) => list.some((u) => matureNames.some((n) => u.includes(n)));
-    check(saved.versions.length === 2 && saved.versions[1].mature && saved.versions[1].label === 'Mature version' &&
+    check(saved.versions.length === 2 && saved.versions[1].mature && saved.versions[1].label === 'Mature version' && saved.gallery === savedAll.galleries[0].id &&
       await page.$$eval('#pl-versions .ver-btn', (n) => n.length === 2 && !n[0].querySelector('.spoiler') && !!n[1].querySelector('.spoiler') && !n[1].querySelector('img')) && !loadedMature(requested),
       'a plate keeps an alternate image; the mature one shows only its cover, and its image is not loaded');
     await page.screenshot({ path: path.join(OUT, 'plate.png') });
@@ -719,8 +807,8 @@ async function browserChecks() {
     check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return document.getElementById('gate').hidden && i && i.complete && i.naturalWidth === 200; }, null, { timeout: 10000 }).then(() => true, () => false) &&
       loadedMature(requested), 'selecting the mature image asks for an age, and at 18 or older shows it');
     await page.screenshot({ path: path.join(OUT, 'mature-shown.png') });
-    await page.click('.tab[data-book="art"]'); // back to the plates
-    check(await page.$('#pl-open .spoiler') !== null && !(await page.$('#pl-open img')), 'back at the plates, the mature image is covered again');
+    await page.click('#pl-back'); // back to the form
+    check(await page.$('#view-gallery:not([hidden])') !== null && !(await page.$('#pl-open img, #pl-open .spoiler')), 'back at the form, nothing of the mature image stays on the page');
     await page.click('#plates .plate-btn');
     await page.click('#pl-versions .ver-btn >> nth=1');
     check(await page.waitForFunction(() => document.getElementById('gate').hidden && !!document.querySelector('#pl-open img'), null, { timeout: 5000 }).then(() => true, () => false),
@@ -751,6 +839,45 @@ async function browserChecks() {
     check(/18 or older/.test(refusedText) && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
       'under 18, the mature image stays covered for the visit and is never loaded');
     await minorCtx.close();
+
+    // a video and a GIF, as one art piece in the same form: each plays in its own player
+    await page.click('#pl-back');
+    await page.click('#btn-add-art');
+    await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', path.join(FIXTURES, 'smoke.webm'));
+    await page.waitForFunction(() => /^A video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
+    const loopOffered = await page.$('#af-versions .row >> nth=0 >> [data-k="loop-box"]:not([hidden])') !== null;
+    await page.click('#af-add');
+    await page.setInputFiles('#af-versions .row >> nth=1 >> [data-k="file"]', path.join(FIXTURES, 'smoke.gif'));
+    await page.waitForFunction(() => /^An animated GIF/.test(document.querySelectorAll('#af-versions [data-k="status"]')[1].textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.fill('#af-title', 'Smoke animation');
+    await page.click('#af-submit');
+    await page.waitForFunction(() => document.getElementById('pl-title').textContent === 'Smoke animation' && !!document.querySelector('#pl-video video'), null, { timeout: 20000 }).catch(() => {});
+    const anim = (await page.evaluate(() => fetch('api/archive').then((r) => r.json()))).archive.art.find((a) => a.title === 'Smoke animation');
+    check(loopOffered && anim && /\.webm$/.test(anim.versions[0].file) && /\.webp$/.test(anim.versions[0].thumb) && anim.versions[0].width === 96 && anim.versions[0].loop === true &&
+      /\.gif$/.test(anim.versions[1].file) && /\.webp$/.test(anim.versions[1].thumb) && anim.versions[1].width === 48,
+      'a video and a GIF can be uploaded as they are, each with a still made in the browser; a short video is set to loop');
+    await page.click('#pl-video .vid-big');
+    check(await page.waitForFunction(() => { const v = document.querySelector('#pl-video video'); return v && !v.paused && v.currentTime > 0.2; }, null, { timeout: 10000 }).then(() => true, () => false) &&
+      /^0:0\d \/ 0:01$/.test(await page.textContent('#pl-video .vid-time')), "the video plays in the archive's own player, served under the CSP");
+    await page.screenshot({ path: path.join(OUT, 'video.png') });
+    await page.click('#pl-video .vid-btn >> nth=0');
+    check(await page.$eval('#pl-video video', (v) => v.paused), 'its play button pauses it');
+    await page.click('#pl-versions .ver-btn >> nth=1');
+    check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open .gif img'); return i && i.complete && i.naturalWidth === 48 && !document.querySelector('#pl-video video'); }, null, { timeout: 5000 }).then(() => true, () => false),
+      'switching to the GIF takes the video away, and the GIF plays');
+    await page.click('#pl-media > .play-btn');
+    check(!!(await page.$('#pl-open .gif canvas')) && (await page.getAttribute('#pl-media > .play-btn', 'aria-label')) === 'Play the animation', 'the GIF can be paused on the frame it is on');
+    await page.click('#pl-media > .play-btn');
+    await page.click('#pl-open');
+    await page.waitForSelector('#lightbox:not([hidden])', { timeout: 3000 });
+    await page.keyboard.press('ArrowLeft');
+    check(await page.waitForSelector('#lb-frame .player video', { timeout: 3000 }).then(() => true, () => false), 'the full-size view shows the video in its player too');
+    await page.keyboard.press('Escape');
+    check(await page.$('#lightbox[hidden]') !== null && await page.$('#archive[open]') !== null,
+      'Escape again closes only the full-size view (Chrome lets a page hold back a dialog\'s own Escape just once per click)');
+    await page.click('#pl-delete');
+    await page.click('#pl-delete'); // confirm
+    await page.waitForSelector('#view-gallery:not([hidden])', { timeout: 10000 });
     const plateHash = plate.hash;
     await page.goto(s.url + '#about');
     await page.reload();
@@ -765,6 +892,10 @@ async function browserChecks() {
     await page.waitForFunction(() => !document.getElementById('pl-empty').hidden, null, { timeout: 10000 }).catch(() => {});
     check(await page.waitForFunction(() => !document.querySelector('#plates .plate-btn'), null, { timeout: 10000 }).then(() => true, () => false),
       'the plate can be removed');
+    await page.click('#gl-delete');
+    await page.click('#gl-delete'); // confirm
+    check(await page.waitForFunction(() => !document.getElementById('leaf-art').hidden && !document.querySelector('#galleries .gallery-btn'), null, { timeout: 10000 }).then(() => true, () => false),
+      'an empty form can be removed');
     await page.click('.tab[data-book="knowledge"]');
 
     // change the word from the page, then seal it again
@@ -814,6 +945,9 @@ async function previewChecks() {
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     check(await open().then(() => true, () => false), 'preview: the 3D model loads from the page itself under the Artifact CSP, and the hub opens the tome');
     await page.click('.tab[data-book="art"]');
+    check(await page.waitForFunction(() => [...document.querySelectorAll('#galleries .gallery-btn b')].map((b) => b.textContent).join('|') === 'Example: Character (OC)|Example: Character (Dracthyr)',
+      null, { timeout: 5000 }).then(() => true, () => false), 'preview: Art opens on his example forms');
+    await page.click('#galleries .gallery-btn >> nth=1');
     check(await page.waitForFunction(() => {
       const imgs = [...document.querySelectorAll('#plates img')];
       return imgs.length === 2 && imgs.every((i) => i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/jpeg')) && document.querySelectorAll('#plates .spoiler').length === 1;
@@ -824,6 +958,19 @@ async function previewChecks() {
     await page.click('#gate-go');
     check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false),
       'preview: the age check works without storage');
+    await page.click('#pl-back');
+    await page.click('#gl-back');
+    await page.click('#galleries .gallery-btn >> nth=0');
+    check((await page.$$eval('#plates .media-badge', (n) => n.map((x) => x.textContent).join('|'))) === 'GIF|Video', 'preview: the GIF and the video are marked in the list');
+    await page.click('#plates .plate-btn >> nth=1');
+    await page.click('#pl-video .vid-big');
+    check(await page.waitForFunction(() => { const v = document.querySelector('#pl-video video'); return v && !v.paused && v.currentTime > 0.3 && v.src.startsWith('data:video/webm'); }, null, { timeout: 10000 }).then(() => true, () => false),
+      'preview: the example video plays from the page itself');
+    await page.click('#pl-back');
+    await page.click('#plates .plate-btn >> nth=0');
+    check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open .gif img'); return i && i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/gif'); }, null, { timeout: 5000 }).then(() => true, () => false),
+      'preview: the example GIF plays from the page itself');
+    await page.screenshot({ path: path.join(OUT, 'preview-gif.png') });
     await page.click('.tab[data-book="about"]');
     check((await page.textContent('#ab-dir')).includes('Dracthyr') && !(await page.$('#leaf-about img')) && (await page.$$('#ab-traits .trait')).length > 0 &&
       (await page.$$('#ab-sections h6')).length > 0, 'preview: the About page shows its example profile');
@@ -853,17 +1000,25 @@ async function previewChecks() {
     await page.waitForSelector('#view-detail:not([hidden])', { timeout: 5000 });
     check((await page.textContent('#det-title')) === 'Preview record', 'preview: records can be inscribed');
     await page.click('.tab[data-book="art"]');
+    await page.click('#galleries .gallery-btn >> nth=0');
     await page.click('#btn-add-art');
     await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', { name: 'preview.png', mimeType: 'image/png', buffer: makePng(120, 90) });
     await page.waitForFunction(() => /120 × 90/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.click('#af-add');
+    await page.setInputFiles('#af-versions .row >> nth=1 >> [data-k="file"]', path.join(FIXTURES, 'smoke.gif'));
+    await page.waitForFunction(() => /^An animated GIF/.test(document.querySelectorAll('#af-versions [data-k="status"]')[1].textContent), null, { timeout: 10000 }).catch(() => {});
     await page.fill('#af-title', 'Preview plate');
     await page.click('#af-submit');
     check(await page.waitForFunction(() => {
       const i = document.querySelector('#pl-open img');
       return document.getElementById('pl-title').textContent === 'Preview plate' && i && i.complete && i.naturalWidth === 120 && i.src.startsWith('data:image/webp');
     }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: a plate can be uploaded and is shown from memory');
+    await page.click('#pl-versions .ver-btn >> nth=1');
+    check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open .gif img'); return i && i.complete && i.naturalWidth === 48 && i.src.startsWith('data:image/gif'); }, null, { timeout: 5000 }).then(() => true, () => false),
+      'preview: a GIF can be uploaded too');
     await page.click('.tab[data-book="knowledge"]');
     await page.screenshot({ path: path.join(OUT, 'preview.png') });
+    await page.evaluate(() => history.replaceState(null, '', location.pathname)); // reload the page itself, not a chapter's address
     await page.reload();
     await open();
     await page.waitForTimeout(500);

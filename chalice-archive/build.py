@@ -9,8 +9,8 @@ Writes dist/:
                              named by its SHA-256 so browsers and Cloudflare can cache it for good
   dist/preview.html          the preview published as the claude.ai Artifact (git-ignored). The Artifact viewer wraps
                              the page in its own <html>/<head> and allows no network requests, so this build is a
-                             page fragment with src/seed.json as its records, plus the example About page and plates
-                             from src/preview-examples.json (their images in #ca-files as data: URIs), the model
+                             page fragment with src/seed.json as its records, plus the example About page, forms and
+                             art from src/preview-examples.json (their images, GIF and video in #ca-files as data: URIs), the model
                              embedded as base64 and src/preview.js standing in for the server.
 
 Placeholders in src/page.html:
@@ -52,21 +52,38 @@ def jpeg_size(b: bytes) -> tuple[int, int]:
     raise ValueError("no frame header")
 
 
+MEDIA = {".jpg": ("jpg", "image/jpeg"), ".gif": ("gif", "image/gif"), ".webm": ("webm", "video/webm"), ".mp4": ("mp4", "video/mp4")}
+
+
 def preview_archive() -> tuple[dict, dict, dict]:
-    """src/seed.json with the preview's examples added, the examples' images by name, as data: URIs, and the example
-    encounters' private sections, which the stand-in keeps apart from the archive as the server does."""
+    """src/seed.json with the preview's examples added, the examples' images, GIFs and videos by name, as data: URIs,
+    and the example encounters' private sections, which the stand-in keeps apart from the archive as the server does."""
     archive = json.loads((ROOT / "src/seed.json").read_text(encoding="utf-8"))
     examples = json.loads((ROOT / "src/preview-examples.json").read_text(encoding="utf-8"))
     files, art = {}, []
+
+    def embed(rel: str) -> tuple[str, bytes]:
+        data = (ROOT / rel).read_bytes()
+        ext, mime = MEDIA[pathlib.Path(rel).suffix]
+        name = hashlib.sha256(data).hexdigest()[:32] + "." + ext  # named the way the server names uploads
+        files[name] = f"data:{mime};base64," + base64.b64encode(data).decode()
+        return name, data
+
     for n, ex in enumerate(examples["art"]):
         versions = []
         for v in ex["versions"]:
-            image = (ROOT / v["image"]).read_bytes()
-            name = hashlib.sha256(image).hexdigest()[:32] + ".jpg"  # named the way the server names uploads
-            width, height = jpeg_size(image)
-            files[name] = "data:image/jpeg;base64," + base64.b64encode(image).decode()
-            versions.append({"id": v["id"], "file": name, "thumb": name, "width": width, "height": height, "label": v["label"], "mature": v["mature"]})
+            file, data = embed(v["image"])
+            thumb = embed(v["still"])[0] if "still" in v else file  # a GIF's or a video's still
+            if file.endswith(".jpg"):
+                width, height = jpeg_size(data)
+            elif file.endswith(".gif"):
+                width, height = int.from_bytes(data[6:8], "little"), int.from_bytes(data[8:10], "little")
+            else:
+                width, height = v["width"], v["height"]
+            versions.append({"id": v["id"], "file": file, "thumb": thumb, "width": width, "height": height, "label": v["label"],
+                             "mature": v["mature"], "loop": v.get("loop", False)})
         art.append({**ex, "versions": versions, "added": n, "example": True})
+    archive["galleries"] = [{**g, "added": n, "example": True} for n, g in enumerate(examples["galleries"])]
     archive["art"] = art
     archive["about"] = examples["about"]
     archive["encounters"] = [{**e, "added": n, "example": True} for n, e in enumerate(examples["encounters"])]

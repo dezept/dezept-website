@@ -101,7 +101,7 @@ What the Caddyfile does:
 - It requires Cloudflare's client certificate (Authenticated Origin Pulls), so connections that don't come through Cloudflare fail during the TLS handshake.
   - If you leave Authenticated Origin Pulls off in Cloudflare, delete the `client_auth` block, or every request fails with error 525/526.
 - It trusts `CF-Connecting-IP`, the visitor's address, only when the request comes from Cloudflare's ranges. It hands that address to Node as `X-Real-IP`, overwriting anything the request carried.
-- It caps request bodies at 10 MB for image uploads (`/api/uploads`) and 320 KB for everything else, compresses responses and drops the `Server` and `Via` headers. The server's own limits are lower (8 MiB, and 256 KiB or 64 KiB), so it is the one that answers with a clear message.
+- It caps request bodies at 100 MB for uploads (`/api/uploads`, the same as Cloudflare's own limit on the Free and Pro plans) and 320 KB for everything else, compresses responses and drops the `Server` and `Via` headers. The server's own limits are lower (8 MiB for a picture, 40 MiB for a GIF, 90 MiB for a video, and 256 KiB or 64 KiB), so it is the one that answers with a clear message.
 
 ## 6. Firewall
 
@@ -126,7 +126,7 @@ Then open the site:
 
 1. Click the gem. Once it has drawn the light in, choose About, Art, Character Knowledge or Encounters beneath the construct.
 2. Click the small brass clasp on the tome's right edge and speak the word.
-3. The editing tools appear: **Amend this page** in About, **Add a plate** in Art, **Inscribe record** in Character Knowledge, **Record an encounter** in Encounters.
+3. The editing tools appear: **Amend this page** in About, **Add a form** in Art (then **Add an art piece** inside the form), **Inscribe record** in Character Knowledge, **Record an encounter** in Encounters.
 
 ## Day to day
 
@@ -137,7 +137,7 @@ Then open the site:
   ```
 
   Sessions live in memory, so a restart signs the keeper out.
-  If `deploy/Caddyfile` changed (it did when art uploads were added), copy it again and reload Caddy, keeping your hostname:
+  If `deploy/Caddyfile` changed (it did when art uploads were added, and again when videos were), copy it again and reload Caddy, keeping your hostname:
 
   ```sh
   sudo cp /opt/dezept-website/chalice-archive/deploy/Caddyfile /etc/caddy/Caddyfile
@@ -146,11 +146,12 @@ Then open the site:
   ```
 - **Backups**:
   - Each change keeps the previous `archive.json` in `/var/lib/chalice-archive/backups/`, up to the last 50.
-  - The images are in `/var/lib/chalice-archive/art/`. An image stays there while the archive or any of those 50 backups uses it, so restoring a backup finds its images.
+  - The images, GIFs and videos are in `/var/lib/chalice-archive/art/`. A file stays there while the archive or any of those 50 backups uses it, so restoring a backup finds its images. Videos take room: a removed one stays until it has dropped out of the last 50 backups, so keep an eye on the disk (`df -h /var/lib`).
   - Copy the whole `/var/lib/chalice-archive` directory off the VPS now and then.
   - To restore, stop the service, copy a backup over `archive.json`, then start the service.
   - The encounters' private sections are encrypted in `archive.json` and every backup. Keep `auth.json` with them: its wrapped key and your word are what read them. A copy of the directory without the word is a copy without the private sections.
-- **Removing a picture for good**: removing its plate stops the server serving it at once. Cloudflare keeps its copy for up to a day; to clear it sooner, purge the image's address under Caching → Configuration → Custom Purge.
+- **Removing a picture for good**: removing its art piece stops the server serving it at once. Cloudflare keeps its copy for up to a day; to clear it sooner, purge the image's address under Caching → Configuration → Custom Purge.
+- **Videos and Cloudflare**: Cloudflare's Service-Specific Terms ([explained here](https://blog.cloudflare.com/updated-tos/)) say that on the Free, Pro and Business plans the CDN is not for serving video from your own server; that takes Stream, R2 or the Enterprise plan. Cloudflare reserves the right to limit a site that does it anyway, or that serves a disproportionate share of pictures or other large files. Keep videos short and few, or decide to host them elsewhere.
 - **Logs**:
   - The server logs only startup messages and unexpected errors, to the journal.
   - Caddy keeps no access log with this Caddyfile.
@@ -169,7 +170,8 @@ Then open the site:
   - Sessions end after 12 hours (`SESSION_HOURS`), on "Seal it again", or when the word changes.
 - **Writes**:
   - Each needs the session, a CSRF token in a header, a JSON body, and an `Origin` equal to `PUBLIC_ORIGIN`.
-  - Image uploads are the one exception to JSON: PNG, JPEG or WebP only, checked by their bytes, at most 8 MiB, stored under their content hash and served with their own type and `nosniff`. SVG is never accepted.
+  - Uploads are the one exception to JSON: PNG, JPEG, WebP or GIF images and MP4 or WebM videos only, checked by their bytes, at most 8 MiB for a picture, 40 MiB for a GIF and 90 MiB for a video, stored under their content hash and served with their own type and `nosniff`. SVG is never accepted.
+  - GIFs lose their comments and XMP; MP4s lose their `udta`, `meta` and XMP boxes (where a phone recorded them, tags), which are zeroed in place. WebM videos are kept as they come. Pictures are re-encoded in the keeper's browser, which keeps nothing but the picture.
   - Every field is validated and capped on the server. Artists' links must be `http(s)`.
   - The page shows all of it as text, never as markup.
 - **The page**:

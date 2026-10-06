@@ -1,16 +1,17 @@
 # Chalice Archive: handover
 
-A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem draws in all the light drifting in the dark around it: wisps, flares and motes spiral into the gem while it charges, then it flashes, a ring of light leaves it, and the construct rises and projects three choices beneath it: **About**, **Art** and **Character Knowledge**.
+A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem draws in all the light drifting in the dark around it: wisps, flares and motes spiral into the gem while it charges, then it flashes, a ring of light leaves it, and the construct rises and projects its choices beneath it: **About**, **Art**, **Character Knowledge** and **Encounters**. Closing the tome takes the choices away again; the gem has to be clicked once more to bring them back.
 
 Each choice opens its chapter of the archive: a single parchment page in a leather binding, in the style of the game's books and journals, with index tabs on its top edge to move between chapters. Each chapter reads down one centred column; there is no two-page spread.
 
 - **About:** laid out like a Total RP 3 profile. His title, name and full title head the page; then Currently and OOC, the directory (race, class, age, eyes …), additional information, personality traits, at first glance, and the description in sections. The description keeps TRP3's markup, so a TRP profile can be pasted in.
-- **Art:** the plates (pictures of him) as a list; a plate opens on its own page, and a full-size view shows it on a dark ground. A plate is one or more images: its main image and alternate versions. Any image can be flagged **mature**: it stays covered, and is not even loaded, until a visitor says they are 18 or older, and it is covered again once they move on.
+- **Art:** his **forms** (say "Character (OC)" and "Character (Dracthyr)"), each a gallery with its first piece as its cover. A form opens on its **art pieces** as a list; a piece opens on its own page, and a full-size view shows it on a dark ground. A piece is one or more images: its main image and alternate versions, and each can be a picture, an animated **GIF** (with a button to pause it) or a **video** (MP4 or WebM, in the archive's own player). Any image can be flagged **mature**: it stays covered, and is not even loaded, until a visitor says they are 18 or older, and it is covered again once they move on.
+  - In the code and the API an art piece is still a *plate* (`art`, `/api/art`, `plateId`) and a form is a *gallery* (`galleries`, `/api/galleries`), so as not to confuse it with the page's HTML forms.
 - **Character Knowledge:** his records, newest first: what he has learned, with an optional date, and where he learned it, in his own words or by naming one of the encounters, which then links to it.
 - **Encounters:** what happened when he met someone or something, newest first, with what he learned from each. Each can have a **private section** only the keeper sees while unsealed. It is never sent to visitors, and it is stored encrypted with a key that only the keeper's word unlocks.
 
 - **Self-hosted** on the owner's VPS: Cloudflare in front, then Caddy, then a small Node server (`server/server.mjs`, no dependencies) that serves the page and the model, stores the records, and checks the keeper's word. **`deploy/README.md` is the step-by-step setup.**
-- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check; version 16 is the single-page layout with the TRP-style About; version 17 sets section headings as pull quotes with a colour each; version 18 replaces the scan with the gem drawing the light in, and adds the flares; version 19 takes the portrait off the About page; version 20 simplifies Character Knowledge and adds Encounters with private sections.
+- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check; version 16 is the single-page layout with the TRP-style About; version 17 sets section headings as pull quotes with a colour each; version 18 replaces the scan with the gem drawing the light in, and adds the flares; version 19 takes the portrait off the About page; version 20 simplifies Character Knowledge and adds Encounters with private sections; version 21 takes the hub's choices away when the tome closes, renames plates to art pieces, sorts them into his forms, and adds GIFs and videos with their players.
   - Before the move, its data (no records, no word) matched `src/seed.json`, so nothing needed migrating.
 
 ## Status
@@ -18,19 +19,20 @@ Each choice opens its chapter of the archive: a single parchment page in a leath
 | Area | State |
 |---|---|
 | Landing (the construct alone, no text), the gem drawing the light in, archive (one page per chapter), record detail | Done |
-| **Hub** (About, Art, Character Knowledge, Encounters beneath the construct once it has drawn the light in, no other text) and the tome's chapter tabs | Done |
+| **Hub** (About, Art, Character Knowledge, Encounters beneath the construct once it has drawn the light in, no other text; gone again once the tome closes) and the tome's chapter tabs | Done |
 | **About** page, as a Total RP 3 profile (no portrait): title, name, full title, currently and OOC, directory, additional information, personality traits, at first glance, description with TRP markup; amended by the keeper | Done, through the server's API |
-| **Art**: plates uploaded from the keeper's browser, ordered, captioned, shown full size | Done, through the server's API |
-| **Alternate versions** (up to 12 images per plate) and **mature** images behind an age check | Done |
-| Addresses: `#about`, `#art`, `#knowledge`, `#encounters`, `#art/<plate>`, `#knowledge/<record>` and `#encounters/<encounter>` open there at once | Done |
+| **Art**: his **forms**, each holding its **art pieces** (plates in the code), uploaded from the keeper's browser, ordered, captioned, shown full size | Done, through the server's API |
+| **Alternate versions** (up to 12 images per piece) and **mature** images behind an age check | Done |
+| **GIFs** (kept animated, with a pause button) and **videos** (MP4 or WebM, the archive's own player, byte ranges for seeking); their metadata is stripped on the server | Done |
+| Addresses: `#about`, `#art`, `#knowledge`, `#encounters`, `#art/<form>`, `#art/<art piece>`, `#knowledge/<record>` and `#encounters/<encounter>` open there at once | Done |
 | Inscribe / revise / remove record, remove examples | Done, through the server's API |
 | **Encounters** with an encrypted private section; records can name an encounter as their source | Done, through the server's API |
 | **Keeper's seal** | **Done.** A brass clasp on the tome's edge opens a small panel. The keeper's word is checked on the server and gives a session; **Seal it again** ends it. The word is set on the VPS with `set-password` and can be changed from the panel. |
-| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (120 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's; its per-route body limits were checked again with Caddy 2.10.2. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
+| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (181 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's; its per-route body limits were checked again with Caddy 2.10.2. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
 | Profile (name, epithet, construct name and note) | The name and epithet are shown on the About page and amended there. The construct's name and note are kept in the data but not shown. |
 | **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutout remains as the fallback. |
 | Preview on claude.ai | Done. The Artifact shows the current build with an in-page stand-in for the server (version 14). |
-| Content | No records, encounters, About text or plates yet. The preview shows example plates, an example About page, and example encounters and records; the real site starts empty. |
+| Content | No records, encounters, About text, forms or art yet. The preview shows two example forms with example art (a GIF and a video among them), an example About page, and example encounters and records; the real site starts empty. |
 
 ## Files
 
@@ -39,7 +41,7 @@ build.py                         builds dist/ from src/ + assets/
 src/page.html                    the page: CSS, markup, app script, with placeholders
 src/seed.json                    the starting archive, copied to DATA_DIR/archive.json on the server's first start
 src/preview.js                   the server's stand-in for the claude.ai preview (only in dist/preview.html)
-src/preview-examples.json        the preview's example About page and plates (only in dist/preview.html)
+src/preview-examples.json        the preview's example About page, forms and art (only in dist/preview.html)
 server/server.mjs                the server (Node 20+, no dependencies); `set-password` sets the keeper's word
 deploy/README.md                 VPS setup: Node, Caddy, Cloudflare, firewall, backups, what protects what
 deploy/Caddyfile                 Caddy in front of the server: Origin Certificate, Authenticated Origin Pulls, real client IP
@@ -48,11 +50,14 @@ deploy/firewall.sh               ufw: 443 only from Cloudflare, SSH rate-limited
 assets/model/chalice.glb         the construct's 3D model (made by tools/m2_to_glb.py, 544 KB)
 assets/front.webp|png            front-view cutout (fallback while/if the model can't load)
 assets/screenshots/              the original in-game screenshots
-assets/examples/                 the preview's example plates: the construct rendered by tools/example_plates.js
+assets/examples/                 the preview's example art: the construct rendered by tools/example_plates.js (.jpg) and
+                                 tools/example_animations.js (circling.gif, drawing-in.webm, and a still of each)
 tools/m2.py                      minimal reader for M2 models and .skin files
 tools/m2_to_glb.py               downloads the game files and writes assets/model/chalice.glb
 tools/smoke.js                   starts the server and tests the API and the page; npm install in tools/ first
-tools/example_plates.js          renders assets/examples/ from the preview build (only needed to remake them)
+tools/example_plates.js          renders assets/examples/*.jpg from the preview build (only needed to remake them)
+tools/example_animations.js      renders the example GIF and video, frame by frame on a virtual clock (needs ffmpeg)
+tools/fixtures/                  a tiny WebM and GIF the smoke test uploads
 tools/cutout.py                  background removal used to make the cutouts (ISNet via onnxruntime)
 dist/index.html                  the built page (committed, so the VPS needs no build step)
 dist/chalice.<hash>.glb          the model, named by its SHA-256 so it can be cached forever
@@ -92,11 +97,12 @@ The repo-root `CLAUDE.md` says the same, so future sessions do it without being 
 How the preview differs from the real page:
 
 - **Fragment:** `dist/preview.html` is a page fragment, because the viewer wraps it in its own `<html>`/`<head>`. The model preload is dropped.
-- **No network:** the viewer's CSP has `connect-src 'none'` and `img-src data:`, so the page can't fetch anything. The model is embedded as base64 in `#ca-model`, and the example plates' images as data: URIs in `#ca-files`.
+- **No network:** the viewer's CSP has `connect-src 'none'` and `img-src data:`, so the page can't fetch anything. The model is embedded as base64 in `#ca-model`, and the example art's images, GIF and video as data: URIs in `#ca-files`. The smoke test assumes the viewer plays media from data: and blob: (its contract says muted autoplay works); if it ever doesn't, the player says the preview could not play the video, and choosing a video to upload says the preview could not read it.
 - **Stand-in server:** `<script id="ca-preview">` (`src/preview.js`) sets `window.CA_PREVIEW`. `ca-app` then sends its requests there instead of to `fetch`, and asks `CA_PREVIEW.src(name)` for each plate's image instead of `art/<name>`. That covers the model and every API route, image uploads included, with the same validation and error messages as the server.
-- **Examples:** the preview adds `src/preview-examples.json` to `src/seed.json`: an About page and three plates (renders of the construct), one with alternate versions. Two images are flagged mature only to show the cover and the age check; none is really mature. They are marked as examples in their titles and never reach the real site.
+- **Examples:** the preview adds `src/preview-examples.json` to `src/seed.json`: an About page, two forms ("Example: Character (OC)" with a GIF and a video, "Example: Character (Dracthyr)" with three renders of the construct, one with alternate versions). Two images are flagged mature only to show the cover and the age check; none is really mature. They are marked as examples in their titles and never reach the real site.
+- **GIFs and videos** uploaded in the preview are kept as they come; only the server strips their metadata.
 - **The word** is `preview`, and the seal panel says so. Changing the word works until reload.
-- **Records, encounters, the About page and plates** start from the seed and the examples and live only in memory (uploaded images as data: URIs), so a reload forgets every change and seals the archive again.
+- **Records, encounters, the About page, forms and art** start from the seed and the examples and live only in memory (uploaded images as data: URIs), so a reload forgets every change and seals the archive again.
 - **The real page carries none of this:** `dist/index.html` has no `ca-preview`, `ca-model` or `ca-files`, and `window.CA_PREVIEW` can't be set there, because its CSP runs no other inline script. The smoke test checks both.
 - **Private sections:** the example encounter's private text is in `#ca-private` (from `preview-examples.json`'s `private`), apart from the archive as on the server. The stand-in returns it only to the unsealed preview, from memory; it is not encrypted there, since there is no server.
 - **Never put real records or the real word into the preview.** Never use the Artifact's own capabilities (`artifact.publish`) to save; that path was removed on purpose.
@@ -119,7 +125,7 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 | `GET /chalice.<hash>.glb` | anyone | the model, cached for a year (`immutable`) |
 | `GET /api/session` | anyone | `{owner, csrf}`: whether this browser holds the keeper's session, and its CSRF token |
 | `GET /api/archive` | anyone | `{archive}` |
-| `GET /art/<name>` | anyone | a plate's image, only while a plate uses it; cached for a year by browsers and a day by Cloudflare |
+| `GET /art/<name>` | anyone | an art piece's image, GIF, video or still, only while a piece uses it; cached for a year by browsers and a day by Cloudflare; one byte range (`Range: bytes=…`, 206, or 416 past the end), as video players ask |
 | `POST /api/login` | anyone, throttled | `{password}` → session cookie + `{csrf}` |
 | `POST /api/logout` | keeper | ends the session |
 | `POST /api/password` | keeper | `{current, next}` → new word, every other session ended |
@@ -132,11 +138,15 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 | `PUT /api/encounters/:id` | keeper | revise; `private` left out keeps it, `""` removes it → `{archive, id}` |
 | `DELETE /api/encounters/:id` | keeper | remove; records that named it keep their own words, without the link → `{archive}` |
 | `PUT /api/about` | keeper | the whole page: `{name, epithet, title, currently, ooc, race, class, age, eyes, eyeColor, height, build, birthplace, residence, facts, traits, glances, sections}` → `{archive}` |
-| `POST /api/uploads` | keeper | an image's raw bytes, sent with its type (PNG, JPEG or WebP, at most 8 MiB) → `{file, width, height}` |
-| `POST /api/art` | keeper | new plate `{title, artist, link, date, note, versions: [{file, thumb, label, mature}]}` → `{archive, id}`; it goes first |
-| `PUT /api/art/:id` | keeper | revise; `versions` (if sent) lists every image in its new order: `{id, label, mature}` keeps one of the plate's images, `{file, thumb, label, mature}` adds an uploaded one → `{archive, id}` |
+| `POST /api/uploads` | keeper | a file's raw bytes, sent with its type: a PNG, JPEG or WebP picture (at most 8 MiB), a GIF (40 MiB) → `{file, width, height}`; an MP4 or WebM video (90 MiB, streamed to disk) → `{file}` |
+| `POST /api/galleries` | keeper | new form `{name}` → `{archive, id}`; it goes last |
+| `PUT /api/galleries/:id` | keeper | rename `{name}` → `{archive, id}` |
+| `DELETE /api/galleries/:id` | keeper | remove an empty form (409 while art pieces are in it) → `{archive}` |
+| `POST /api/galleries/order` | keeper | `{ids}`, every form once, in the new order → `{archive}` |
+| `POST /api/art` | keeper | new plate `{gallery, title, artist, link, date, note, versions: [{file, thumb, label, mature, loop, width, height}]}` → `{archive, id}`; it goes first. `width` and `height` are read only for a video |
+| `PUT /api/art/:id` | keeper | revise; `gallery` left out keeps its form; `versions` (if sent) lists every image in its new order: `{id, label, mature, loop}` keeps one of the plate's images, `{file, thumb, …}` adds an uploaded one → `{archive, id}` |
 | `DELETE /api/art/:id` | keeper | remove → `{archive}` |
-| `POST /api/art/order` | keeper | `{ids}`, every plate once, in the new order → `{archive}` |
+| `POST /api/art/order` | keeper | `{ids}`, every plate once, in the new order → `{archive}`. There is one order for all plates; the page moves a piece past the next one of the same form |
 
 - **Keeper-only routes** need the session cookie, an `X-CSRF-Token` header equal to the session's token and an `Origin` equal to `PUBLIC_ORIGIN`. Bodies must be a JSON object (`Content-Type: application/json`, at most 64 KiB; 256 KiB for the About page), except uploads.
 - **Server-side cleaning:** ids, `added` and `example` are set by the server. Text is trimmed, stripped of control characters and capped:
@@ -144,10 +154,18 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
   - encounters: title 120, text 20 000 (TRP markup kept as text), private 20 000, a body of at most 160 KiB. A bad date is left empty.
 - **Every answer** carries `publicArchive()`: the archive without the encounters' private sections, not even their ciphertext. The page's data block is the same. Only `GET /api/private` returns them.
   - About: name 60, epithet (the full title) 280, title 60, currently and OOC 1000 each, directory fields 60 (birthplace and residence 120). The eye colour must be `#rrggbb` or is dropped. Up to 24 lines of additional information (label 40, value 400), 24 traits (each pole 40; the value is rounded into 0–20, anything else becomes 10), 5 glances (title 80, text 1000) and 24 sections (heading 120, text 40 000, heading colour `#rrggbb` or dropped; the 256 KiB body is the real limit, about 250 000 characters in all, and a longer page is refused with a message that says so). Empty rows are dropped. Unknown fields are dropped. A portrait that names no plate is cleared. Section text keeps TRP markup as plain text; only the page reads it.
-  - plates: title 120, artist 80, note 1000, at most 500 plates of 1 to 12 images each, image labels 60. Only `"mature": true` flags an image. A link must be `http(s)` (a bare `artstation.com/x` becomes `https://artstation.com/x`); anything else, `javascript:` included, is dropped. Width and height come from the image file, never from the request.
-- **Uploads:** the type is read from the bytes and must match the `Content-Type` (PNG, JPEG or WebP; never SVG or HTML). At most 8 MiB and 10000 pixels on a side. The file is stored as `DATA_DIR/art/<first 32 hex digits of its SHA-256>.<png|jpg|webp>`, so the same image is stored once.
-- **The keeper's browser prepares each image:** it scales it to at most 2400 pixels on the long side and re-encodes it as WebP (JPEG on browsers that can't write WebP), which drops any metadata such as a photo's location. It also makes an 800-pixel thumbnail for the list. Both are uploaded, then the plate is saved.
-- **Serving art:** only files a plate uses right now, by exact name, with their type, `nosniff` and the CSP. Removing a plate stops serving its image at once; Cloudflare's copy expires within a day (`s-maxage=86400`).
+  - forms: name 80 (required), at most 40.
+  - plates: title 120, artist 80, note 1000, at most 500 plates of 1 to 12 images each, image labels 60. Only `"mature": true` flags an image, and only a video can `loop`. `gallery` must name an existing form or be `""` (no form; a write naming a form that is gone is refused). A link must be `http(s)` (a bare `artstation.com/x` becomes `https://artstation.com/x`); anything else, `javascript:` included, is dropped. A picture's or GIF's width and height come from its file, never from the request; a video's come from the keeper's browser, which measured them while making its poster (the server does not decode video), capped to 1–10000. A `thumb` must be a still picture (PNG, JPEG or WebP).
+- **Uploads:** the type is read from the bytes and must match the `Content-Type` (PNG, JPEG, WebP, GIF, MP4 or WebM; never SVG or HTML). Pictures at most 8 MiB, GIFs 40 MiB, videos 90 MiB (Cloudflare's own limit is 100 MB on the Free and Pro plans), images at most 10000 pixels on a side. The file is stored as `DATA_DIR/art/<first 32 hex digits of its SHA-256>.<png|jpg|webp|gif|mp4|webm>`, so the same file is stored once.
+  - **GIFs** (`cleanGif()`) are read block by block to their end; comments, plain-text and application blocks (XMP) are dropped, the looping block stays. One that cannot be read to its end is refused.
+  - **Videos** are streamed to a temporary file (`.upload-….tmp` in `art/`, which the sweep removes if it is ever left behind), then renamed after their hash. An MP4 (`cleanMp4()`) must start with an `ftyp` box, not QuickTime's (`qt  `), and hold a `moov`; every `udta` and `meta` box (top level, in `moov` and in each `trak`) and every top-level `uuid` box (XMP) becomes a `free` box of the same size filled with zeros, so no offset moves and the file still plays. A WebM must have an EBML header whose DocType is `webm`; it is kept as it comes.
+- **The keeper's browser prepares each file:**
+  - A picture is scaled to at most 2400 pixels on the long side and re-encoded as WebP (JPEG on browsers that can't write WebP), which drops any metadata such as a photo's location. It also makes an 800-pixel thumbnail for the list.
+  - A GIF goes up as it is, with a WebP still of its first frame (up to 1280 pixels) as its thumbnail.
+  - A video is played silently from a `blob:` URL (the CSP's `media-src` allows `blob:` for this) to learn its size and length and to take a WebP poster (up to 1280 pixels) from early on (at a tenth of its length, at most 1 s in). A video the browser cannot play is refused with a message to export it as MP4 (H.264) or WebM; QuickTime `.mov` files are refused outright, as not every browser plays them. A video of 30 s or less is set to loop.
+  - The files are uploaded one after another, then the plate is saved.
+- **Serving art:** only files a plate uses right now, by exact name, with their type, `nosniff` and the CSP, and one byte range when asked (`Accept-Ranges: bytes`), which video players need to seek and Safari needs to play at all. Removing a plate stops serving its files at once; Cloudflare's copy expires within a day (`s-maxage=86400`).
+- **Timeouts:** the server waits up to 15 minutes for a whole request (`requestTimeout`), so a video can be uploaded over a slow connection; Cloudflare holds slow uploads back before they reach the VPS anyway.
 - **The sweep** (at start, every 6 hours and after a plate is revised or removed) deletes an image once neither the archive nor any of its 50 backups uses it and it is over a day old. So restoring a backup always finds its images, and an upload whose plate was never saved disappears after a day.
 - **Storage:** `DATA_DIR/archive.json`, written atomically (temp file, fsync, rename). The previous version goes to `DATA_DIR/backups/` first, keeping the last 50. `auth.json` holds the scrypt hash. `art/` holds the images. All are mode 0600 in 0700 directories.
 - **Sessions** are kept in memory (at most 50), so a restart signs the keeper out. Only each token's SHA-256 is stored.
@@ -169,15 +187,22 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
     "glances": [{ "title": "", "text": "" }],                         // at first glance, at most 5
     "sections": [{ "heading": "Physical description", "body": "", "color": "#ffd100" }] // the description; body keeps TRP markup; color is the heading's ("" = TRP's gold)
   },
-  "art": [{                   // in the keeper's order; a new plate goes first
+  "galleries": [{             // his forms, in the keeper's order; a new one goes last
+    "id": "g…",               // set by the server: "g" + 12 random base64url characters
+    "name": "Character (Dracthyr)",
+    "added": 0, "example": false
+  }],
+  "art": [{                   // the art pieces, in the keeper's order (one order for all forms); a new one goes first
     "id": "a…",               // set by the server: "a" + 12 random base64url characters
+    "gallery": "g…",          // the form it belongs to, or "" for none ("Other art" on the page)
     "versions": [{            // 1 to 12 images; the first is the main one, shown in the list
       "id": "v…",             // set by the server
-      "file": "<32 hex>.webp",  // up to 2400 px on the long side
-      "thumb": "<32 hex>.webp", // up to 800 px
-      "width": 0, "height": 0,  // of `file`, read by the server
+      "file": "<32 hex>.webp",  // a picture up to 2400 px on the long side, or a .gif, .mp4 or .webm
+      "thumb": "<32 hex>.webp", // a still: up to 800 px for a picture, 1280 px for a GIF's first frame or a video's poster
+      "width": 0, "height": 0,  // of `file`: read by the server, or for a video measured by the keeper's browser
       "label": "",            // e.g. "Without armour"; shown as "Main" or "Version 2" when empty
-      "mature": false         // covered until the visitor says they are 18 or older
+      "mature": false,        // covered until the visitor says they are 18 or older
+      "loop": false           // a video only: plays on a loop
     }],
     "title": "", "artist": "", "link": "", "note": "",
     "date": "YYYY-MM-DD", "added": 0, "example": false
@@ -203,29 +228,38 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 
 - **Lists:** records and encounters are newest first, by `date`, those without one by the day they were added (`newest()` in `ca-app`).
 - **Older archives:** a record's `domain` and `status` from before are dropped when the server loads the archive.
+- **Plates saved before forms existed** have no `gallery`; they are shown together as "Other art" after his forms, and revising one can move it into a form.
 - **Plates saved with a single image** (before plates had versions) carry `file`, `thumb`, `width` and `height` on the plate itself. The server reads them as a plate of one image, with the id `v` + the first 12 hex digits of its file name, and writes them in the new form on the next change.
 
 ### Design
 
 - **Two worlds, one token set** (`:root` of `ca-style`): the landing and the hub are the dark void (navy grounds, teal light, copper). The archive is the tome (leather, parchment, sepia ink, red rubric ink, brass, and the game's red-and-gold buttons). The full-size plate goes back to the dark ground. It is a single deliberate look, not light and dark themes.
-- **The hub** (`#hub`, inside `.core`): once the light is drawn in, `.has-hub` on the stage lifts the construct 56 px and four choices appear beneath it, each a glyph (a slit-pupilled eye, a framed picture, an open book, two figures) and its label: About, Art, Character Knowledge, Encounters. Below 620 px they stand two by two. There is no other text. They are dark panes with teal corner brackets, and they flicker in one after another as the gem flashes. On short landscape screens they stand beside the construct instead. Waking the construct from the keyboard moves the focus to the first. The hub stays once shown; closing the tome returns the focus to the choice that opened it.
+- **The hub** (`#hub`, inside `.core`): once the light is drawn in, `.has-hub` on the stage lifts the construct 56 px and four choices appear beneath it, each a glyph (a slit-pupilled eye, a framed picture, an open book, two figures) and its label: About, Art, Character Knowledge, Encounters. Below 620 px they stand two by two. There is no other text. They are dark panes with teal corner brackets, and they flicker in one after another as the gem flashes. On short landscape screens they stand beside the construct instead. Waking the construct from the keyboard moves the focus to the first. Closing the tome takes the hub away again (`hideHub()`): the choices go, the construct sinks back, and the focus returns to the construct, so the gem has to be clicked again to bring the choices back.
 - **Chapter tabs** (`#tabs`): leather index tabs on the tome's top edge; the open chapter's tab is a parchment leaf. While a form is open, they only say to finish or cancel it, so nothing written is lost. Escape leaves the About form only while nothing in it has changed; otherwise it says there are unsaved changes.
-- **Views:** each view belongs to a chapter and shows below that chapter's own leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`, `#leaf-encounters`) in one column (`VIEWS` in `ca-app`). The DOM still has the two `#page-l` and `#page-r` sections, but they are stacked: `#page-l` holds the chapter's leaf, `#page-r` the view. `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`, which hides the chapter's leaf so the record, plate or form has the page to itself. In Art, Character Knowledge and Encounters, the list (`data-view` `plates`, `overview`, `encounters`) shows alone, and an entry opens on its own page with a link back.
+- **Escape** closes what is on top first (`closeTop()`): the age check, the full-size view, the seal panel, an open form; only then the tome. It is handled on `keydown` with `preventDefault()`, because Chrome lets a page hold back a dialog's own `cancel` only once per click or key press: a second Escape that relied on `cancel` closed the whole tome. The `cancel` handler runs the same steps for other close requests, such as a phone's back gesture.
+- **Views:** each view belongs to a chapter and shows below that chapter's own leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`, `#leaf-encounters`) in one column (`VIEWS` in `ca-app`). The DOM still has the two `#page-l` and `#page-r` sections, but they are stacked: `#page-l` holds the chapter's leaf, `#page-r` the view. `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`, which hides the chapter's leaf so the record, plate or form has the page to itself. In Art, Character Knowledge and Encounters, the list (`data-view` `galleries`, `overview`, `encounters`) shows alone, and an entry opens on its own page with a link back. In Art that list is his forms (`#leaf-art`); a form opens on its own page (`#view-gallery`, with its art pieces in `#plates`), and an art piece on another (`#view-plate`), with a link back to its form.
 - **About** (a Total RP 3 profile):
   - **Header**, centred: the title in red small capitals, the name with the record title's rule and red dot beneath it, and the full title (the `epithet`) in italic. There is no portrait; one was there before (a plate shown as a frontispiece) and was taken out, along with "Make it the portrait" on plates. An `about.portrait` left in an older `archive.json` is dropped when the server loads it.
   - **Below it**, each part only when it has something in it: Currently and Out of character in a note box; the **Directory** (two columns of label and value; the eyes get a colour swatch); **Additional information** (the old particulars, one column); **Personality traits** (each a bar between its two poles with a brass marker; the pole it leans toward is darker, and screen readers hear "fairly Lawful"); **At first glance** (up to five cards); then the **description**'s sections. Each section's heading is set like a pull quote: large italic IM Fell English in faded curly quotes, centred between two flourishes that fade out from a small diamond (`sectionHeading()`, `.ab-heading`). Quotes typed into the heading are dropped, so they never double. Its colour is the section's own `color` made readable by `ink()`; without one it is TRP's gold, `{col:ffd100}` darkened (`--ink-gold`, #705c00). The first plain paragraph of the description, if longer than 120 characters, opens with a red drop capital.
   - **TRP markup** (`trp()` in `ca-app`) is turned into elements, never parsed as HTML: `{h1}`…`{/h1}` to `{h3}` (as h5 and h6) with `:c`/`:r`, `{p:c}`/`{p:r}`, `{col:rrggbb}`…`{/col}`, the game's `|cAARRGGBB`…`|r`, and `{link*url*text}` (a link only for `http(s)://`, opened in a new tab with `noopener noreferrer`). `{icon:…}`, `{img:…}` and `|T…|t` are game files and are dropped. A blank line starts a paragraph; a single line break stays a line break. TRP colours are chosen for dark frames, so `ink()` keeps each colour's hue but darkens it until it has 4.5:1 contrast with the parchment; white and pale greys become the sepia ink. Colours are set through `el.style`, which the CSP allows.
   - **The keeper's form:** title, name, full title, currently and OOC, the directory with an optional eye colour, then rows with ↑, ↓ and × buttons for additional information (with suggested labels), traits (two poles and a 0–20 slider; **Add TRP's standard traits** adds TRP3's eleven pairs at the middle), glances, and the description's sections, each with a colour picker for its heading (TRP's gold by default; a new section takes the colour of the last one; the heading field shows the colour as it will look) (**Add TRP's three sections**: Physical description, Personality, History). A collapsible note lists the markup.
-- **Art:** the plates are mounted thumbnails of their main image, cropped to 4 : 5 and numbered with roman numerals in the keeper's order; a plate of several images says how many. The chosen plate shows on its own page at its own shape, with its number (and the image's label), title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. Beneath the image, a strip of small thumbnails switches between the plate's images. The keeper can revise it, move it earlier or later, or remove it.
-- **The plate form** has a row per image, in order (the first is the main image): its thumbnail, a label, a **Mature (18+)** box, and ↑ ↓ × buttons. **+ Add an image** adds a row with a file input. To change an image, add the new one and remove the old.
+- **Art:**
+  - **His forms** (`#galleries`): a card each, in the keeper's order, with the first art piece's main image as its cover (its cover sheet if mature), the form's name and how many pieces it holds. Then **Other art**, if any piece belongs to no form. Visitors do not see a form until it has art in it; the keeper sees empty ones as "No art yet". On phones they stand two by two.
+  - **A form** (`#view-gallery`, address `#art/<form>`): its name as the page title, **Add an art piece** for the keeper, then **Art Pieces**: mounted thumbnails of each piece's main image, cropped to 4 : 5 and numbered with roman numerals in the keeper's order within the form; a piece of several images says how many, and a GIF or a video is marked on its still ("GIF", "▶ Video"). Beneath, for the keeper: **Rename the form**, **Move earlier**, **Move later**, and **Remove the form** (only while it is empty, so no art goes with it; the server refuses otherwise too).
+  - **An art piece** (`#view-plate`): its number within the form ("Art piece II.", and the image's label), the image at its own shape, title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. Beneath the image, a strip of small thumbnails switches between the piece's images. The keeper can revise it (which can move it to another form), move it earlier or later within its form, or remove it. "← Return to <form>" goes back.
+- **What is on view** (`renderMedia()`) depends on the image: a picture or a GIF sits in `#pl-open`, the button that shows it full size; a video sits in `#pl-video` with its player. The image is drawn only while the piece's page is open (`clearMedia()` empties both when the visitor moves on, which also stops a video), and a re-render that would show the same thing leaves it alone, so a session check or a save never restarts a video.
+  - **GIF player** (`gifPlayer()`): the GIF itself, and the game's round red button on the frame's corner to pause and play it. Paused, it holds the frame it is on (drawn to a canvas). With reduced motion it starts paused on its still, and the GIF is loaded only once it is played.
+  - **Video player** (`videoPlayer()`): the video with its poster, a large round play button over it until it plays, and a dark bar beneath in the game's gold: play and pause, a bar to move through it (arrow keys step by a twentieth, at least a second), the time (hidden below 420 px), sound on and off, and full screen where the browser allows it. A click on the picture plays or pauses it. It loads only its first moments (`preload="metadata"`) until played, and loops if the keeper ticked **Loop**. It is at least 300 px wide, so its controls fit. A video the browser cannot play says so.
+- **The art piece form** has a **Form** select (his forms and "Other art"; a new piece starts in the form it is added from) and a row per image, in order (the first is the main image): its still, a label, a **Mature (18+)** box, for a video a **Loop** box, and ↑ ↓ × buttons. **+ Add an image or video** adds a row with a file input that takes pictures, GIFs, MP4 and WebM; the row says what the file is ("A video of 0:12, 1920 × 1080 pixels, 24.0 MB to upload"). To change an image, add the new one and remove the old.
+- **The form for a form** (`#view-gallery-form`) has only its name.
 - **Mature images and the age check:**
   - A mature image shows only a cover (`.spoiler`: a dark hatched panel with a red **18+** seal and "Mature"), in the list, in the strip, on the plate's page and in the full-size view. The image itself is not loaded until it is shown, so its pixels never reach the browser before then.
   - Selecting a cover (or a plate in the list whose main image is mature) opens the age check (`#gate`): "How old are you?" with a number. 18 or older shows the image; under 18 says mature images are only for those 18 or older and keeps it covered.
   - The answer is kept for the browser tab (`sessionStorage`, in memory where storage is blocked), so later covers open on a click without asking again, and someone under 18 is not asked again.
-  - Whatever the answer, a mature image is covered again as soon as another image takes its place, the visitor goes back to the plates or another chapter, or the tome closes (`shown` in `ca-app` holds the one image on view). In the full-size view, stepping onto a mature image shows its cover.
+  - Whatever the answer, a mature image is covered again as soon as another image takes its place, the visitor goes back to the form or another chapter, or the tome closes (`shown` in `ca-app` holds the one image on view). In the full-size view, stepping onto a mature image shows its cover.
   - It is an honest question, not proof of age, as on most sites: nothing stops someone from claiming to be 18, and the image addresses are in the page's data for anyone who digs. What it guarantees is that nobody sees a mature image without choosing to and saying they are an adult.
-- **Full-size plate** (`#lightbox`, inside the dialog): the image on the dark ground with its number, title, label and artist in the game's gold; the game's round red buttons step through every image of every plate in order (arrow keys too) and close it. It shows the thumbnail at once and swaps in the full image when it has loaded. While it is open, the tome is `inert`; Escape closes only it. On narrow screens the step buttons sit at the bottom.
-- **Addresses:** the open chapter is written into the address with `history.replaceState` (`#about`, `#art/<plate>`, `#knowledge/<record>`, `#encounters/<encounter>`), so it can be copied and shared. Opening such an address goes straight to it, without waking the construct, and so does changing the hash.
+- **Full-size view** (`#lightbox`, inside the dialog): the image on the dark ground with its number, title, label and artist in the game's gold; the game's round red buttons step through every image of every art piece of the same form, in order (arrow keys too, except while the focus is in a video's controls) and close it. It shows a picture's thumbnail at once and swaps in the full image when it has loaded; a GIF and a video come with their players. A video on the piece's page pauses when it opens. While it is open, the tome is `inert`; Escape closes only it. On narrow screens the step buttons sit at the bottom.
+- **Addresses:** the open chapter is written into the address with `history.replaceState` (`#about`, `#art/<form>`, `#art/<art piece>`, `#knowledge/<record>`, `#encounters/<encounter>`; "Other art" is `#art/other`), so it can be copied and shared. Older `#art/<plate>` links still open the piece. Opening such an address goes straight to it, without waking the construct, and so does changing the hash.
 - **Fonts:** Cinzel (titles, buttons, the game's inscriptional capitals), IM Fell English (the book's text, an 18th-century typeface with old-style numerals) and IM Fell English SC (labels and dates).
 - **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon hanging out below the page.
   - **The page:** one parchment page (`.book`) with a printed double rule, at most 800 px of text column centred on it. The paper is fine SVG grain plus a stretched low-frequency stain (`--grain`, `--mottle`); a tiled stain showed a seam. Stacked page edges show beneath. The page keeps its height; its contents scroll inside `#book-scroll`, fading out at the rules.
@@ -325,31 +359,35 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - the About page's cleaning;
   - uploads: session, CSRF and Origin; SVG, HTML and JSON refused; bytes that don't match their type; size and dimension limits; storage under the content hash; a JPEG's size from its header;
   - plates: links, sizes from the file, several images per plate (reordered, relabelled, flagged, added), order, serving only the images in use, the sweep;
+  - forms: cleaning, a plate naming a form that does not exist, keeping and moving a plate's form, renaming, order, no removal while a form holds plates;
+  - GIFs (comments and XMP dropped, the frames byte for byte as they were, a cut-off GIF refused), MP4s (metadata boxes zeroed in place, the picture data where it was; QuickTime and other files refused), WebM (kept as it is), the GIF and video limits, no temporary file left behind, stills that must be pictures, a video's size from the request and only a video looping, byte ranges (206, the last bytes, 416 past the end) and `media-src` in the CSP;
   - an archive saved before plates had several images (a separate server start);
   - the private sections across restarts (more server starts on the same data): no file holds their text; the word unlocks them after a restart; ciphertext copied onto another encounter does not decrypt; `set-password` refuses without the current word, carries the key over with it, and `--forget-private` leaves the old private sections unreadable while new ones can be written;
   - changing the word, which signs older sessions out;
   - logout;
   - per-address throttling via `X-Real-IP`.
-- **Browser checks** run Chromium against the server's real CSP and treat any console error or CSP violation as a failure. They walk the gem until it reveals the hub's four choices, open Character Knowledge from it, then:
+- **Browser checks** run Chromium against the server's real CSP and treat any console error or CSP violation as a failure. They walk the gem until it reveals the hub's four choices, open Character Knowledge from it, close the tome (the choices must go and the construct sink back), wake the gem again and reopen Character Knowledge, then:
   - try a wrong word, then the right one, confirming the cookie stays invisible to scripts;
   - inscribe a record containing markup, which must stay text;
   - reload, still unsealed, then revise and remove the record;
   - record an encounter with TRP markup, an `<img>` and a private section; inscribe an undated record naming it; follow the record's link to it and find the record listed there; seal, and check the private section has left the page; open the encounter's address in a second browser and check nothing it receives holds the private text;
   - amend the About page in TRP terms: title, a directory field, lines of additional information (one moved up), TRP's standard traits with one slid, a glance with markup, and a description with TRP markup (a centred heading, a white and a gold colour, a `javascript:` and an https link, an icon) and an `<img>`; check that Escape keeps the unsaved form, that the colours are darkened, that only the https link is a link and that the HTML stays text;
-  - upload a plate of two images, the second flagged mature (re-encoded to WebP in the browser, then served under the CSP), with a `javascript:` link that must be dropped;
-  - check the mature image is covered and not loaded; answer the age check (0 is refused, 30 shows it); see it covered again back at the plates, and open without a second question; see it covered in the full-size view;
+  - add a form, which opens at its own address, and upload into it a plate of two images, the second flagged mature (re-encoded to WebP in the browser, then served under the CSP), with a `javascript:` link that must be dropped;
+  - check the mature image is covered and not loaded; answer the age check (0 is refused, 30 shows it); go back to the form and find nothing of it left on the page, and open it without a second question; see it covered in the full-size view;
   - in a second browser, answer 15: the image stays covered for the visit and is never requested;
-  - open `#about` (no portrait on it) and the plate's own address, and remove the plate;
+  - upload a plate of a WebM video and a GIF: the row offers Loop for the video; the video plays and pauses in the player; switching to the GIF removes the video, and the GIF pauses on a frame and plays again; the full-size view steps to the video in its player; Escape, a second time in the visit, closes only the full-size view;
+  - open `#about` (no portrait on it) and the plate's own address, remove the plate, then remove the now empty form;
   - change the word;
   - seal, reload, and unseal with the new word.
 - **Preview checks** load `dist/preview.html` inside the Artifact skeleton, under a CSP like the viewer's, with no network requests allowed. They check that:
-  - the model and the example plates load from the page itself, and the plate flagged mature shows only its cover;
+  - Art opens on the two example forms; the model and the example plates load from the page itself, and the plate flagged mature shows only its cover;
+  - the example GIF and video are marked in their form's list, and both play from the page itself;
   - the age check works where the page has no storage;
   - the About page shows its example profile, and can be amended;
   - the seal panel names the preview word;
   - only `preview` unseals;
   - the example encounter's private section shows once unsealed;
-  - a record can be inscribed, and a plate uploaded and shown from memory;
+  - a record can be inscribed, and a plate of a picture and a GIF uploaded and shown from memory;
   - a reload forgets them;
   - there are no console errors;
   - `dist/index.html` carries no stand-in.
@@ -366,6 +404,7 @@ node smoke.js
 
 - **Deploy:** follow `deploy/README.md`. Replace `archive.example.com` in the Caddyfile and in `PUBLIC_ORIGIN` in the unit.
 - **Set the keeper's word on the VPS** with `set-password` (step 3). Don't share it in chats or files.
-- **Write the About page and add art** once deployed: open About or Art, unseal with the clasp, then **Amend this page** or **Add a plate**. The TRP description can be pasted into a section as it is; its markup carries over. Credit artists in the Artist field and link their page.
-- **When updating an existing deployment**, copy the new `deploy/Caddyfile` too: uploads need its larger body limit for `/api/uploads`.
+- **Write the About page and add art** once deployed: open About or Art, unseal with the clasp, then **Amend this page**, or **Add a form** for each of his forms and **Add an art piece** inside it. The TRP description can be pasted into a section as it is; its markup carries over. Credit artists in the Artist field and link their page.
+- **When updating an existing deployment**, copy the new `deploy/Caddyfile` too: video uploads need its 100 MB body limit for `/api/uploads`. Art added before forms existed shows as "Other art"; revise each piece to move it into a form.
+- **Videos behind Cloudflare:** Cloudflare's terms say the Free, Pro and Business plans are not for serving video from your own server (`deploy/README.md`, Day to day). Decide whether a few clips are worth that, or host them elsewhere.
 - **Preview:** the claude.ai Artifact stays private until you share it from its Share menu. It is for you to check changes; the real site is the VPS.

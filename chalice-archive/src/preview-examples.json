@@ -1,5 +1,5 @@
 {
-  "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The About page is a made-up example laid out like a Total RP 3 profile, with TRP markup in its description; the images are rendered from the game's model by tools/example_plates.js. None of them is mature; two are flagged so the preview shows how a mature image is covered. The encounters and records are examples too; the private text of the first encounter is kept apart, in \"private\", as the server keeps such text encrypted and gives it only to the keeper.",
+  "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The About page is a made-up example laid out like a Total RP 3 profile, with TRP markup in its description; the images are rendered from the game's model by tools/example_plates.js, and the GIF and the video by tools/example_animations.js. The art is sorted into two example forms. None of them is mature; two are flagged so the preview shows how a mature image is covered. The encounters and records are examples too; the private text of the first encounter is kept apart, in \"private\", as the server keeps such text encrypted and gives it only to the keeper.",
   "about": {
     "title": "Archivist",
     "currently": "Cataloguing a shelf of the Valdrakken library he was not asked to catalogue. Ask him what year it is.",
@@ -89,7 +89,56 @@
       }
     ]
   },
+  "galleries": [
+    {
+      "id": "gexampleoc",
+      "name": "Example: Character (OC)"
+    },
+    {
+      "id": "gexampledracthyr",
+      "name": "Example: Character (Dracthyr)"
+    }
+  ],
   "art": [
+    {
+      "id": "aexamplegif",
+      "gallery": "gexampleoc",
+      "title": "Example: an animated GIF",
+      "artist": "",
+      "link": "",
+      "date": "2026-10-06",
+      "note": "An example GIF, only in the preview. It plays on its own; the button on it pauses it on the frame it is on.",
+      "versions": [
+        {
+          "id": "vmain",
+          "image": "assets/examples/circling.gif",
+          "still": "assets/examples/circling.jpg",
+          "label": "",
+          "mature": false
+        }
+      ]
+    },
+    {
+      "id": "aexamplevideo",
+      "gallery": "gexampleoc",
+      "title": "Example: a video",
+      "artist": "",
+      "link": "",
+      "date": "2026-10-05",
+      "note": "An example video, only in the preview: the gem drawing the light in. Its poster shows until it is played.",
+      "versions": [
+        {
+          "id": "vmain",
+          "image": "assets/examples/drawing-in.webm",
+          "still": "assets/examples/drawing-in.jpg",
+          "width": 640,
+          "height": 400,
+          "label": "",
+          "mature": false,
+          "loop": false
+        }
+      ]
+    },
     {
       "id": "aexamplefacing",
       "title": "Example: the construct, facing",
@@ -116,7 +165,8 @@
           "label": "From below",
           "mature": true
         }
-      ]
+      ],
+      "gallery": "gexampledracthyr"
     },
     {
       "id": "aexampleturning",
@@ -132,7 +182,8 @@
           "label": "",
           "mature": false
         }
-      ]
+      ],
+      "gallery": "gexampledracthyr"
     },
     {
       "id": "aexamplemature",
@@ -154,7 +205,8 @@
           "label": "A version that is not mature",
           "mature": false
         }
-      ]
+      ],
+      "gallery": "gexampledracthyr"
     }
   ],
   "encounters": [
