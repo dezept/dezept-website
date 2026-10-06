@@ -124,18 +124,17 @@ button, input, textarea { font: inherit; color: inherit; }
 .is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); } /* both follow the model's hover */
 .is-3d .pool { animation: none; opacity: calc(.9 - .45 * var(--lift)); scale: calc(1 - .2 * var(--lift)); }
 
-/* ---------- The hub: three choices the construct projects beneath it once it has drawn the light in ---------- */
+/* ---------- The hub: the choices the construct projects beneath it once it has drawn the light in; they go again when the tome closes ---------- */
 .core { transition: translate .9s cubic-bezier(.2, .8, .2, 1); }
 .stage.has-hub .core { translate: 0 -56px; } /* the construct rises to make room */
 .hub { position: absolute; z-index: 2; top: calc(100% + 30px); left: 50%; translate: -50% 0; display: flex; justify-content: center; gap: clamp(8px, 1.8vw, 18px); width: max-content; max-width: calc(100vw - 32px); }
-.hub-opt { position: relative; display: grid; justify-items: center; align-content: center; gap: 7px; box-sizing: border-box; width: clamp(100px, 29vw, 172px); padding: 15px 8px 14px; border: 1px solid rgb(var(--teal-rgb) / .16); border-radius: 2px; cursor: pointer; text-align: center; color: var(--ink);
+.hub-opt { position: relative; display: grid; justify-items: center; align-content: center; box-sizing: border-box; width: clamp(100px, 29vw, 172px); padding: 19px 8px 18px; border: 1px solid rgb(var(--teal-rgb) / .16); border-radius: 2px; cursor: pointer; text-align: center; color: var(--ink);
   background: radial-gradient(ellipse 90% 80% at 50% 0%, rgb(var(--teal-rgb) / .1), transparent 72%), rgb(var(--shade-rgb) / .45); transition: border-color .3s, box-shadow .3s; -webkit-tap-highlight-color: transparent; }
 .hub-opt::before, .hub-opt::after { content: ""; position: absolute; width: 10px; height: 10px; border: 0 solid var(--teal); opacity: .6; filter: drop-shadow(0 0 4px rgb(var(--teal-rgb) / .6)); transition: width .3s, height .3s, opacity .3s; }
 .hub-opt::before { top: -2px; left: -2px; border-top-width: 2px; border-left-width: 2px; }
 .hub-opt::after { bottom: -2px; right: -2px; border-bottom-width: 2px; border-right-width: 2px; }
 .hub-opt:hover, .hub-opt:focus-visible { outline: none; border-color: rgb(var(--teal-rgb) / .42); box-shadow: 0 0 26px rgb(var(--teal-rgb) / .15), inset 0 0 20px rgb(var(--teal-rgb) / .08); }
 .hub-opt:hover::before, .hub-opt:hover::after, .hub-opt:focus-visible::before, .hub-opt:focus-visible::after { width: 18px; height: 18px; opacity: 1; }
-.hub-glyph { width: 28px; height: 28px; fill: none; stroke: var(--teal); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgb(var(--teal-rgb) / .7)); }
 .hub-label { font-family: var(--font-title); font-size: 15px; font-weight: 700; line-height: 1.3; letter-spacing: .16em; text-indent: .16em; text-transform: uppercase; text-wrap: balance; }
 .hub.show .hub-opt { animation: hub-in .8s cubic-bezier(.2, .8, .2, 1) both; }
 .hub.show .hub-opt:nth-child(2) { animation-delay: .12s; }
@@ -147,13 +146,13 @@ button, input, textarea { font: inherit; color: inherit; }
   .hub-opt { width: calc(50% - clamp(8px, 1.8vw, 18px) / 2); }
 }
 @media (max-width: 520px) {
-  .hub-opt { padding: 13px 6px 12px; }
+  .hub-opt { padding: 16px 6px 15px; }
   .hub-label { font-size: 13px; letter-spacing: .1em; text-indent: .1em; }
 }
 @media (max-height: 560px) and (min-aspect-ratio: 5/4) { /* short landscape screens: the choices stand beside the construct */
   .stage.has-hub .core { translate: -96px 0; }
   .hub { top: 50%; left: calc(100% + 24px); translate: 0 -50%; flex-direction: column; }
-  .hub-opt { width: 200px; padding: 10px 12px; grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 12px; text-align: left; }
+  .hub-opt { width: 200px; padding: 12px 14px; justify-items: start; text-align: left; }
   .hub-label { text-indent: 0; }
 }
 
@@ -195,9 +194,9 @@ button, input, textarea { font: inherit; color: inherit; }
 .page-r { padding-top: 36px; padding-bottom: clamp(36px, 4.4vw, 56px); }
 .book[data-solo] .page-l { display: none; }
 .book[data-solo] .page-r { padding-top: clamp(34px, 4.4vw, 54px); }
-/* the lists alone (plates, records, encounters); each opens on a page of its own */
-.book[data-view="plates"] .page-r, .book[data-view="overview"] .page-r, .book[data-view="encounters"] .page-r { display: none; }
-.book[data-view="plates"] .page-l, .book[data-view="overview"] .page-l, .book[data-view="encounters"] .page-l { padding-bottom: clamp(36px, 4.4vw, 56px); }
+/* the lists alone (his forms, records, encounters); each opens on a page of its own */
+.book[data-view="galleries"] .page-r, .book[data-view="overview"] .page-r, .book[data-view="encounters"] .page-r { display: none; }
+.book[data-view="galleries"] .page-l, .book[data-view="overview"] .page-l, .book[data-view="encounters"] .page-l { padding-bottom: clamp(36px, 4.4vw, 56px); }
 
 /* The keeper's clasp: a small brass keyhole on the fore-edge. The word it asks for shows or hides the editing tools. */
 .clasp { position: absolute; z-index: 4; right: -11px; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 22px; height: 52px; padding: 0; border: 1px solid var(--leather-dark); border-radius: 4px; cursor: pointer; color: var(--leather-dark); background: linear-gradient(90deg, #6a4714, var(--brass) 35%, var(--brass-light) 55%, #8a6420); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5); }
@@ -257,6 +256,12 @@ button, input, textarea { font: inherit; color: inherit; }
 .private-head { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-family: var(--font-book-sc); font-size: 16px; font-weight: 400; color: var(--rubric); }
 .private-head svg { flex: none; width: 11px; height: 15px; }
 .private .trp { font-size: 18px; }
+/* an encounter only for the keeper: marked at its head, and in the list */
+.only-me { display: inline-flex; align-items: center; gap: 9px; justify-self: start; margin: 14px 0 0; padding: 4px 12px 5px 10px; border: 1px dashed rgb(var(--sepia-rgb) / .5); border-radius: 2px; background: rgb(var(--sepia-rgb) / .06); font-family: var(--font-book-sc); font-size: 15.5px; line-height: 1.3; color: var(--rubric); }
+.only-me svg { flex: none; width: 10px; height: 14px; }
+.only-me + .det-meta { margin-top: 12px; }
+.entry-meta .lock { display: inline-block; width: 8px; height: 11px; margin-right: 6px; vertical-align: -1px; color: var(--rubric); }
+.only-check { margin-top: 2px; font-size: 17px; color: var(--rubric); }
 .private .empty { padding: 0; }
 .learned { margin-top: 34px; }
 .owner-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
@@ -328,7 +333,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .trp .dropcap { display: flow-root; } /* holds the capital, so it never hangs into the next paragraph */
 .trp .dropcap::first-letter { float: left; margin: .05em .09em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.4em; line-height: .8; color: var(--rubric); }
 
-/* Art: a list of plates facing the plate itself; a click shows it full size */
+/* Art: his forms, each a gallery of art pieces (called plates in the code); a piece opens on its own page, and a
+   click shows it full size */
 .mount { display: block; box-sizing: border-box; padding: 6px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: linear-gradient(160deg, var(--parchment), var(--parchment-deep)); box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 2px 7px rgb(var(--sepia-rgb) / .35); }
 button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .mount img { display: block; background: var(--void); }
@@ -344,11 +350,56 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .plate-cap { font-family: var(--font-book-sc); font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; color: var(--sepia-soft); }
 .plate-cap b { font-weight: 400; color: var(--rubric); }
 .plate-btn:hover .plate-cap { color: var(--rubric); }
+.plate-btn .mount, .ver-btn .mount { position: relative; }
+/* his forms: larger cards, each with its first art piece as its cover */
+.galleries { grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 24px 18px; }
+.gallery-btn .plate-cap b { display: block; font-family: var(--font-title); font-size: 17px; font-weight: 700; line-height: 1.2; text-wrap: balance; color: var(--sepia); }
+.gallery-btn:hover .plate-cap b { color: var(--rubric); }
+.mount-empty { display: grid; place-items: center; aspect-ratio: 4 / 5; font-style: italic; color: var(--sepia-faint); background: repeating-linear-gradient(45deg, rgb(var(--sepia-rgb) / .07) 0 6px, transparent 6px 12px); }
+.gallery-view { display: grid; gap: 22px; }
+.gallery-view .det-title { margin-top: 6px; }
+.gallery-view .owner-row { margin-top: 6px; }
+/* a GIF or a video in a list: its still, marked */
+.media-badge { position: absolute; left: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px 2px 6px; border-radius: 2px; font-family: var(--font-title); font-size: 11px; font-weight: 700; letter-spacing: .1em; line-height: 1.5; color: var(--wow-gold); background: rgb(6 8 16 / .84); box-shadow: 0 0 0 1px rgb(var(--brass-rgb) / .7); pointer-events: none; }
+.media-badge svg { width: 8px; height: 8px; }
+.ver-btn .media-badge { left: 6px; bottom: 6px; padding: 0 4px; font-size: 9px; letter-spacing: .06em; }
+.ver-btn .media-badge span { display: none; }
 .plate-view { display: grid; gap: 14px; }
-.plate { display: grid; justify-items: center; gap: 14px; margin: 0; text-align: center; }
+.plate { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 14px; margin: 0; text-align: center; } /* one column no wider than the page, whatever is in it */
 .plate-no { margin: 0; font-family: var(--font-book-sc); font-size: 17px; letter-spacing: .06em; color: var(--rubric); }
 .plate-open { padding: 9px; }
 .plate-open img { max-width: 100%; max-height: min(62vh, 600px); width: auto; height: auto; }
+.plate-media { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; max-width: 100%; }
+.plate-media > .play-btn { position: absolute; right: -13px; bottom: -13px; } /* on the frame's corner, as the tome's close button sits on its own */
+
+/* The GIF player: the GIF, and a button to pause it on the frame it is on and play it again */
+.gif { --frame: min(62vh, 600px); display: block; width: min(var(--w), calc(var(--frame) * var(--r))); max-width: 100%; aspect-ratio: var(--ar); }
+.gif > img, .gif > canvas { display: block; width: 100%; height: 100%; max-height: none; object-fit: contain; background: var(--void); }
+.play-btn { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 2px solid var(--brass); border-radius: 50%; cursor: pointer; color: var(--brass-light); background: radial-gradient(circle at 40% 32%, #c8301f, var(--wow-red) 55%, var(--wow-red-dark)); box-shadow: 0 0 0 1px var(--leather-dark), 0 3px 8px rgb(0 0 0 / .6), inset 0 1px 1px rgb(255 220 160 / .45); }
+.play-btn:hover { color: #fff; filter: brightness(1.15); }
+.play-btn svg { width: 15px; height: 15px; }
+
+/* The video player: the video with the archive's own controls beneath it, in the game's colours */
+/* its own size, or as large as fits the frame, but at least wide enough for its controls; no wider than the page */
+.player { --frame: min(62vh, 600px); display: grid; box-sizing: border-box; width: max(300px, min(var(--w), calc(var(--frame) * var(--r)))); max-width: 100%; background: var(--void); }
+.plate-video { box-sizing: border-box; max-width: 100%; }
+.vid-stage { position: relative; min-height: 0; }
+.vid { display: block; width: 100%; height: auto; aspect-ratio: var(--ar); background: var(--void); cursor: pointer; }
+.vid-big { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 60px; height: 60px; transition: opacity .2s; }
+.vid-big svg { width: 22px; height: 22px; translate: 2px 0; }
+.player.is-playing .vid-big, .player.is-broken .vid-big { opacity: 0; pointer-events: none; }
+.vid-note { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; padding: 9px 14px; font-family: var(--font-title); font-size: 13.5px; line-height: 1.4; text-align: center; color: var(--wow-gold); background: rgb(6 8 16 / .9); }
+.vid-bar { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 8px; border-top: 1px solid rgb(var(--brass-rgb) / .55); background: linear-gradient(180deg, #161d30, #070a13); color: var(--brass-light); }
+.vid-bar :focus-visible { outline: 2px solid var(--wow-gold); outline-offset: 1px; }
+.vid-btn { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 3px; background: none; cursor: pointer; color: inherit; }
+.vid-btn:hover { color: #fff; background: rgb(255 255 255 / .06); }
+.vid-btn svg { width: 15px; height: 15px; }
+.vid-seek { flex: 1 1 auto; min-width: 40px; margin: 0; accent-color: var(--wow-gold); cursor: pointer; }
+.vid-time { flex: none; font-family: var(--font-title); font-size: 12px; letter-spacing: .04em; white-space: nowrap; color: var(--ink-dim); }
+.player:fullscreen { width: 100%; height: 100%; grid-template-rows: minmax(0, 1fr) auto; background: #000; }
+.player:fullscreen .vid { width: 100%; height: 100%; aspect-ratio: auto; object-fit: contain; }
+.player:fullscreen .vid-stage { display: grid; }
+@media (max-width: 420px) { .vid-time { display: none; } }
 .plate figcaption { display: grid; gap: 4px; justify-items: center; }
 .plate-title { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.15; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
 .plate-credit { margin: 0; font-size: 17px; font-style: italic; color: var(--sepia-soft); overflow-wrap: anywhere; }
@@ -407,6 +458,10 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .lightbox .btn-close { top: 14px; right: 14px; }
 .lb-cover { padding: 0; border: 0; background: none; cursor: pointer; color: inherit; }
 .lb-cover .spoiler { width: min(calc(100vw - 152px), calc((100vh - 150px) * var(--r, .8))); width: min(calc(100vw - 152px), calc((100dvh - 150px) * var(--r, .8))); box-shadow: 0 0 0 1px rgb(var(--brass-rgb) / .5), 0 24px 70px rgb(0 0 0 / .8); }
+.lb-frame .gif { --frame: calc(100dvh - 150px); width: min(var(--w), calc(100vw - 152px), calc(var(--frame) * var(--r))); box-shadow: 0 0 0 1px rgb(var(--brass-rgb) / .5), 0 24px 70px rgb(0 0 0 / .8); }
+.lb-frame .player { --frame: calc(100dvh - 196px); width: max(300px, min(var(--w), calc(100vw - 152px), calc(var(--frame) * var(--r)))); box-shadow: 0 0 0 1px rgb(var(--brass-rgb) / .5), 0 24px 70px rgb(0 0 0 / .8); }
+.lb-gif { position: relative; }
+.lb-gif > .play-btn { position: absolute; right: -15px; bottom: -15px; }
 
 /* the game's red-and-gold buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 18px; border: 1px solid #2a0302; border-radius: 4px; cursor: pointer; font-family: var(--font-title); font-size: 13.5px; font-weight: 700; letter-spacing: .04em; color: var(--wow-gold); text-shadow: 0 1px 1px #000, 0 0 2px #000;
@@ -485,6 +540,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 .check { display: inline-flex; align-items: center; gap: 9px; justify-self: start; cursor: pointer; font-family: var(--font-book-sc); font-size: 16px; color: var(--sepia-soft); }
 .check input { width: 17px; height: 17px; margin: 0; cursor: pointer; accent-color: var(--rubric); }
 .row-version .row-tools { padding-bottom: 0; }
+.ver-preview { position: relative; }
+.ver-preview .media-badge { left: 5px; bottom: 5px; padding: 0 4px; font-size: 9px; letter-spacing: .06em; }
 .back:disabled { opacity: .45; cursor: default; text-decoration: none; }
 
 /* notices look like the game's tooltips */
@@ -521,6 +578,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   .lb-frame img { max-width: calc(100vw - 20px); max-height: calc(100vh - 200px); max-height: calc(100dvh - 200px); }
   .lb-btn { top: auto; bottom: 16px; translate: none; }
   .lb-cover .spoiler { width: min(calc(100vw - 20px), calc((100vh - 200px) * var(--r, .8))); width: min(calc(100vw - 20px), calc((100dvh - 200px) * var(--r, .8))); }
+  .lb-frame .gif { --frame: calc(100dvh - 200px); width: min(var(--w), calc(100vw - 20px), calc(var(--frame) * var(--r))); }
+  .lb-frame .player { --frame: calc(100dvh - 246px); width: max(min(300px, calc(100vw - 20px)), min(var(--w), calc(100vw - 20px), calc(var(--frame) * var(--r)))); }
   .lb-prev { left: calc(50% - 62px); }
   .lb-next { right: calc(50% - 62px); }
   .btn-close { top: -8px; right: -6px; width: 34px; height: 34px; }
@@ -529,9 +588,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 }
 @media (max-width: 560px) {
   .page { padding-inline: 14px; }
+  .galleries { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool, .nebula i, .hub-opt, .lightbox { animation: none !important; }
+  .vid-big { transition: none; }
   .archive[open] .tome, .archive[open] .tabs { animation: none; }
   .core { transition: none; }
 }
@@ -554,19 +615,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     <span class="pool" aria-hidden="true"></span>
     <nav class="hub" id="hub" aria-label="The archive" hidden>
       <button class="hub-opt" type="button" data-book="about" aria-haspopup="dialog">
-        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><path d="M2.5 14C6 8.2 9.8 5.5 14 5.5S22 8.2 25.5 14C22 19.8 18.2 22.5 14 22.5S6 19.8 2.5 14z"></path><path d="M14 8.6c-1.5 1.8-1.5 9 0 10.8 1.5-1.8 1.5-9 0-10.8z"></path></svg>
         <span class="hub-label">About</span>
       </button>
       <button class="hub-opt" type="button" data-book="art" aria-haspopup="dialog">
-        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><rect x="4" y="4" width="20" height="20" rx="1"></rect><path d="M4 19.5l6-6.5 5 5.2 3-3 6 5.8"></path><circle cx="18.6" cy="9.4" r="1.9"></circle></svg>
         <span class="hub-label">Art</span>
       </button>
       <button class="hub-opt" type="button" data-book="knowledge" aria-haspopup="dialog">
-        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 8.5C11.2 6.4 7.4 5.6 3 6v15c4.4-.4 8.2.4 11 2.5 2.8-2.1 6.6-2.9 11-2.5V6c-4.4-.4-8.2.4-11 2.5z"></path><path d="M14 8.5v15"></path></svg>
         <span class="hub-label">Character Knowledge</span>
       </button>
       <button class="hub-opt" type="button" data-book="encounters" aria-haspopup="dialog">
-        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="9.5" cy="9" r="3.3"></circle><path d="M3.5 23c0-4.4 2.7-7.4 6-7.4s6 3 6 7.4"></path><circle cx="19" cy="10.5" r="2.9"></circle><path d="M16.4 16.6c.8-.5 1.6-.7 2.6-.7 3 0 5.5 2.8 5.5 7.1"></path></svg>
         <span class="hub-label">Encounters</span>
       </button>
     </nav>
@@ -641,11 +698,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
           <div class="leaf" id="leaf-art" hidden>
             <div class="ar-tools">
-              <button class="btn" id="btn-add-art" type="button" hidden>Add a plate</button>
+              <button class="btn" id="btn-add-gallery" type="button" hidden>Add a form</button>
             </div>
-            <section aria-labelledby="plates-title">
-              <h3 class="rubric" id="plates-title">Plates <span id="plates-count"></span></h3>
-              <ol class="plates" id="plates"></ol>
+            <section aria-labelledby="galleries-title">
+              <h3 class="rubric" id="galleries-title">Overview</h3>
+              <ol class="plates galleries" id="galleries"></ol>
             </section>
           </div>
         </section>
@@ -810,6 +867,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
           <section class="detail" id="view-encounter" hidden>
             <button class="back" id="enc-back" type="button">← Return to the encounters</button>
+            <p class="only-me" id="enc-sealed" hidden><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Only for you: no one else can see this encounter, or that it exists</p>
             <div class="det-meta"><time id="enc-date"></time></div>
             <h3 class="det-title" id="enc-title"></h3>
             <div class="trp enc-text" id="enc-text"></div>
@@ -840,9 +898,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                 <input class="input" id="ef-date" name="date" type="date">
               </div>
               <div class="field">
+                <label class="check only-check"><input type="checkbox" id="ef-sealed" name="sealed"> Only for me</label>
+                <p class="help">No one else sees this encounter at all, not even that it exists. All of it is encrypted before it is stored, with a key that only your word unlocks. Records that name it link to it only for you.</p>
+              </div>
+              <div class="field">
                 <label for="ef-text">What happened</label>
                 <textarea class="input long" id="ef-text" name="text" maxlength="20000" placeholder="What happened, as anyone may read it."></textarea>
-                <p class="help">Everyone can read this. Total RP 3's markup works here, as on the About page.</p>
+                <p class="help" id="ef-text-help">Everyone can read this. Total RP 3's markup works here, as on the About page.</p>
               </div>
               <div class="field">
                 <label for="ef-private">Private</label>
@@ -857,13 +919,51 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
             </form>
           </section>
 
+          <section class="gallery-view" id="view-gallery" hidden>
+            <button class="back" id="gl-back" type="button">← Return to the overview</button>
+            <h3 class="det-title" id="gl-title"></h3>
+            <div class="ar-tools">
+              <button class="btn" id="btn-add-art" type="button" hidden>Add an art piece</button>
+            </div>
+            <section aria-labelledby="plates-title">
+              <h4 class="rubric" id="plates-title">Art Pieces <span id="plates-count"></span></h4>
+              <ol class="plates" id="plates"></ol>
+            </section>
+            <div class="owner-row" id="gl-tools" hidden>
+              <button class="btn" id="gl-edit" type="button">Rename the form</button>
+              <button class="btn" id="gl-earlier" type="button">Move earlier</button>
+              <button class="btn" id="gl-later" type="button">Move later</button>
+              <button class="btn" id="gl-delete" type="button">Remove the form</button>
+            </div>
+          </section>
+
+          <section id="view-gallery-form" hidden>
+            <form class="form" id="gallery-form" novalidate>
+              <button class="back" id="gf-back" type="button">← Return without adding</button>
+              <h3 id="gf-heading">Add a form</h3>
+              <p class="help">One of the shapes he takes, such as his Dracthyr form or his visage. Its art pieces are shown together, under its name.</p>
+              <div class="field">
+                <label for="gf-name">Name</label>
+                <input class="input" id="gf-name" name="name" maxlength="80" autocomplete="off" placeholder="Character (Dracthyr)">
+              </div>
+              <p class="form-error" id="gf-error" role="alert" hidden></p>
+              <div class="form-actions">
+                <button class="btn" id="gf-submit" type="submit">Add the form</button>
+                <button class="btn" id="gf-cancel" type="button">Cancel</button>
+              </div>
+            </form>
+          </section>
+
           <section class="plate-view" id="view-plate" hidden>
-            <button class="back narrow-only" id="pl-back" type="button">← Return to the plates</button>
-            <p class="empty" id="pl-empty" hidden>The plates will be shown here.</p>
+            <button class="back" id="pl-back" type="button">← Return to the overview</button>
+            <p class="empty" id="pl-empty" hidden>The art pieces will be shown here.</p>
             <figure class="plate" id="pl-figure">
               <p class="plate-no" id="pl-no"></p>
-              <button class="mount plate-open" id="pl-open" type="button" aria-label="View the plate full size"></button>
-              <div class="versions" id="pl-versions" role="group" aria-label="This plate's images" hidden></div>
+              <div class="plate-media" id="pl-media">
+                <button class="mount plate-open" id="pl-open" type="button" aria-label="View the image full size"></button>
+                <div class="mount plate-open plate-video" id="pl-video" hidden></div>
+              </div>
+              <div class="versions" id="pl-versions" role="group" aria-label="This art piece's images" hidden></div>
               <figcaption>
                 <h3 class="plate-title" id="pl-title"></h3>
                 <p class="plate-credit" id="pl-credit"></p>
@@ -874,17 +974,21 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
               <button class="btn" id="pl-edit" type="button">Revise</button>
               <button class="btn" id="pl-earlier" type="button">Move earlier</button>
               <button class="btn" id="pl-later" type="button">Move later</button>
-              <button class="btn" id="pl-delete" type="button">Remove plate</button>
+              <button class="btn" id="pl-delete" type="button">Remove art piece</button>
             </div>
           </section>
 
           <section id="view-art-form" hidden>
             <form class="form" id="art-form" novalidate>
               <button class="back" id="af-back" type="button">← Return without adding</button>
-              <h3 id="af-heading">Add a plate</h3>
+              <h3 id="af-heading">Add an art piece</h3>
               <div class="field">
                 <label for="af-title">Title</label>
                 <input class="input" id="af-title" name="title" maxlength="120" autocomplete="off" placeholder="At the edge of the Reach">
+              </div>
+              <div class="field">
+                <label for="af-gallery">Form</label>
+                <select class="input" id="af-gallery" name="gallery"></select>
               </div>
               <div class="row-2">
                 <div class="field">
@@ -905,14 +1009,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                 <textarea class="input short" id="af-note" name="note" maxlength="1000" placeholder="A commission, a gift, a scene from a story"></textarea>
               </div>
               <fieldset class="field">
-                <legend>Images</legend>
-                <p class="help">The first is the main image, shown in the list of plates; the others are its alternate versions. Tick <i>Mature</i> on any that is for adults only: it stays covered until a visitor says they are 18 or older. PNG, JPEG or WebP; big images are scaled to 2400 pixels on the long side, and nothing but the picture is kept.</p>
+                <legend>Images and videos</legend>
+                <p class="help">The first is the main one, shown in the list; the others are its alternate versions. Tick <i>Mature</i> on any that is for adults only: it stays covered until a visitor says they are 18 or older.</p>
+                <p class="help">Pictures (PNG, JPEG or WebP) are scaled to 2400 pixels on the long side, and nothing but the picture is kept. GIFs keep their animation, up to 40 MB. Videos can be MP4 (H.264) or WebM, up to 90 MB; tick <i>Loop</i> for a short animation. GIFs and videos lose any notes they carry, such as where they were made.</p>
                 <div class="rows" id="af-versions"></div>
-                <button class="back add" id="af-add" type="button">+ Add an image</button>
+                <button class="back add" id="af-add" type="button">+ Add an image or video</button>
               </fieldset>
               <p class="form-error" id="af-error" role="alert" hidden></p>
               <div class="form-actions">
-                <button class="btn" id="af-submit" type="submit">Add the plate</button>
+                <button class="btn" id="af-submit" type="submit">Add the art piece</button>
                 <button class="btn" id="af-cancel" type="button">Cancel</button>
               </div>
             </form>
@@ -943,9 +1048,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       <div class="lb-frame" id="lb-frame"></div>
       <figcaption class="lb-cap"><span id="lb-title"></span><span class="lb-credit" id="lb-credit"></span></figcaption>
     </figure>
-    <button class="lb-btn lb-prev" id="lb-prev" type="button" aria-label="Previous plate"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5L5 8l5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></button>
-    <button class="lb-btn lb-next" id="lb-next" type="button" aria-label="Next plate"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 2.5L11 8l-5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></button>
-    <button class="btn-close" id="lb-close" type="button" aria-label="Close the plate"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
+    <button class="lb-btn lb-prev" id="lb-prev" type="button" aria-label="Previous image"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5L5 8l5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></button>
+    <button class="lb-btn lb-next" id="lb-next" type="button" aria-label="Next image"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 2.5L11 8l-5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></button>
+    <button class="btn-close" id="lb-close" type="button" aria-label="Close the full-size view"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
   </div>
 </dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
@@ -954,8 +1059,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 (function () {
   "use strict";
   var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge", encounters: "Encounters" };
-  var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
-  var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * 1024 * 1024 };
+  // an art piece's file: a picture, a GIF or a video; its thumbnail (a video's poster) is always a still picture
+  var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png|gif|mp4|webm)$/, STILL_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
+  var MiB = 1024 * 1024;
+  var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * MiB, gif: 40 * MiB, video: 90 * MiB };
   // The About page follows a Total RP 3 profile: the directory, additional information, personality traits, at first
   // glance and the description. server/server.mjs caps each field; the form uses the same limits.
   var ABOUT_TEXT = ["title", "currently", "ooc", "race", "class", "age", "eyes", "height", "build", "birthplace", "residence"];
@@ -966,7 +1073,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                          ["Gentle", "Brutish"], ["Superstitious", "Rational"], ["Renegade", "Paragon"], ["Cautious", "Impulsive"], ["Ascetic", "Bon vivant"],
                          ["Valorous", "Spineless"]];
   var STANDARD_SECTIONS = ["Physical description", "Personality", "History"];
-  var IMAGE_SIDE = 2400, THUMB_SIDE = 800; // longest side of the stored image and of its thumbnail, in pixels
+  var IMAGE_SIDE = 2400, THUMB_SIDE = 800, STILL_SIDE = 1280; // longest side of a stored picture, of its thumbnail, and of a GIF's or video's still, in pixels
   var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   // The preview build (dist/preview.html, published as the claude.ai Artifact) answers requests in the page itself,
   // because the Artifact viewer allows no network requests. The real page has no such script, so it uses fetch.
@@ -993,7 +1100,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var profile = Object.assign({ name: "Unnamed Dracthyr", epithet: "", construct: "Eternal Gladiator's Chalice", constructNote: "" }, raw.profile || {});
     // encounters, and records of what he knows, which may name an encounter as where he learned it
     var encounters = (Array.isArray(raw.encounters) ? raw.encounters : []).filter(function (e) { return e && e.id && e.title; }).map(function (e) {
-      return { id: String(e.id), title: String(e.title), date: isDate(e.date) ? e.date : "", text: String(e.text || ""), added: Number(e.added) || 0, example: !!e.example };
+      return { id: String(e.id), title: String(e.title), date: isDate(e.date) ? e.date : "", text: String(e.text || ""), added: Number(e.added) || 0, example: !!e.example,
+               sealed: e.sealed === true, unreadable: e.unreadable === true }; // sealed: only for the keeper, who alone receives it
     });
     var records = (Array.isArray(raw.records) ? raw.records : []).filter(function (r) { return r && r.id && r.title; }).map(function (r) {
       return {
@@ -1002,16 +1110,21 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         date: isDate(r.date) ? r.date : "", added: Number(r.added) || 0, example: !!r.example
       };
     });
-    // a plate is one or more images (versions): the first is its main image, the others its alternates
+    // his forms: each a gallery of the art pieces that show him in it
+    var galleries = (Array.isArray(raw.galleries) ? raw.galleries : []).filter(function (g) { return g && g.id && g.name; }).map(function (g) {
+      return { id: String(g.id), name: String(g.name), added: Number(g.added) || 0, example: !!g.example };
+    });
+    // an art piece (a plate, in the code) is one or more images (versions), each a picture, a GIF or a video: the
+    // first is its main one, the others its alternates. It belongs to one of his forms, or to none ("Other art").
     var art = (Array.isArray(raw.art) ? raw.art : []).filter(function (a) { return a && a.id; }).map(function (a) {
-      var versions = (Array.isArray(a.versions) ? a.versions : [{ file: a.file, thumb: a.thumb, width: a.width, height: a.height }]).filter(function (v) { return v && FILE_RE.test(v.file) && FILE_RE.test(v.thumb); }).map(function (v, i) {
+      var versions = (Array.isArray(a.versions) ? a.versions : [{ file: a.file, thumb: a.thumb, width: a.width, height: a.height }]).filter(function (v) { return v && FILE_RE.test(v.file) && STILL_RE.test(v.thumb); }).map(function (v, i) {
         return {
           id: String(v.id || "v" + i), file: v.file, thumb: v.thumb, width: Math.max(1, Number(v.width) || 1), height: Math.max(1, Number(v.height) || 1),
-          label: String(v.label || ""), mature: v.mature === true
+          label: String(v.label || ""), mature: v.mature === true, loop: v.loop === true
         };
       });
       return {
-        id: String(a.id), versions: versions,
+        id: String(a.id), versions: versions, gallery: galleries.some(function (g) { return g.id === a.gallery; }) ? a.gallery : "",
         title: String(a.title || ""), artist: String(a.artist || ""), link: /^https?:\/\//i.test(a.link) ? String(a.link) : "",
         date: isDate(a.date) ? a.date : today(), note: String(a.note || ""), added: Number(a.added) || 0, example: !!a.example
       };
@@ -1028,7 +1141,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       sections: list(ab.sections, ["heading", "body", "color"]).map(function (x) { if (!/^#[0-9a-f]{6}$/i.test(x.color)) x.color = ""; return x; })
     };
     ABOUT_TEXT.forEach(function (k) { about[k] = typeof ab[k] === "string" ? ab[k] : ""; });
-    return { profile: profile, about: about, art: art, records: records, encounters: encounters };
+    return { profile: profile, about: about, galleries: galleries, art: art, records: records, encounters: encounters };
   }
   function loadState() {
     try { return normalize(JSON.parse(byId("ca-data").textContent || "{}")); } catch (e) { return normalize({}); }
@@ -1085,7 +1198,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     trp(text).childNodes.forEach(function (n) { var t = n.textContent.replace(/\s+/g, " ").trim(); if (t) out.push(t); });
     return out.join(" ");
   }
-  function plateNo(a) { return "Plate " + roman(state.art.indexOf(a) + 1) + "."; }
+  // His forms are galleries; the art pieces that belong to none of them are shown together as "Other art"
+  var OTHER = "other";
+  function groupOf(a) { return a.gallery || OTHER; }
+  function piecesOf(gid) { return state.art.filter(function (a) { return groupOf(a) === gid; }); }
+  function galleryOf(id) { return id === OTHER ? { id: OTHER, name: "Other art", other: true } : state.galleries.find(function (g) { return g.id === id; }) || null; }
+  function pieces(n) { return n + (n === 1 ? " art piece" : " art pieces"); }
+  function plateNo(a) { return "Art piece " + roman(piecesOf(groupOf(a)).indexOf(a) + 1) + "."; }
+  // What an image of an art piece is: a picture, an animated GIF or a video
+  function kindOf(v) { return /\.gif$/.test(v.file) ? "gif" : /\.(mp4|webm)$/.test(v.file) ? "video" : "image"; }
   // One image of a plate. width and height only give the browser its shape before it loads.
   function verImg(v, which, alt) {
     var img = h("img", { src: artUrl(which === "thumb" ? v.thumb : v.file), alt: alt, width: v.width, height: v.height, decoding: "async", loading: which === "thumb" ? "lazy" : null });
@@ -1094,7 +1215,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   function versionIn(a, id) { return a.versions.find(function (v) { return v.id === id; }) || a.versions[0]; }
   function verName(a, v) { var i = a.versions.indexOf(v); return v.label || (i ? "Version " + (i + 1) : "Main"); }
-  function altOf(a, v) { return (a.title || "Untitled plate") + (a.versions.length > 1 ? ", " + verName(a, v) : ""); }
+  function altOf(a, v) { return (a.title || "Untitled art piece") + (a.versions.length > 1 ? ", " + verName(a, v) : ""); }
   // The cover over a mature image, in its place: nothing of the image itself is loaded
   function spoiler(v, big) {
     var box = h("span", { class: "spoiler" + (big ? " spoiler-big" : "") },
@@ -1104,6 +1225,129 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return box;
   }
   function hostOf(link) { try { return new URL(link).hostname.replace(/^www\./, ""); } catch (e) { return link; } }
+  // The players' small drawings: [path, "f" to fill or "s" to stroke]
+  var ICONS = {
+    play: [["M4.5 2.6v10.8L13.2 8z", "f"]],
+    pause: [["M3.8 2.8h3v10.4h-3zM9.2 2.8h3v10.4h-3z", "f"]],
+    sound: [["M1.8 5.8h2.6L8 2.8v10.4L4.4 10.2H1.8z", "f"], ["M10.4 5.4a3.6 3.6 0 0 1 0 5.2M12.3 3.6a6.2 6.2 0 0 1 0 8.8", "s"]],
+    muted: [["M1.8 5.8h2.6L8 2.8v10.4L4.4 10.2H1.8z", "f"], ["M10.4 5.8l4 4.4M14.4 5.8l-4 4.4", "s"]],
+    full: [["M2.4 6V2.4H6M10 2.4h3.6V6M13.6 10v3.6H10M6 13.6H2.4V10", "s"]],
+    lock: [["M1 6h8v7.4H1z", "f"], ["M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6", "s"]] // drawn on 10 x 14
+  };
+  function icon(name) {
+    var NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("aria-hidden", "true");
+    ICONS[name].forEach(function (p) {
+      var path = document.createElementNS(NS, "path");
+      path.setAttribute("d", p[0]);
+      if (p[1] === "f") path.setAttribute("fill", "currentColor");
+      else { path.setAttribute("fill", "none"); path.setAttribute("stroke", "currentColor"); path.setAttribute("stroke-width", "1.6"); path.setAttribute("stroke-linecap", "round"); path.setAttribute("stroke-linejoin", "round"); }
+      svg.append(path);
+    });
+    return svg;
+  }
+  // In a list, a GIF or a video shows its still, marked as what it is
+  function badge(v) {
+    var k = kindOf(v);
+    if (k === "gif") return h("span", { class: "media-badge", text: "GIF" });
+    if (k === "video") return h("span", { class: "media-badge" }, icon("play"), h("span", { text: "Video" }));
+    return null;
+  }
+  // The shape of a GIF or a video, for its player: its width, its ratio, and both as an aspect-ratio
+  function shape(box, v) {
+    box.style.setProperty("--w", v.width + "px");
+    box.style.setProperty("--r", (v.width / v.height).toFixed(4));
+    box.style.setProperty("--ar", v.width + " / " + v.height);
+    return box;
+  }
+  function clock(t) { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ":" + pad2(t % 60); }
+
+  // ---------- The GIF and video players ----------
+  // A GIF, with a button to pause it and play it again. Paused, it holds the frame it stopped on. With reduced
+  // motion it starts paused, on its still, and the GIF itself is loaded only once it is played.
+  function gifPlayer(v, alt) {
+    var box = shape(h("span", { class: "gif" }), v), btn = h("button", { class: "play-btn", type: "button" }), img = null, paused = reduced;
+    function show() {
+      var still = null;
+      if (paused && img && img.complete && img.naturalWidth) { // the frame it is on
+        still = h("canvas", { width: img.naturalWidth, height: img.naturalHeight, role: "img", "aria-label": alt });
+        try { still.getContext("2d").drawImage(img, 0, 0); } catch (e) { still = null; }
+      }
+      if (paused && !still) still = verImg(v, "thumb", alt);
+      if (!paused && !img) { img = verImg(v, "file", alt); img.removeAttribute("loading"); }
+      fill(box, [paused ? still : img]);
+      btn.setAttribute("aria-label", paused ? "Play the animation" : "Pause the animation");
+      fill(btn, [icon(paused ? "play" : "pause")]);
+    }
+    btn.addEventListener("click", function () { paused = !paused; show(); });
+    show();
+    return { box: box, btn: btn };
+  }
+  // A video, with the archive's own controls: play and pause (a click on the picture does the same), a bar to move
+  // through it, the time, the sound, and full screen. Until it is played, only its poster and its first moments load.
+  function videoPlayer(v, alt) {
+    var video = h("video", { class: "vid", preload: "metadata", playsinline: true, poster: artUrl(v.thumb), width: v.width, height: v.height, "aria-label": alt });
+    video.loop = v.loop;
+    video.src = artUrl(v.file);
+    var big = h("button", { class: "play-btn vid-big", type: "button", "aria-label": "Play" }, icon("play"));
+    var play = h("button", { class: "vid-btn", type: "button" });
+    var seek = h("input", { class: "vid-seek", type: "range", min: 0, max: 1, step: "any", value: 0, "aria-label": "Position in the video" });
+    var time = h("span", { class: "vid-time", "aria-hidden": "true" });
+    var sound = h("button", { class: "vid-btn", type: "button" });
+    var full = document.fullscreenEnabled ? h("button", { class: "vid-btn", type: "button", "aria-label": "Full screen", title: "Full screen" }, icon("full")) : null;
+    var note = h("p", { class: "vid-note", role: "status", hidden: true });
+    var box = shape(h("div", { class: "player" }, h("div", { class: "vid-stage" }, video, big, note), h("div", { class: "vid-bar" }, play, seek, time, sound, full)), v);
+    var playing = null, muted = null;
+    function sync() {
+      var on = !video.paused && !video.ended, d = isFinite(video.duration) ? video.duration : 0;
+      if (on !== playing) {
+        playing = on;
+        box.classList.toggle("is-playing", on);
+        play.setAttribute("aria-label", on ? "Pause" : "Play");
+        play.title = on ? "Pause" : "Play";
+        fill(play, [icon(on ? "pause" : "play")]);
+      }
+      if (video.muted !== muted) {
+        muted = video.muted;
+        sound.setAttribute("aria-label", muted ? "Turn the sound on" : "Turn the sound off");
+        sound.title = muted ? "Sound on" : "Sound off";
+        fill(sound, [icon(muted ? "muted" : "sound")]);
+      }
+      seek.max = d || 1;
+      if (document.activeElement !== seek) seek.value = video.currentTime;
+      time.textContent = clock(video.currentTime) + " / " + clock(d);
+      seek.setAttribute("aria-valuetext", clock(video.currentTime) + " of " + clock(d));
+    }
+    function toggle() {
+      if (box.classList.contains("is-broken")) return;
+      if (video.paused || video.ended) { var p = video.play(); if (p && p.catch) p.catch(function () {}); } else video.pause();
+    }
+    [big, play].forEach(function (b) { b.addEventListener("click", toggle); });
+    video.addEventListener("click", toggle);
+    seek.addEventListener("input", function () { video.currentTime = Number(seek.value); });
+    seek.addEventListener("keydown", function (e) { // steps of a twentieth of the video, at least a second
+      var by = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+      if (!by) return;
+      e.preventDefault();
+      var d = isFinite(video.duration) ? video.duration : 0;
+      video.currentTime = Math.min(d, Math.max(0, video.currentTime + by * Math.max(1, d / 20)));
+    });
+    sound.addEventListener("click", function () { video.muted = !video.muted; });
+    if (full) full.addEventListener("click", function () {
+      var p = document.fullscreenElement ? document.exitFullscreen() : box.requestFullscreen();
+      if (p && p.catch) p.catch(function () {});
+    });
+    ["play", "pause", "ended", "timeupdate", "durationchange", "loadedmetadata", "volumechange", "seeked"].forEach(function (n) { video.addEventListener(n, sync); });
+    video.addEventListener("error", function () {
+      box.classList.add("is-broken");
+      note.textContent = PREVIEW ? "The preview could not play this video. On the site it plays." : "This browser cannot play this video.";
+      note.hidden = false;
+    });
+    sync();
+    return box;
+  }
+  function pauseVideos(root) { Array.prototype.forEach.call(root.querySelectorAll("video"), function (v) { v.pause(); }); }
 
   // ---------- Total RP 3 markup ----------
   // The About page's description keeps TRP3's markup, so a profile can be pasted straight from the game. It is turned
@@ -1183,7 +1427,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   // ---------- The archive: one tome, three chapters ----------
   var currentView = "overview", currentBook = "knowledge";
-  var detailId = null, editingId = null, plateId = null, versionId = null, artEditing = null;
+  var detailId = null, editingId = null, plateId = null, versionId = null, artEditing = null, galleryId = null, galEditing = null;
   var busy = false;
 
   function renderAll() { renderLanding(); renderArchive(); renderEncounters(); renderAbout(); renderArt(); renderOwnerUI(); }
@@ -1202,11 +1446,20 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." }))]);
   }
 
-  // Encounters: newest first; each tells what happened, and, to the keeper alone, its private section
+  // Encounters: newest first; each tells what happened, and, to the keeper alone, its private section. Those only
+  // for the keeper are marked, and reach no one else.
+  function lockIcon() {
+    var svg = icon("lock");
+    svg.setAttribute("viewBox", "0 0 10 14");
+    svg.setAttribute("class", "lock");
+    return svg;
+  }
   function renderEncounters() {
     fill(el.encounters, state.encounters.length ? newest(state.encounters).map(function (e) {
       var n = state.records.filter(function (r) { return r.encounter === e.id; }).length;
-      return entry(e.title, [e.date ? fmtDate(e.date) : "", n ? n + (n === 1 ? " record" : " records") : ""].filter(Boolean).join(" · "), plain(e.text), function () { showEncounter(e.id); });
+      var li = entry(e.title, [e.sealed ? "Only for you" : "", e.date ? fmtDate(e.date) : "", n ? n + (n === 1 ? " record" : " records") : ""].filter(Boolean).join(" · "), plain(e.text), function () { showEncounter(e.id); });
+      if (e.sealed) li.querySelector(".entry-meta").prepend(lockIcon());
+      return li;
     }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No encounters yet. Record the first." : "No encounters yet." }))]);
     if (currentView === "encounter") renderEncounter();
   }
@@ -1269,42 +1522,54 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.abEmpty.textContent = canPost() ? "Nothing is written here yet. Amend this page to say who he is, or paste his Total RP 3 profile into it." : "Nothing is written here yet.";
   }
 
-  // Art: the plates in the keeper's order on the left, the chosen one on the right. A plate whose main image is
-  // mature shows only its cover in the list.
+  // Art: his forms, each with its first art piece as its cover, in the keeper's order; then "Other art", if any
+  // piece belongs to none. Visitors do not see a form until it has art in it.
   function renderArt() {
-    var n = state.art.length;
-    el.platesCount.textContent = n ? n + (n === 1 ? " plate" : " plates") : "";
-    if (!findArt(plateId)) { plateId = n ? state.art[0].id : null; versionId = null; }
-    fill(el.plates, n ? state.art.map(function (a, i) {
+    var list = state.galleries.filter(function (g) { return canPost() || piecesOf(g.id).length; });
+    if (piecesOf(OTHER).length) list.push(galleryOf(OTHER));
+    fill(el.galleries, list.length ? list.map(function (g) {
+      var all = piecesOf(g.id), main = all.length && all[0].versions[0];
+      return h("li", null, h("button", { class: "plate-btn gallery-btn", type: "button", "data-id": g.id, onclick: function () { showGallery(g.id); } },
+        h("span", { class: "mount" }, !main ? h("span", { class: "mount-empty", text: "No art yet" }) : main.mature ? spoiler(main) : verImg(main, "thumb", "")),
+        h("span", { class: "plate-cap" }, h("b", { text: g.name }), h("span", { class: "plate-more", text: all.length ? pieces(all.length) : "Empty" }))));
+    }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: canPost() ? "No forms yet. Add one for each shape he takes, such as his Dracthyr form and his visage, then add art to it." : "No art yet." }))]);
+    renderGallery();
+    renderPlate();
+  }
+  // One of his forms: its art pieces in the keeper's order. A piece whose main image is mature shows only its cover.
+  function renderGallery() {
+    var g = galleryOf(galleryId), all = g ? piecesOf(g.id) : [], at = g && !g.other ? state.galleries.indexOf(g) : -1;
+    el.glTitle.textContent = g ? g.name : "";
+    el.platesCount.textContent = all.length ? pieces(all.length) : "";
+    fill(el.plates, all.length ? all.map(function (a, i) {
       var main = a.versions[0], count = a.versions.length;
       return h("li", null, h("button", { class: "plate-btn", type: "button", "data-id": a.id, onclick: function () { openPlate(a.id); } },
-        h("span", { class: "mount" }, main.mature ? spoiler(main) : verImg(main, "thumb", "")),
+        h("span", { class: "mount" }, main.mature ? spoiler(main) : verImg(main, "thumb", ""), main.mature ? null : badge(main)),
         h("span", { class: "plate-cap" }, h("b", { text: roman(i + 1) + "." }), " " + (a.title || "Untitled"),
           count > 1 ? h("span", { class: "plate-more", text: count + " images" }) : null)));
-    }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: canPost() ? "No plates yet. Add the first likeness of him." : "No plates yet." }))]);
-    renderPlate();
+    }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: canPost() ? "No art pieces yet. Add the first." : "No art pieces yet." }))]);
+    el.glTools.hidden = !(canPost() && at >= 0);
+    el.glDelete.hidden = all.length > 0; // only an empty form can be removed, so no art piece goes with it
+    el.glEarlier.disabled = at <= 0;
+    el.glLater.disabled = at < 0 || at === state.galleries.length - 1;
   }
   function renderPlate() {
     var a = findArt(plateId);
-    Array.prototype.forEach.call(el.plates.querySelectorAll(".plate-btn"), function (b) {
-      if (a && b.dataset.id === a.id) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
-    });
     el.plEmpty.hidden = !!a;
     el.plFigure.hidden = !a;
     el.plTools.hidden = !(a && canPost());
     disarm(el.plDelete);
-    if (!a) { fill(el.plOpen, []); fill(el.plVersions, []); return; }
-    var i = state.art.indexOf(a), v = versionIn(a, versionId), covered = v.mature && shown !== v.id;
+    if (!a) { clearMedia(); fill(el.plVersions, []); return; }
+    var group = piecesOf(groupOf(a)), i = group.indexOf(a), v = versionIn(a, versionId), covered = v.mature && shown !== v.id;
+    el.plBack.textContent = "← Return to " + galleryOf(groupOf(a)).name;
     el.plNo.textContent = plateNo(a) + (a.versions.length > 1 ? " · " + verName(a, v) : "");
-    fill(el.plOpen, [covered ? spoiler(v, true) : verImg(v, "file", altOf(a, v))]);
-    el.plOpen.classList.toggle("is-covered", covered);
-    el.plOpen.setAttribute("aria-label", covered ? "A mature image: select to view it (18 or older)" : "View the image full size");
+    if (currentView === "plate") renderMedia(a, v, covered); else clearMedia();
     // the plate's images, to switch between; the focus stays on the one it was on
     var focused = el.plVersions.contains(document.activeElement) ? document.activeElement.dataset.vid : null;
     el.plVersions.hidden = a.versions.length < 2;
     fill(el.plVersions, a.versions.length < 2 ? [] : a.versions.map(function (x) {
       return h("button", { class: "ver-btn", type: "button", "data-vid": x.id, "aria-pressed": x === v ? "true" : "false", onclick: function () { pickVersion(a, x); } },
-        h("span", { class: "mount" }, x.mature ? spoiler(x) : verImg(x, "thumb", "")),
+        h("span", { class: "mount" }, x.mature ? spoiler(x) : verImg(x, "thumb", ""), x.mature ? null : badge(x)),
         h("span", { class: "ver-name", text: verName(a, x) + (x.mature ? " (18+)" : "") }));
     }));
     var back = focused && el.plVersions.querySelector('[data-vid="' + focused + '"]');
@@ -1317,14 +1582,44 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.plNote.textContent = a.note;
     el.plNote.hidden = !a.note;
     el.plEarlier.disabled = i === 0;
-    el.plLater.disabled = i === state.art.length - 1;
+    el.plLater.disabled = i === group.length - 1;
   }
+  // The image on view: a picture or a GIF in the button that shows it full size, a video in its player, or a mature
+  // one's cover. What is already on view is left alone, so a re-render never restarts a video or a GIF.
+  function renderMedia(a, v, covered) {
+    var kind = kindOf(v), key = [v.id, v.file, v.loop, covered, altOf(a, v)].join("|");
+    if (el.plMedia.dataset.key === key) return;
+    clearMedia();
+    el.plMedia.dataset.key = key;
+    var video = !covered && kind === "video";
+    el.plOpen.hidden = video;
+    el.plVideo.hidden = !video;
+    if (covered) fill(el.plOpen, [spoiler(v, true)]);
+    else if (video) fill(el.plVideo, [videoPlayer(v, altOf(a, v))]);
+    else if (kind === "gif") { var gif = gifPlayer(v, altOf(a, v)); fill(el.plOpen, [gif.box]); el.plMedia.append(gif.btn); }
+    else fill(el.plOpen, [verImg(v, "file", altOf(a, v))]);
+    el.plOpen.classList.toggle("is-covered", covered);
+    el.plOpen.setAttribute("aria-label", covered ? "A mature image: select to view it (18 or older)" : "View the image full size");
+  }
+  // Nothing of the image stays on the page once the visitor moves on, and a video stops
+  function clearMedia() {
+    delete el.plMedia.dataset.key;
+    fill(el.plOpen, []);
+    fill(el.plVideo, []);
+    Array.prototype.forEach.call(el.plMedia.querySelectorAll(":scope > .play-btn"), function (b) { b.remove(); });
+    el.plOpen.hidden = false;
+    el.plVideo.hidden = true;
+  }
+  // Where the focus goes back to on the art piece's page: the image, or the video's play button
+  function focusMedia() { (el.plOpen.hidden ? el.plVideo.querySelector(".vid-btn") || el.plOpen : el.plOpen).focus(); }
 
   // The editing tools show only while the server says this browser holds the keeper's session
   function renderOwnerUI() {
     var on = canPost();
-    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = el.btnAddEncounter.hidden = el.encTools.hidden = !on;
+    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = el.btnAddGallery.hidden = el.btnAddEncounter.hidden = el.encTools.hidden = !on;
     el.plTools.hidden = !(on && findArt(plateId));
+    var g = galleryOf(galleryId);
+    el.glTools.hidden = !(on && g && !g.other);
     el.clasp.classList.toggle("is-open", on);
     var ex = state.records.some(function (r) { return r.example; }) || state.encounters.some(function (e) { return e.example; });
     el.btnClearExamples.hidden = !(ex && on);
@@ -1335,15 +1630,16 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var VIEWS = {
     overview: ["viewOverview", "knowledge"], detail: ["viewDetail", "knowledge", 1], form: ["viewForm", "knowledge", 1],
     about: ["viewAbout", "about"], aboutForm: ["viewAboutForm", "about", 1],
-    plates: ["viewPlate", "art"], plate: ["viewPlate", "art", 1], artForm: ["viewArtForm", "art", 1],
+    galleries: ["viewGallery", "art"], gallery: ["viewGallery", "art", 1], galleryForm: ["viewGalleryForm", "art", 1],
+    plate: ["viewPlate", "art", 1], artForm: ["viewArtForm", "art", 1],
     encounters: ["viewEncounter", "encounters"], encounter: ["viewEncounter", "encounters", 1], encounterForm: ["viewEncounterForm", "encounters", 1]
   };
-  var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError", encounterForm: "efError" };
+  var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError", galleryForm: "gfError", encounterForm: "efError" };
   function showView(name) {
     var v = VIEWS[name], book = v[1];
     Object.keys(VIEWS).forEach(function (k) { el[VIEWS[k][0]].hidden = VIEWS[k][0] !== v[0]; });
     Object.keys(BOOKS).forEach(function (b) { el["leaf" + b[0].toUpperCase() + b.slice(1)].hidden = b !== book; });
-    if (name !== "plate" && name !== "plates") shown = null; // a mature image is covered again once the visitor moves on
+    if (name !== "plate") { shown = null; clearMedia(); } // a mature image is covered again once the visitor moves on, and a video stops
     currentView = name;
     currentBook = book;
     el.book.dataset.view = name;
@@ -1355,9 +1651,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     setHash();
   }
 
-  // The address names the open chapter, and the open record or plate, so it can be shared: #art/a1b2c3
+  // The address names the open chapter, and the open record, form or art piece, so it can be shared: #art/a1b2c3
   function setHash() {
-    var id = currentView === "detail" ? detailId : currentView === "plate" ? plateId : currentView === "encounter" ? encounterId : "";
+    var id = currentView === "detail" ? detailId : currentView === "plate" ? plateId : currentView === "gallery" ? galleryId : currentView === "encounter" ? encounterId : "";
     var want = el.archive.open ? "#" + currentBook + (id ? "/" + id : "") : "";
     if (want === location.hash) return;
     try { history.replaceState(null, "", want || location.pathname + location.search); } catch (e) {}
@@ -1376,7 +1672,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   function openBook(book, id) {
     if (book === "about") showView("about");
-    else if (book === "art") { if (id && findArt(id)) showPlate(id); else showPlates(); }
+    else if (book === "art") { if (id && findArt(id)) showPlate(id); else if (id && galleryOf(id)) showGallery(id); else showGalleries(); }
     else if (book === "encounters") { if (id && findEnc(id)) showEncounter(id); else showView("encounters"); }
     else if (id && find(id)) showDetail(id);
     else showView("overview");
@@ -1395,6 +1691,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var e = r.encounter && findEnc(r.encounter);
     fill(el.detSource, [
       e ? h("button", { class: "link-to", type: "button", text: e.title, onclick: function () { showEncounter(e.id); } }) : null,
+      e && e.sealed ? h("span", { class: "opt", text: " (only you see this link)" }) : null,
       e && r.source ? "; " : null, r.source || null, !e && !r.source ? "Not recorded" : null
     ].filter(Boolean));
     disarm(el.detDelete);
@@ -1410,7 +1707,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.encDate.textContent = e.date ? fmtDate(e.date) : "";
     el.encDate.setAttribute("datetime", e.date);
     el.encTitle.textContent = e.title;
-    fill(el.encText, e.text ? [trp(e.text)] : [h("p", { class: "empty", text: "Nothing is written about it yet." })]);
+    el.encSealed.hidden = !e.sealed;
+    el.encEdit.hidden = e.unreadable; // it can only be removed
+    fill(el.encText, e.unreadable ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })]
+      : e.text ? [trp(e.text)] : [h("p", { class: "empty", text: "Nothing is written about it yet." })]);
     var priv = owner && Object.prototype.hasOwnProperty.call(privates, e.id) ? privates[e.id] : undefined;
     el.encPrivate.hidden = priv === undefined;
     fill(el.encPrivateText, priv === null ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })] : priv ? [trp(priv)] : []);
@@ -1427,20 +1727,30 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     showView("encounter");
   }
 
-  // Back to the list of plates: every mature image is covered again
-  function showPlates() { shown = null; renderArt(); showView("plates"); }
-  // A plate, at one of its images (the main one by default). A mature image stays shown only while it is the one
-  // on view.
+  // Back to his forms, or to one of them: every mature image is covered again
+  function showGalleries() { shown = null; showView("galleries"); renderArt(); }
+  function showGallery(id) {
+    var g = galleryOf(id);
+    if (!g || (g.other && !piecesOf(OTHER).length)) { showGalleries(); return; }
+    galleryId = g.id;
+    disarm(el.glDelete);
+    showView("gallery");
+    renderArt();
+    renderOwnerUI();
+  }
+  // An art piece, at one of its images (the main one by default). A mature image stays shown only while it is the
+  // one on view.
   function showPlate(id, vid) {
     var a = findArt(id);
-    if (!a) { showPlates(); return; }
+    if (!a) { showGalleries(); return; }
     var v = versionIn(a, vid);
     if (shown !== v.id) shown = null;
     plateId = id;
     versionId = v.id;
+    galleryId = groupOf(a);
+    showView("plate");
     renderPlate();
     renderOwnerUI();
-    showView("plate");
   }
   // From the list: a plate whose main image is mature asks at once, as a click on its cover would
   function openPlate(id) {
@@ -1458,7 +1768,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function leaveCurrentForm() {
     if (currentView === "form") leaveForm();
     else if (currentView === "aboutForm") showView("about");
-    else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing); else showPlates(); }
+    else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing); else showGallery(galleryId); }
+    else if (currentView === "galleryForm") { if (galleryOf(galEditing)) showGallery(galEditing); else showGalleries(); }
     else if (currentView === "encounterForm") { if (findEnc(encEditing)) showEncounter(encEditing); else showView("encounters"); }
   }
 
@@ -1473,7 +1784,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.fNote.value = r ? r.note : "";
     el.fSource.value = r ? r.source : "";
     fill(el.fEncounter, [h("option", { value: "", text: "None" })].concat(newest(state.encounters).map(function (e) {
-      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") });
+      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") + (e.sealed ? ", only for you" : "") });
     })));
     el.fEncounter.value = r ? r.encounter : "";
     el.fError.hidden = true;
@@ -1503,8 +1814,16 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // section had arrived, or one that can no longer be read, keeps what is stored.
   var PRIVATE_HELP = el.efPrivateHelp.textContent, encWas = "", privWas = "";
   function encFromForm() {
-    return { title: el.efTitle.value.trim(), date: isDate(el.efDate.value) ? el.efDate.value : "", text: el.efText.value.trim(), private: el.efPrivate.value.trim() };
+    return { title: el.efTitle.value.trim(), date: isDate(el.efDate.value) ? el.efDate.value : "", text: el.efText.value.trim(), private: el.efPrivate.value.trim(), sealed: el.efSealed.checked };
   }
+  // "Only for me" changes who "What happened" is for
+  var TEXT_HELP = el.efTextHelp.textContent;
+  function syncSealed() {
+    var only = el.efSealed.checked;
+    el.efTextHelp.textContent = only ? "Only you can read this. " + TEXT_HELP.replace(/^Everyone can read this\. /, "") : TEXT_HELP;
+    el.efText.placeholder = only ? "What happened, for you alone." : "What happened, as anyone may read it.";
+  }
+  el.efSealed.addEventListener("change", syncSealed);
   function fillPrivate(e) {
     var priv = e ? privates[e.id] : "";
     el.efPrivate.value = typeof priv === "string" ? priv : "";
@@ -1520,6 +1839,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.efTitle.value = e ? e.title : "";
     el.efDate.value = e ? e.date : "";
     el.efText.value = e ? e.text : "";
+    el.efSealed.checked = !!(e && e.sealed);
+    syncSealed();
     el.efError.hidden = true;
     fillPrivate(e);
     showView("encounterForm");
@@ -1537,7 +1858,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       if (body.private !== undefined) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
       if (findEnc(data.id)) showEncounter(data.id); else showView("encounters");
       loadPrivate();
-    }, el.efSubmit, prev ? "Saving…" : "Recording…", prev ? "The encounter is revised." : "The encounter is recorded.");
+    }, el.efSubmit, prev ? "Saving…" : "Recording…", prev ? "The encounter is revised." : body.sealed ? "The encounter is recorded, for you alone." : "The encounter is recorded.");
   });
   el.efCancel.addEventListener("click", leaveCurrentForm);
   el.efBack.addEventListener("click", leaveCurrentForm);
@@ -1724,9 +2045,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // A plate and its images. The keeper's browser scales each new image and re-encodes it (which drops everything
   // but the picture, such as a photo's location), makes a thumbnail, and uploads both before saving the plate.
   function toBlob(canvas, type, q) { return new Promise(function (r) { canvas.toBlob(r, type, q); }); }
-  function scaled(src, max) {
-    var k = Math.min(1, max / Math.max(src.width, src.height));
-    var c = h("canvas", { width: Math.max(1, Math.round(src.width * k)), height: Math.max(1, Math.round(src.height * k)) });
+  function scaled(src, max, w, hgt) { // w and hgt: a video's size, which its element does not give as width and height
+    w = w || src.width; hgt = hgt || src.height;
+    var k = Math.min(1, max / Math.max(w, hgt));
+    var c = h("canvas", { width: Math.max(1, Math.round(w * k)), height: Math.max(1, Math.round(hgt * k)) });
     var g = c.getContext("2d");
     g.imageSmoothingQuality = "high";
     g.drawImage(src, 0, 0, c.width, c.height);
@@ -1741,8 +2063,62 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       return toBlob(j, "image/jpeg", q);
     }).then(function (b) { if (!b) throw new Error("This browser could not prepare the image."); return b; });
   }
+  // What a chosen file is, by its type, or by its name when the browser gives no type
+  var EXT_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime" };
+  function mediaType(file) {
+    var ext = (/\.([a-z0-9]+)$/i.exec(file.name || "") || [])[1];
+    return (file.type || EXT_TYPES[(ext || "").toLowerCase()] || "").toLowerCase();
+  }
+  // A picture is scaled and re-encoded; a GIF or a video goes up as it is, with a still of it as its thumbnail
+  function prepareMedia(file) {
+    var type = mediaType(file);
+    if (type === "image/gif") return prepareGif(file);
+    if (type === "video/mp4" || type === "video/webm") return prepareVideo(file, type);
+    if (type === "video/quicktime") return Promise.reject(new Error("QuickTime files (.mov) do not play in every browser. Export it as an MP4 (H.264) or WebM video."));
+    if (/^video\//.test(type)) return Promise.reject(new Error("Choose an MP4 or WebM video."));
+    return prepareImage(file);
+  }
+  function typed(file, type) { return file.type === type ? file : new Blob([file], { type: type }); }
+  function prepareGif(file) {
+    if (file.size > MAX.gif) return Promise.reject(new Error("That GIF is too large. The limit is " + MAX.gif / MiB + " MB."));
+    if (!window.createImageBitmap) return Promise.reject(new Error("This browser cannot prepare images. Try another one."));
+    return createImageBitmap(file).catch(function () { throw new Error("That file could not be read as a GIF."); }).then(function (bmp) {
+      var still = scaled(bmp, STILL_SIDE), w = bmp.width, hgt = bmp.height;
+      if (bmp.close) bmp.close();
+      return encode(still, .85).then(function (thumb) {
+        return { kind: "gif", full: typed(file, "image/gif"), thumb: thumb, preview: still, width: w, height: hgt };
+      });
+    });
+  }
+  // A video is played here, silently, to learn its size and length and to take its poster from early on
+  function prepareVideo(file, type) {
+    if (file.size > MAX.video) return Promise.reject(new Error("That video is too large. The limit is " + MAX.video / MiB + " MB."));
+    var url = URL.createObjectURL(file), video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { reject(new Error("That video took too long to read.")); }, 30000);
+      function fail(msg) { clearTimeout(timer); reject(new Error(msg)); }
+      video.addEventListener("error", function () {
+        fail(PREVIEW ? "The preview could not read that video. On the site, MP4 (H.264) and WebM videos can be added." : "This browser cannot play that video. Export it as an MP4 (H.264) or WebM video.");
+      });
+      video.addEventListener("loadedmetadata", function () {
+        if (!video.videoWidth || !video.videoHeight) { fail("That video has no picture."); return; }
+        if (video.videoWidth > 10000 || video.videoHeight > 10000) { fail("A video can be at most 10000 pixels on a side."); return; }
+        video.addEventListener("seeked", function () { clearTimeout(timer); resolve(); }, { once: true });
+        video.currentTime = Math.min(1, (isFinite(video.duration) ? video.duration : 1) * .1);
+      });
+      video.src = url;
+    }).then(function () {
+      var still = scaled(video, STILL_SIDE, video.videoWidth, video.videoHeight);
+      return encode(still, .85).then(function (thumb) {
+        return { kind: "video", full: typed(file, type), thumb: thumb, preview: still, width: video.videoWidth, height: video.videoHeight, duration: isFinite(video.duration) ? video.duration : 0 };
+      });
+    }).finally(function () { video.removeAttribute("src"); video.load(); URL.revokeObjectURL(url); });
+  }
   function prepareImage(file) {
-    if (!/^image\//.test(file.type)) return Promise.reject(new Error("Choose an image: PNG, JPEG or WebP."));
+    if (!/^image\//.test(mediaType(file))) return Promise.reject(new Error("Choose an image (PNG, JPEG, WebP or GIF) or a video (MP4 or WebM)."));
     if (file.size > 80 * 1024 * 1024) return Promise.reject(new Error("That file is too large to prepare here."));
     if (!window.createImageBitmap) return Promise.reject(new Error("This browser cannot prepare images. Try another one."));
     return createImageBitmap(file).catch(function () { throw new Error("That file could not be read as an image."); }).then(function (bmp) {
@@ -1751,7 +2127,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       return encode(full, .9).then(function (b) { return b.size > MAX.upload ? encode(full, .72) : b; }).then(function (fullBlob) {
         if (fullBlob.size > MAX.upload) throw new Error("Even scaled down, that image is too large.");
         return encode(thumb, .85).then(function (thumbBlob) {
-          return { full: fullBlob, thumb: thumbBlob, preview: thumb, width: full.width, height: full.height };
+          return { kind: "image", full: fullBlob, thumb: thumbBlob, preview: thumb, width: full.width, height: full.height };
         });
       });
     });
@@ -1760,14 +2136,17 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   // One row per image, in order; the first is the main image. A row for an image already saved carries its id;
   // a new row has a file input, and the image it prepares waits on the row (row._draft) until the plate is saved.
+  // A video's row can set it to play on a loop.
   function versionRow(v, i) {
+    var video = !!v && kindOf(v) === "video";
     return h("div", { class: "row row-version", "data-id": v ? v.id : null },
-      h("div", { class: "mount ver-preview" }, v ? verImg(v, "thumb", "") : null),
+      h("div", { class: "mount ver-preview" }, v ? verImg(v, "thumb", "") : null, v ? badge(v) : null),
       h("div", { class: "ver-fields" },
-        v ? null : h("input", { class: "input", type: "file", "data-k": "file", "aria-label": "Image", accept: "image/png,image/jpeg,image/webp,image/gif" }),
+        v ? null : h("input", { class: "input", type: "file", "data-k": "file", "aria-label": "Image or video", accept: "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" }),
         v ? null : h("p", { class: "help", "data-k": "status" }),
         h("input", { class: "input", "data-k": "label", "aria-label": "Label", maxlength: 60, autocomplete: "off", placeholder: i ? "Label, such as Without armour" : "Label (optional)", value: v ? v.label : "" }),
-        h("label", { class: "check" }, h("input", { type: "checkbox", "data-k": "mature", checked: !!(v && v.mature) }), "Mature (18+)")),
+        h("label", { class: "check" }, h("input", { type: "checkbox", "data-k": "mature", checked: !!(v && v.mature) }), "Mature (18+)"),
+        h("label", { class: "check", "data-k": "loop-box", hidden: !video }, h("input", { type: "checkbox", "data-k": "loop", checked: !!(v && v.loop) }), "Loop (for a short animation)")),
       rowTools());
   }
   function updateVersionRows() {
@@ -1777,9 +2156,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function openArtForm(id) {
     var a = id ? findArt(id) : null;
     artEditing = a ? a.id : null;
-    el.afHeading.textContent = a ? "Revise the plate" : "Add a plate";
-    el.afSubmit.textContent = a ? "Save changes" : "Add the plate";
+    el.afHeading.textContent = a ? "Revise the art piece" : "Add an art piece";
+    el.afSubmit.textContent = a ? "Save changes" : "Add the art piece";
     el.afBack.textContent = a ? "← Return without revising" : "← Return without adding";
+    // which of his forms it shows: the one it is in, or, for a new piece, the one open
+    fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: g.name }); }).concat([h("option", { value: "", text: "Other art (no form)" })]));
+    el.afGallery.value = a ? a.gallery : galleryOf(galleryId) && galleryId !== OTHER ? galleryId : "";
     fill(el.afVersions, a ? a.versions.map(versionRow) : [versionRow(null, 0)]);
     updateVersionRows();
     el.afTitle.value = a ? a.title : "";
@@ -1800,18 +2182,21 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var input = e.target;
     if (input.dataset.k !== "file") return;
     var row = input.closest(".row"), status = row.querySelector('[data-k="status"]'), preview = row.querySelector(".ver-preview");
-    var f = input.files && input.files[0], seq = (row._seq || 0) + 1;
+    var f = input.files && input.files[0], seq = (row._seq || 0) + 1, loop = row.querySelector('[data-k="loop-box"]');
     row._seq = seq;
     row._draft = null;
     el.afError.hidden = true;
     fill(preview, []);
     status.textContent = "";
+    loop.hidden = true;
     if (!f) return;
-    status.textContent = "Preparing the image…";
-    row._draft = prepareImage(f).then(function (d) {
+    status.textContent = /^video\//.test(mediaType(f)) ? "Reading the video…" : "Preparing the image…";
+    row._draft = prepareMedia(f).then(function (d) {
       if (row._seq === seq) {
-        fill(preview, [d.preview]);
-        status.textContent = d.width + " × " + d.height + " pixels, " + size(d.full.size + d.thumb.size) + " to upload.";
+        var what = d.kind === "gif" ? "An animated GIF, " : d.kind === "video" ? "A video of " + clock(d.duration) + ", " : "";
+        fill(preview, [d.preview, d.kind === "image" ? null : h("span", { class: "media-badge", text: d.kind === "gif" ? "GIF" : "Video" })].filter(Boolean));
+        status.textContent = what + d.width + " × " + d.height + " pixels, " + size(d.full.size + d.thumb.size) + " to upload.";
+        if (d.kind === "video") { loop.hidden = false; row.querySelector('[data-k="loop"]').checked = d.duration > 0 && d.duration <= 30; }
       }
       return d;
     }, function (err) {
@@ -1826,17 +2211,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var prev = artEditing ? findArt(artEditing) : null, rows = Array.prototype.slice.call(el.afVersions.children);
     if (!rows.length) { formError("artForm", "Add an image first."); el.afAdd.focus(); return; }
     var empty = rows.filter(function (r) { return !r.dataset.id && !r._draft; })[0];
-    if (empty) { formError("artForm", "Choose an image for each new row, or remove the row."); empty.querySelector('[data-k="file"]').focus(); return; }
-    var meta = { title: el.afTitle.value.trim(), artist: el.afArtist.value.trim(), link: el.afLink.value.trim(), date: isDate(el.afDate.value) ? el.afDate.value : today(), note: el.afNote.value.trim() };
+    if (empty) { formError("artForm", "Choose an image or a video for each new row, or remove the row."); empty.querySelector('[data-k="file"]').focus(); return; }
+    var meta = { title: el.afTitle.value.trim(), gallery: el.afGallery.value, artist: el.afArtist.value.trim(), link: el.afLink.value.trim(), date: isDate(el.afDate.value) ? el.afDate.value : today(), note: el.afNote.value.trim() };
     el.afError.hidden = true;
     setBusy(el.afSubmit, true, "Preparing…");
     // the new images go up one after another; then the plate is saved with all its images in the rows' order
     rows.reduce(function (chain, row) {
       return chain.then(function (list) {
-        var v = { label: row.querySelector('[data-k="label"]').value.trim(), mature: row.querySelector('[data-k="mature"]').checked };
+        var v = { label: row.querySelector('[data-k="label"]').value.trim(), mature: row.querySelector('[data-k="mature"]').checked,
+                  loop: !row.querySelector('[data-k="loop-box"]').hidden && row.querySelector('[data-k="loop"]').checked };
         if (row.dataset.id) { v.id = row.dataset.id; return list.concat([v]); }
         return row._draft.then(function (d) {
-          el.afSubmit.textContent = "Uploading…";
+          el.afSubmit.textContent = d.full.size > 4 * MiB ? "Uploading " + size(d.full.size) + "…" : "Uploading…";
+          if (d.kind === "video") { v.width = d.width; v.height = d.height; } // the server takes a video's size from here
           return call("POST", "api/uploads", d.full).then(function (full) {
             return call("POST", "api/uploads", d.thumb).then(function (thumb) { v.file = full.file; v.thumb = thumb.file; return list.concat([v]); });
           });
@@ -1850,7 +2237,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       setBusy(el.afSubmit, false);
       applyArchive(data.archive);
       showPlate(data.id);
-      toast(prev ? "The plate is revised." : "The plate is added.");
+      toast(prev ? "The art piece is revised." : "The art piece is added.");
     }, function (err) {
       setBusy(el.afSubmit, false);
       failed(err);
@@ -1858,6 +2245,29 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   });
   el.afCancel.addEventListener("click", leaveCurrentForm);
   el.afBack.addEventListener("click", leaveCurrentForm);
+
+  // One of his forms: only its name
+  function openGalleryForm(id) {
+    var g = id ? galleryOf(id) : null;
+    galEditing = g && !g.other ? g.id : null;
+    el.gfHeading.textContent = galEditing ? "Rename the form" : "Add a form";
+    el.gfSubmit.textContent = galEditing ? "Save the name" : "Add the form";
+    el.gfBack.textContent = galEditing ? "← Return without renaming" : "← Return without adding";
+    el.gfName.value = galEditing ? g.name : "";
+    el.gfError.hidden = true;
+    showView("galleryForm");
+    setTimeout(function () { el.gfName.focus(); }, 40);
+  }
+  el.galleryForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (busy || !canPost()) return;
+    var name = el.gfName.value.trim(), prev = galEditing ? galleryOf(galEditing) : null;
+    if (!name) { formError("galleryForm", "Give the form a name."); el.gfName.focus(); return; }
+    save(prev ? "PUT" : "POST", prev ? "api/galleries/" + encodeURIComponent(prev.id) : "api/galleries", { name: name }, function (data) { showGallery(data.id); },
+      el.gfSubmit, "Saving…", prev ? "The form is renamed." : "The form is added.");
+  });
+  el.gfCancel.addEventListener("click", leaveCurrentForm);
+  el.gfBack.addEventListener("click", leaveCurrentForm);
 
   // two-step confirmation, quieter than a confirm() box
   function arm(btn, label, action) {
@@ -1891,15 +2301,29 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   });
   arm(el.plDelete, function () { return "Confirm removal"; }, function () {
     var a = findArt(plateId); if (!a || !canPost()) return;
-    save("DELETE", "api/art/" + encodeURIComponent(a.id), undefined, function () { showPlates(); }, el.plDelete, "Removing…", "The plate is removed.");
+    save("DELETE", "api/art/" + encodeURIComponent(a.id), undefined, function () { showGallery(groupOf(a)); }, el.plDelete, "Removing…", "The art piece is removed.");
   });
+  arm(el.glDelete, function () { return "Confirm removal"; }, function () {
+    var g = galleryOf(galleryId); if (!g || g.other || !canPost()) return;
+    save("DELETE", "api/galleries/" + encodeURIComponent(g.id), undefined, function () { showGalleries(); }, el.glDelete, "Removing…", "The form is removed.");
+  });
+  // An art piece moves past the next one of the same form; the server keeps one order for all of them
   function movePlate(by, btn) {
-    var ids = state.art.map(function (a) { return a.id; }), i = ids.indexOf(plateId), j = i + by;
+    var a = findArt(plateId), group = a ? piecesOf(groupOf(a)) : [], other = group[group.indexOf(a) + by];
+    if (!a || !other || !canPost()) return;
+    var ids = state.art.map(function (x) { return x.id; }), i = ids.indexOf(a.id), j = ids.indexOf(other.id);
+    ids[i] = other.id; ids[j] = a.id;
+    save("POST", "api/art/order", { ids: ids }, function () { showPlate(a.id); if (!btn.disabled) btn.focus(); }, btn, "Moving…", "");
+  }
+  function moveGallery(by, btn) {
+    var ids = state.galleries.map(function (g) { return g.id; }), i = ids.indexOf(galleryId), j = i + by;
     if (i < 0 || j < 0 || j >= ids.length || !canPost()) return;
     ids.splice(j, 0, ids.splice(i, 1)[0]);
-    var id = plateId;
-    save("POST", "api/art/order", { ids: ids }, function () { showPlate(id); if (!btn.disabled) btn.focus(); }, btn, "Moving…", "");
+    var id = galleryId;
+    save("POST", "api/galleries/order", { ids: ids }, function () { showGallery(id); if (!btn.disabled) btn.focus(); }, btn, "Moving…", "");
   }
+  el.glEarlier.addEventListener("click", function () { moveGallery(-1, el.glEarlier); });
+  el.glLater.addEventListener("click", function () { moveGallery(1, el.glLater); });
   el.plEarlier.addEventListener("click", function () { movePlate(-1, el.plEarlier); });
   el.plLater.addEventListener("click", function () { movePlate(1, el.plLater); });
 
@@ -1954,17 +2378,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.gateBack.addEventListener("click", closeGate);
 
   // ---------- The full-size view ----------
-  // It steps through every image of every plate in order. A mature one arrives covered, as in the book.
+  // It steps through every image of every art piece of the same form, in order. A mature one arrives covered, as in
+  // the book. A GIF and a video come with their players.
   var lb = null, lbFrom = null; // the plate and image on view
   function sequence() {
-    var out = [];
-    state.art.forEach(function (a) { a.versions.forEach(function (v) { out.push({ plate: a.id, version: v.id }); }); });
+    var a = lb && findArt(lb.plate), out = [];
+    (a ? piecesOf(groupOf(a)) : []).forEach(function (x) { x.versions.forEach(function (v) { out.push({ plate: x.id, version: v.id }); }); });
     return out;
   }
   function openLightbox(id, vid) {
     var a = findArt(id);
     if (!a) return;
     lbFrom = document.activeElement;
+    pauseVideos(el.plMedia);
     lb = { plate: a.id, version: versionIn(a, vid).id };
     el.lightbox.hidden = false;
     el.tome.inert = el.tabs.inert = true;
@@ -1976,6 +2402,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!v) { closeLightbox(); return; }
     if (v.mature && shown !== v.id) {
       fill(el.lbFrame, [h("button", { class: "lb-cover", type: "button", "aria-label": "A mature image: select to view it (18 or older)", onclick: function () { showMature(v); } }, spoiler(v, true))]);
+    } else if (kindOf(v) === "video") {
+      fill(el.lbFrame, [videoPlayer(v, altOf(a, v))]);
+    } else if (kindOf(v) === "gif") {
+      var gif = gifPlayer(v, altOf(a, v));
+      fill(el.lbFrame, [h("div", { class: "lb-gif" }, gif.box, gif.btn)]);
     } else {
       var img = verImg(v, "thumb", altOf(a, v)); // the thumbnail at once, then the full image once it has loaded
       img.removeAttribute("loading");
@@ -2005,13 +2436,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.tome.inert = el.tabs.inert = false;
     lb = null;
     fill(el.lbFrame, []);
-    if ((currentView === "plate" || currentView === "plates") && at && findArt(at.plate)) { showPlate(at.plate, at.version); el.plOpen.focus(); } // the book follows the view
+    if (currentView === "plate" && at && findArt(at.plate)) { showPlate(at.plate, at.version); focusMedia(); } // the book follows the view
     else if (lbFrom && lbFrom.isConnected) lbFrom.focus();
   }
   el.plOpen.addEventListener("click", function () {
     var a = findArt(plateId), v = a && versionIn(a, versionId);
     if (!v) return;
-    if (v.mature && shown !== v.id) showMature(v); else openLightbox(a.id, v.id);
+    if (v.mature && shown !== v.id) showMature(v); else if (kindOf(v) !== "video") openLightbox(a.id, v.id);
   });
   el.lbClose.addEventListener("click", closeLightbox);
   el.lbPrev.addEventListener("click", function () { stepLightbox(-1); });
@@ -2085,11 +2516,27 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function setOwner(on, token) {
     owner = on;
     csrf = on ? token || "" : "";
-    if (!on) { privates = {}; privatesLoaded = false; } // sealed: the private sections leave the page's memory too
+    if (!on) { privates = {}; privatesLoaded = false; forgetSealed(); wipeForms(); } // sealed: the private sections and the keeper's own encounters leave the page's memory too
     renderAll();
+    if (!on && currentView === "encounter" && !findEnc(encounterId)) showView("encounters");
+    else if (!on && currentView === "detail" && find(detailId)) showDetail(detailId); // without its link to one of them
     if (on) loadPrivate();
   }
-  // The encounters' private sections, decrypted by the server for the keeper's session alone (null: unreadable)
+  // The encounters only for the keeper, and records' links to them, are dropped from the page, and so is the last
+  // one shown, if it was one of them
+  function forgetSealed() {
+    var gone = {};
+    state.encounters = state.encounters.filter(function (e) { if (e.sealed) gone[e.id] = true; return !e.sealed; });
+    state.records.forEach(function (r) { if (gone[r.encounter]) r.encounter = ""; });
+    if (gone[encounterId]) { encounterId = null; el.encTitle.textContent = ""; fill(el.encText, []); fill(el.encPrivateText, []); el.encSealed.hidden = true; }
+  }
+  // What the forms held, unless one is open (a session that ran out keeps it, to be saved once unsealed again)
+  function wipeForms() {
+    if (currentView !== "encounterForm") el.encounterForm.reset();
+    if (currentView !== "form") fill(el.fEncounter, []);
+  }
+  // The encounters' private sections, decrypted by the server for the keeper's session alone (null: unreadable),
+  // and the archive as the keeper sees it, with the encounters only for the keeper
   var privates = {}, privatesLoaded = false;
   function loadPrivate() {
     if (!owner) return Promise.resolve();
@@ -2097,7 +2544,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       if (!owner) return;
       privates = d.encounters || {};
       privatesLoaded = true;
-      if (currentView === "encounter") renderEncounter();
+      if (d.archive) applyArchive(d.archive); else if (currentView === "encounter") renderEncounter();
     }, function () {});
   }
   function refreshSession() {
@@ -2148,7 +2595,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (sealBusy) return;
     function sealed() {
       setOwner(false, "");
-      if (FORMS[currentView]) leaveCurrentForm();
+      if (FORMS[currentView]) { leaveCurrentForm(); wipeForms(); }
       closeSeal(true);
       toast("Sealed. The editing tools are hidden again.");
     }
@@ -2910,8 +3357,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   // ---------- Drawing the light in, and the hub it reveals ----------
   // A click on the gem draws in everything drifting in the dark: the wisps, the flares, the nearer motes and a last
-  // rush from the edges, spiralling in while the gem charges. As it flashes, a ring of light leaves it and the three
-  // choices appear beneath it. Started from the keyboard, the focus moves to the first of them.
+  // rush from the edges, spiralling in while the gem charges. As it flashes, a ring of light leaves it and the
+  // choices appear beneath it. Started from the keyboard, the focus moves to the first of them. Once the tome is
+  // closed again, they are gone, and the construct sinks back until its gem is clicked once more.
   var drawing = false, hubShown = false;
   function summon(keyboard) {
     if (drawing || el.archive.open) return;
@@ -2942,6 +3390,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }
     if (focus) el.hub.querySelector(".hub-opt").focus({ preventScroll: true });
   }
+  function hideHub() {
+    if (!hubShown) return;
+    hubShown = false;
+    el.hub.hidden = true;
+    el.hub.classList.remove("show");
+    el.stage.classList.remove("has-hub");
+    motes.recenter();
+  }
 
   // ---------- Events ----------
   // Only the gem wakes the construct. A pointer click has to land on it; keyboard activation of the button
@@ -2969,18 +3425,24 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.archive.addEventListener("click", function (e) {
     if (e.target === el.archive && !FORMS[currentView] && el.lightbox.hidden && el.gate.hidden) el.archive.close();
   });
-  el.archive.addEventListener("cancel", function (e) {
-    if (!el.gate.hidden) { e.preventDefault(); closeGate(); }
-    else if (!el.lightbox.hidden) { e.preventDefault(); closeLightbox(); }
-    else if (!el.seal.hidden) { e.preventDefault(); closeSeal(true); }
+  // Escape closes what is on top first: the age check, the full-size view, the seal panel, a form (unless it has
+  // unsaved writing); only then the tome. It is handled on keydown, because Chrome lets a page hold back the
+  // dialog's own cancel only once per click or key press, and a second Escape would close the whole tome. The cancel
+  // handler stays for other ways of closing, such as a phone's back gesture.
+  function closeTop() {
+    if (!el.gate.hidden) closeGate();
+    else if (!el.lightbox.hidden) closeLightbox();
+    else if (!el.seal.hidden) closeSeal(true);
     else if (FORMS[currentView]) {
-      e.preventDefault();
       if (aboutChanged() || encounterChanged()) toast("There are unsaved changes. Save them, or press Cancel to let them go.");
       else leaveCurrentForm();
-    }
-  });
+    } else return false;
+    return true;
+  }
+  el.archive.addEventListener("keydown", function (e) { if (e.key === "Escape" && !e.defaultPrevented && closeTop()) e.preventDefault(); });
+  el.archive.addEventListener("cancel", function (e) { if (closeTop()) e.preventDefault(); });
   el.archive.addEventListener("keydown", function (e) {
-    if (el.lightbox.hidden || !el.gate.hidden) return;
+    if (el.lightbox.hidden || !el.gate.hidden || e.target.closest(".vid-bar")) return; // the arrows move through a video there
     if (e.key === "ArrowLeft") { e.preventDefault(); stepLightbox(-1); }
     else if (e.key === "ArrowRight") { e.preventDefault(); stepLightbox(1); }
   });
@@ -2988,6 +3450,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     closeGate();
     closeLightbox();
     shown = null;
+    clearMedia();
     closeSeal(false);
     root.append(el.toast);
     disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete); disarm(el.encDelete);
@@ -2995,8 +3458,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     motes.resume();
     model3d.resume();
     setHash();
-    var back = hubShown && el.hub.querySelector('[data-book="' + currentBook + '"]'); // back to the choice that opened it
-    (back || el.construct).focus({ preventScroll: true });
+    hideHub(); // the choices go with the tome: the gem has to be woken again to bring them back
+    el.construct.focus({ preventScroll: true });
   });
   el.detBack.addEventListener("click", function () { showView("overview"); });
   el.detEdit.addEventListener("click", function () { openForm(detailId); });
@@ -3006,11 +3469,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.btnAddEncounter.addEventListener("click", function () { openEncounterForm(null); });
   el.btnAmend.addEventListener("click", openAboutForm);
   el.btnAddArt.addEventListener("click", function () { openArtForm(null); });
+  el.btnAddGallery.addEventListener("click", function () { openGalleryForm(null); });
+  el.glBack.addEventListener("click", showGalleries);
+  el.glEdit.addEventListener("click", function () { openGalleryForm(galleryId); });
   el.plEdit.addEventListener("click", function () { openArtForm(plateId); });
-  el.plBack.addEventListener("click", showPlates);
+  el.plBack.addEventListener("click", function () { showGallery(galleryId); });
 
   // A shared address opens its chapter at once, without waking the construct: #about, #art, #knowledge, #encounters,
-  // #art/<plate>, #knowledge/<record>, #encounters/<encounter>
+  // #art/<form>, #art/<art piece>, #knowledge/<record>, #encounters/<encounter>
   function route() {
     var m = /^#(about|art|knowledge|encounters)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
     if (!m || (el.archive.open && FORMS[currentView])) return;
