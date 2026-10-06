@@ -47,6 +47,7 @@
   --ink-verdigris: #1d6a61;
   --ink-copper: #8a4a1d;
   --ink-ochre: #8f620b;
+  --ink-gold: #705c00; /* TRP's gold, {col:ffd100}, as ink() darkens it for parchment */
   --sepia-rgb: 47 31 16;
   --brass-rgb: 196 154 69;
   --umber-rgb: 16 9 4;
@@ -342,6 +343,16 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 
 /* the description: TRP markup made into headings, paragraphs, colours and links */
 .ab-sections { display: grid; gap: 40px; }
+/* A section's heading is set like a pull quote: large italic in curly quotes, centred between two flourishes that
+   fade out from a small diamond, in its own colour (TRP's gold unless the keeper picks another) */
+.ab-heading { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 20px); margin: 0 0 .8em; font-family: var(--font-book); font-size: clamp(24px, 3vw, 30px); font-style: italic; font-weight: 400; line-height: 1.2; color: var(--ink-gold); }
+.ab-heading > span { flex: 0 1 auto; min-width: 0; max-width: 80%; text-align: center; text-wrap: balance; overflow-wrap: anywhere; }
+.ab-heading > span::before { content: "\201C"; opacity: .6; }
+.ab-heading > span::after { content: "\201D"; opacity: .6; }
+.flourish { position: relative; flex: 1 1 0; min-width: 24px; height: 1px; background: linear-gradient(to right, transparent, currentColor); opacity: .7; }
+.flourish + span + .flourish { background: linear-gradient(to left, transparent, currentColor); }
+.flourish::after { content: ""; position: absolute; top: 50%; right: 0; width: 6px; height: 6px; translate: 0 -50%; rotate: 45deg; background: currentColor; }
+.flourish + span + .flourish::after { right: auto; left: 0; }
 .ab-sections:empty { display: none; }
 .trp { font-size: 19px; line-height: 1.62; overflow-wrap: anywhere; }
 .trp p { margin: 0 0 .8em; }
@@ -469,8 +480,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 .rows { display: grid; gap: 12px; }
 .row { display: grid; gap: 2px 12px; align-items: end; }
 .row-fact { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; }
-.row-section { grid-template-columns: minmax(0, 1fr) auto; padding-bottom: 8px; border-bottom: 1px dotted rgb(var(--sepia-rgb) / .3); }
+.row-section { grid-template-columns: minmax(0, 1fr) auto auto; padding-bottom: 8px; border-bottom: 1px dotted rgb(var(--sepia-rgb) / .3); }
 .row-section textarea { grid-column: 1 / -1; min-height: 160px; max-height: 70vh; field-sizing: content; }
+.head-input { font-size: 22px !important; font-style: italic; color: var(--ink-gold); }
+.head-color { align-self: center; width: 38px; height: 30px; padding: 1px 2px; border: 1px solid rgb(var(--sepia-rgb) / .5); border-radius: 2px; background: rgb(255 248 225 / .4); cursor: pointer; }
 .row-trait { grid-template-columns: minmax(0, 1fr) minmax(90px, 1.2fr) minmax(0, 1fr) auto; align-items: center; }
 .row-trait [data-k="left"] { text-align: right; }
 .row-trait .row-tools { padding-bottom: 0; }
@@ -1030,7 +1043,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       facts: list(ab.facts, ["label", "value"]),
       traits: list(ab.traits, ["left", "right"]).map(function (t, i) { t.value = traitValue(ab.traits[i].value); return t; }),
       glances: list(ab.glances, ["title", "text"]),
-      sections: list(ab.sections, ["heading", "body"])
+      sections: list(ab.sections, ["heading", "body", "color"]).map(function (x) { if (!/^#[0-9a-f]{6}$/i.test(x.color)) x.color = ""; return x; })
     };
     ABOUT_TEXT.forEach(function (k) { about[k] = typeof ab[k] === "string" ? ab[k] : ""; });
     return { profile: profile, about: about, art: art, records: records };
@@ -1255,6 +1268,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       h("span", { class: "t-pole t-right" + (t.value > 10 ? " is-lean" : ""), text: t.right }),
       h("span", { class: "sr-only", text: ": " + words }));
   }
+  var QUOTES = /^["'“”‘’„«»]+|["'“”‘’„«»]+$/g; // the heading's own quotes, which its style adds
+  // a section's heading, in quotes between two flourishes, in its colour made readable on parchment (TRP's gold by default)
+  function sectionHeading(x) {
+    var head = h("h4", { class: "ab-heading" }, h("i", { class: "flourish", "aria-hidden": "true" }), h("span", { text: x.heading.replace(QUOTES, "") || x.heading }), h("i", { class: "flourish", "aria-hidden": "true" }));
+    if (x.color) head.style.color = ink(x.color.slice(1));
+    return head;
+  }
   function renderAbout() {
     var p = state.profile, ab = state.about, por = ab.portrait ? findArt(ab.portrait) : null;
     el.abTitle.textContent = ab.title;
@@ -1287,7 +1307,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     fill(el.abGlances, ab.glances.map(function (g) { return h("li", { class: "glance" }, g.title ? h("h5", { text: g.title }) : null, g.text ? h("p", { text: g.text }) : null); }));
     el.abGlancesWrap.hidden = !ab.glances.length;
     fill(el.abSections, ab.sections.map(function (x) {
-      return h("section", { class: "ab-section" }, x.heading ? h("h4", { class: "rubric", text: x.heading }) : null, h("div", { class: "trp" }, trp(x.body)));
+      return h("section", { class: "ab-section" }, x.heading ? sectionHeading(x) : null, h("div", { class: "trp" }, trp(x.body)));
     }));
     // a red capital opens the first plain paragraph of the description, if it is long enough to wrap around it
     var first = el.abSections.querySelector(".trp > p:not(.al-c):not(.al-r)");
@@ -1550,18 +1570,28 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       rowTools(),
       h("textarea", { class: "input", "data-k": "text", "aria-label": "What anyone would see", maxlength: 1000, placeholder: "Obsidian, dulled at the edges." }, g.text));
   }
+  // A section: its heading (shown in the heading's style and colour as it is typed), the heading's colour, and its text.
+  // A new section takes the colour of the last one.
+  var GOLD = "#ffd100";
+  function lastColor() { var last = el.abfSections.lastElementChild; return last ? last.querySelector('[data-k="color"]').value : GOLD; }
   function sectionRow(x, i) {
-    return h("div", { class: "row row-section" },
-      h("input", { class: "input", "data-k": "heading", "aria-label": "Heading", maxlength: 120, autocomplete: "off", placeholder: STANDARD_SECTIONS[i] || "Heading", value: x.heading }),
+    var color = x.color || GOLD;
+    var head = h("input", { class: "input head-input", "data-k": "heading", "aria-label": "Heading", maxlength: 120, autocomplete: "off", placeholder: STANDARD_SECTIONS[i] || "Heading", value: x.heading });
+    var pick = h("input", { type: "color", class: "head-color", "data-k": "color", "aria-label": "Heading colour", title: "Heading colour", value: color });
+    function show() { head.style.color = ink(pick.value.slice(1)); }
+    pick.addEventListener("input", show);
+    show();
+    return h("div", { class: "row row-section" }, head, pick,
       rowTools(),
       h("textarea", { class: "input", "data-k": "body", "aria-label": "Text", maxlength: 40000, placeholder: i ? "" : "Write it here, or paste his description from Total RP 3." }, x.body));
   }
-  function rowsOf(box, keys) {
+  // the rows' values; a row counts only if one of `filled` (by default, any key) has something in it
+  function rowsOf(box, keys, filled) {
     return Array.prototype.map.call(box.children, function (row) {
       var o = {};
       keys.forEach(function (k) { o[k] = row.querySelector('[data-k="' + k + '"]').value.trim(); });
       return o;
-    }).filter(function (o) { return keys.some(function (k) { return o[k]; }); });
+    }).filter(function (o) { return (filled || keys).some(function (k) { return o[k]; }); });
   }
   // The ↑ ↓ × buttons of a list of rows; at least `min` rows stay
   function rowButtons(box, min) {
@@ -1590,7 +1620,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     [el.abfFacts, el.abfAddFact, MAX.facts, function () { return factRow({ label: "", value: "" }, el.abfFacts.children.length); }],
     [el.abfTraits, el.abfAddTrait, MAX.traits, function () { return traitRow({ left: "", right: "", value: 10 }); }],
     [el.abfGlances, el.abfAddGlance, MAX.glances, function () { return glanceRow({ title: "", text: "" }); }],
-    [el.abfSections, el.abfAddSection, MAX.sections, function () { return sectionRow({ heading: "", body: "" }, el.abfSections.children.length); }]
+    [el.abfSections, el.abfAddSection, MAX.sections, function () { return sectionRow({ heading: "", body: "", color: lastColor() }, el.abfSections.children.length); }]
   ];
   function updateRows() {
     ROWS.forEach(function (r) { r[1].disabled = r[0].children.length >= r[2]; rowButtons(r[0], 0); });
@@ -1627,7 +1657,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var head = row.querySelector('[data-k="heading"]');
       if (want.length && !head.value.trim() && !row.querySelector('[data-k="body"]').value.trim()) head.value = want.shift();
     });
-    want.forEach(function (x) { if (el.abfSections.children.length < MAX.sections) el.abfSections.append(sectionRow({ heading: x, body: "" }, el.abfSections.children.length)); });
+    want.forEach(function (x) { if (el.abfSections.children.length < MAX.sections) el.abfSections.append(sectionRow({ heading: x, body: "", color: lastColor() }, el.abfSections.children.length)); });
     updateRows();
   });
   DIRECTORY.forEach(function (d) {
@@ -1668,9 +1698,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       title: el.abfTitle.value.trim(), currently: el.abfCurrently.value.trim(), ooc: el.abfOoc.value.trim(),
       eyeColor: el.abfEyeOn.checked ? el.abfEyeColor.value : "",
       facts: rowsOf(el.abfFacts, ["label", "value"]),
-      traits: rowsOf(el.abfTraits, ["left", "right", "value"]).map(function (t) { t.value = traitValue(t.value); return t; }),
+      traits: rowsOf(el.abfTraits, ["left", "right", "value"], ["left", "right"]).map(function (t) { t.value = traitValue(t.value); return t; }),
       glances: rowsOf(el.abfGlances, ["title", "text"]),
-      sections: rowsOf(el.abfSections, ["heading", "body"])
+      sections: rowsOf(el.abfSections, ["heading", "body", "color"], ["heading", "body"])
     };
     DIRECTORY.forEach(function (d) { body[d[0]] = byId("abf-" + d[0]).value.trim(); });
     return body;

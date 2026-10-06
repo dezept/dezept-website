@@ -85,7 +85,8 @@
       },
       {
         "heading": "History",
-        "body": "{h2:c}The Slumber{/h2}\nSealed with the rest of his kind in the Forbidden Reach, he woke to a world ten thousand years older than the one he remembered.\n\n{h2:c}The Chalice{/h2}\nAn archival construct of {col:66efdc}Shadowlands{/col} make, bought from a broker who asked no questions and answered fewer. It remembers what he tells it, and nothing else."
+        "body": "{h2:c}The Slumber{/h2}\nSealed with the rest of his kind in the Forbidden Reach, he woke to a world ten thousand years older than the one he remembered.\n\n{h2:c}The Chalice{/h2}\nAn archival construct of {col:66efdc}Shadowlands{/col} make, bought from a broker who asked no questions and answered fewer. It remembers what he tells it, and nothing else.",
+        "color": "#66efdc"
       }
     ]
   },

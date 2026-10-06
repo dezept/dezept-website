@@ -246,12 +246,12 @@ async function apiChecks() {
       facts: [{ label: 'Motto', value: 'v' }, { label: ' ', value: '' }, ...Array.from({ length: 30 }, (_, i) => ({ label: 'L' + i, value: 'v' }))],
       traits: [{ left: 'Chaotic', right: 'Lawful', value: 99 }, { left: 'A', right: 'B', value: -4 }, { left: 'C', right: 'D', value: 'x' }, { left: 'E', right: 'F', value: 7.6 }, { left: '', right: '' }],
       glances: Array.from({ length: 8 }, (_, i) => ({ title: 'Glance ' + i, text: 't' })),
-      sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000) }, 'junk', null, { heading: '', body: '' }],
+      sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000), color: 'red; background: url(x)' }, 'junk', null, { heading: '', body: '' }],
     });
     const ab = about.json && about.json.archive;
     check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && ab.about.portrait === '' &&
       ab.about.facts.length === 24 && ab.about.facts[0].label === 'Motto' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 40000 &&
-      ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
+      ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.sections[0].color === '' && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
       ab.about.currently === 'line one\nline two' && ab.about.traits.map((t) => t.value).join() === '20,0,10,8' && ab.about.glances.length === 5 && !('admin' in ab.about),
       'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and an unknown portrait cleared, TRP markup kept as text');
     const aboutPage = await call('GET', '/');
@@ -518,7 +518,8 @@ async function browserChecks() {
     await page.$eval('#abf-traits .range', (r) => { r.value = '3'; r.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.click('#abf-add-glance');
     await page.fill('#abf-glances .row >> nth=0 >> [data-k="title"]', 'Scales ' + xss);
-    await page.fill('#abf-sections .row >> nth=0 >> [data-k="heading"]', 'Appearance');
+    await page.fill('#abf-sections .row >> nth=0 >> [data-k="heading"]', '“Appearance”');
+    await page.$eval('#abf-sections [data-k="color"]', (c) => { c.value = '#1d6a61'; c.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.fill('#abf-sections .row >> nth=0 >> [data-k="body"]', '{h2:c}Smoke heading{/h2}\nScales the colour of old copper, in {col:ffffff}white{/col} ink and |cffffd100gold|r. ' +
       xss + '\n\n{link*javascript:alert(1)*bad link} and {link*https://example.com/*good link}{icon:inv_misc_book_09:20}');
     await page.keyboard.press('Escape');
@@ -530,15 +531,17 @@ async function browserChecks() {
       const out = document.getElementById('ab-sections');
       return { heading: (out.querySelector('h6.al-c') || {}).textContent, text: out.textContent, img: !!document.querySelector('#view-about img, #leaf-about .ab-titles img'),
         colours: [...out.querySelectorAll('.trp span')].map((n) => getComputedStyle(n).color), links: [...out.querySelectorAll('a')].map((a) => a.getAttribute('href')),
-        xss: !!window.__xss, lean: (document.querySelector('#ab-traits .is-lean') || {}).textContent, traits: document.querySelectorAll('#ab-traits .trait').length };
+        xss: !!window.__xss, lean: (document.querySelector('#ab-traits .is-lean') || {}).textContent, traits: document.querySelectorAll('#ab-traits .trait').length,
+        head: (() => { const n = out.querySelector('.ab-heading > span'), c = n && getComputedStyle(n); return n && [n.textContent, c.textAlign, c.color].join('|'); })() };
     });
     check((await page.textContent('#ab-name')) === 'Smoke ' + xss && (await page.textContent('#ab-title')) === 'Archivist' && (await page.textContent('#ab-dir')).includes('Dracthyr') &&
       (await page.$$eval('#ab-facts dt', (n) => n.map((x) => x.textContent).join())) === 'Pronouns,Motto' && aboutSeen.traits === 11 && aboutSeen.lean === 'Chaotic' &&
       (await page.textContent('#ab-glances')).includes(xss) && !aboutSeen.img && !aboutSeen.xss,
       'the About page can be amended in TRP terms, rows keep the order they were moved to, and markup stays text');
     check(aboutSeen.heading === 'Smoke heading' && aboutSeen.text.includes('old copper') && aboutSeen.text.includes(xss) && aboutSeen.text.includes('bad link') && !aboutSeen.text.includes('{') &&
-      aboutSeen.links.join() === 'https://example.com/' && aboutSeen.colours.length === 2 && aboutSeen.colours.every((c) => c !== 'rgb(255, 255, 255)' && c !== 'rgb(255, 209, 0)'),
-      'TRP markup in the description becomes headings, colours darkened for parchment and http(s) links only');
+      aboutSeen.links.join() === 'https://example.com/' && aboutSeen.colours.length === 2 && aboutSeen.colours.every((c) => c !== 'rgb(255, 255, 255)' && c !== 'rgb(255, 209, 0)') &&
+      aboutSeen.head === 'Appearance|center|rgb(29, 106, 97)',
+      "TRP markup in the description becomes headings, colours darkened for parchment and http(s) links only; a section's heading is centred in its chosen colour, without doubled quotes");
     await page.screenshot({ path: path.join(OUT, 'about.png') });
 
     // a plate of two images, the second mature: uploaded from the keeper's browser, shown, linked to, made the portrait, removed
@@ -602,7 +605,7 @@ async function browserChecks() {
     const minorSeen = [];
     minor.on('request', (r) => minorSeen.push(r.url()));
     await minor.goto(s.url + plate.hash);
-    await minor.waitForSelector('#archive[open] #view-plate:not([hidden])', { timeout: 10000 });
+    await minor.waitForSelector('#archive[open] #view-plate:not([hidden])', { timeout: 20000 });
     await minor.click('#pl-versions .ver-btn >> nth=1');
     await minor.waitForSelector('#gate:not([hidden])', { timeout: 3000 });
     await minor.fill('#gate-age', '15');

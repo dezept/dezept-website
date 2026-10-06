@@ -275,11 +275,12 @@ function cleanArt(input, prev, check) {
 function cleanAbout(input, art) {
   const a = input && typeof input === "object" ? input : {};
   const list = (v) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === "object");
+  const color = (c) => (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : "");
   const out = {
     portrait: typeof a.portrait === "string" && art.some((x) => x.id === a.portrait && !x.versions[0].mature) ? a.portrait : "", // never a mature image
   };
   for (const [key, max] of Object.entries(ABOUT_TEXT)) out[key] = str(a[key], max);
-  out.eyeColor = typeof a.eyeColor === "string" && /^#[0-9a-f]{6}$/i.test(a.eyeColor) ? a.eyeColor.toLowerCase() : "";
+  out.eyeColor = color(a.eyeColor);
   out.facts = list(a.facts).map((f) => ({ label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }))
     .filter((f) => f.label || f.value).slice(0, LIMIT.facts);
   out.traits = list(a.traits).map((t) => {
@@ -288,7 +289,8 @@ function cleanAbout(input, art) {
   }).filter((t) => t.left || t.right).slice(0, LIMIT.traits);
   out.glances = list(a.glances).map((g) => ({ title: str(g.title, LIMIT.glanceTitle), text: str(g.text, LIMIT.glanceText) }))
     .filter((g) => g.title || g.text).slice(0, LIMIT.glances);
-  out.sections = list(a.sections).map((x) => ({ heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }))
+  // a section's heading may have its own colour; "" is TRP's gold
+  out.sections = list(a.sections).map((x) => ({ heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section), color: color(x.color) }))
     .filter((x) => x.heading || x.body).slice(0, LIMIT.sections);
   return out;
 }

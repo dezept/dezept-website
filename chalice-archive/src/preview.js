@@ -114,7 +114,9 @@
     }).filter(function (t) { return t.left || t.right; }).slice(0, LIMIT.traits);
     out.glances = list(a.glances).map(function (g) { return { title: str(g.title, LIMIT.glanceTitle), text: str(g.text, LIMIT.glanceText) }; })
       .filter(function (g) { return g.title || g.text; }).slice(0, LIMIT.glances);
-    out.sections = list(a.sections).map(function (x) { return { heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }; })
+    out.sections = list(a.sections).map(function (x) {
+      return { heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section), color: typeof x.color === "string" && /^#[0-9a-f]{6}$/i.test(x.color) ? x.color.toLowerCase() : "" };
+    })
       .filter(function (x) { return x.heading || x.body; }).slice(0, LIMIT.sections);
     return out;
   }
