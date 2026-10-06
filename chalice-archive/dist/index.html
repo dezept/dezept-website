@@ -128,14 +128,13 @@ button, input, textarea { font: inherit; color: inherit; }
 .core { transition: translate .9s cubic-bezier(.2, .8, .2, 1); }
 .stage.has-hub .core { translate: 0 -56px; } /* the construct rises to make room */
 .hub { position: absolute; z-index: 2; top: calc(100% + 30px); left: 50%; translate: -50% 0; display: flex; justify-content: center; gap: clamp(8px, 1.8vw, 18px); width: max-content; max-width: calc(100vw - 32px); }
-.hub-opt { position: relative; display: grid; justify-items: center; align-content: center; gap: 7px; box-sizing: border-box; width: clamp(100px, 29vw, 172px); padding: 15px 8px 14px; border: 1px solid rgb(var(--teal-rgb) / .16); border-radius: 2px; cursor: pointer; text-align: center; color: var(--ink);
+.hub-opt { position: relative; display: grid; justify-items: center; align-content: center; box-sizing: border-box; width: clamp(100px, 29vw, 172px); padding: 19px 8px 18px; border: 1px solid rgb(var(--teal-rgb) / .16); border-radius: 2px; cursor: pointer; text-align: center; color: var(--ink);
   background: radial-gradient(ellipse 90% 80% at 50% 0%, rgb(var(--teal-rgb) / .1), transparent 72%), rgb(var(--shade-rgb) / .45); transition: border-color .3s, box-shadow .3s; -webkit-tap-highlight-color: transparent; }
 .hub-opt::before, .hub-opt::after { content: ""; position: absolute; width: 10px; height: 10px; border: 0 solid var(--teal); opacity: .6; filter: drop-shadow(0 0 4px rgb(var(--teal-rgb) / .6)); transition: width .3s, height .3s, opacity .3s; }
 .hub-opt::before { top: -2px; left: -2px; border-top-width: 2px; border-left-width: 2px; }
 .hub-opt::after { bottom: -2px; right: -2px; border-bottom-width: 2px; border-right-width: 2px; }
 .hub-opt:hover, .hub-opt:focus-visible { outline: none; border-color: rgb(var(--teal-rgb) / .42); box-shadow: 0 0 26px rgb(var(--teal-rgb) / .15), inset 0 0 20px rgb(var(--teal-rgb) / .08); }
 .hub-opt:hover::before, .hub-opt:hover::after, .hub-opt:focus-visible::before, .hub-opt:focus-visible::after { width: 18px; height: 18px; opacity: 1; }
-.hub-glyph { width: 28px; height: 28px; fill: none; stroke: var(--teal); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgb(var(--teal-rgb) / .7)); }
 .hub-label { font-family: var(--font-title); font-size: 15px; font-weight: 700; line-height: 1.3; letter-spacing: .16em; text-indent: .16em; text-transform: uppercase; text-wrap: balance; }
 .hub.show .hub-opt { animation: hub-in .8s cubic-bezier(.2, .8, .2, 1) both; }
 .hub.show .hub-opt:nth-child(2) { animation-delay: .12s; }
@@ -147,13 +146,13 @@ button, input, textarea { font: inherit; color: inherit; }
   .hub-opt { width: calc(50% - clamp(8px, 1.8vw, 18px) / 2); }
 }
 @media (max-width: 520px) {
-  .hub-opt { padding: 13px 6px 12px; }
+  .hub-opt { padding: 16px 6px 15px; }
   .hub-label { font-size: 13px; letter-spacing: .1em; text-indent: .1em; }
 }
 @media (max-height: 560px) and (min-aspect-ratio: 5/4) { /* short landscape screens: the choices stand beside the construct */
   .stage.has-hub .core { translate: -96px 0; }
   .hub { top: 50%; left: calc(100% + 24px); translate: 0 -50%; flex-direction: column; }
-  .hub-opt { width: 200px; padding: 10px 12px; grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 12px; text-align: left; }
+  .hub-opt { width: 200px; padding: 12px 14px; justify-items: start; text-align: left; }
   .hub-label { text-indent: 0; }
 }
 
@@ -610,19 +609,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     <span class="pool" aria-hidden="true"></span>
     <nav class="hub" id="hub" aria-label="The archive" hidden>
       <button class="hub-opt" type="button" data-book="about" aria-haspopup="dialog">
-        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><path d="M2.5 14C6 8.2 9.8 5.5 14 5.5S22 8.2 25.5 14C22 19.8 18.2 22.5 14 22.5S6 19.8 2.5 14z"></path><path d="M14 8.6c-1.5 1.8-1.5 9 0 10.8 1.5-1.8 1.5-9 0-10.8z"></path></svg>
         <span class="hub-label">About</span>
       </button>
       <button class="hub-opt" type="button" data-book="art" aria-haspopup="dialog">
-        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><rect x="4" y="4" width="20" height="20" rx="1"></rect><path d="M4 19.5l6-6.5 5 5.2 3-3 6 5.8"></path><circle cx="18.6" cy="9.4" r="1.9"></circle></svg>
         <span class="hub-label">Art</span>
       </button>
       <button class="hub-opt" type="button" data-book="knowledge" aria-haspopup="dialog">
-        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 8.5C11.2 6.4 7.4 5.6 3 6v15c4.4-.4 8.2.4 11 2.5 2.8-2.1 6.6-2.9 11-2.5V6c-4.4-.4-8.2.4-11 2.5z"></path><path d="M14 8.5v15"></path></svg>
         <span class="hub-label">Character Knowledge</span>
       </button>
       <button class="hub-opt" type="button" data-book="encounters" aria-haspopup="dialog">
-        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="9.5" cy="9" r="3.3"></circle><path d="M3.5 23c0-4.4 2.7-7.4 6-7.4s6 3 6 7.4"></path><circle cx="19" cy="10.5" r="2.9"></circle><path d="M16.4 16.6c.8-.5 1.6-.7 2.6-.7 3 0 5.5 2.8 5.5 7.1"></path></svg>
         <span class="hub-label">Encounters</span>
       </button>
     </nav>
@@ -700,7 +695,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
               <button class="btn" id="btn-add-gallery" type="button" hidden>Add a form</button>
             </div>
             <section aria-labelledby="galleries-title">
-              <h3 class="rubric" id="galleries-title">His forms</h3>
+              <h3 class="rubric" id="galleries-title">Overview</h3>
               <ol class="plates galleries" id="galleries"></ol>
             </section>
           </div>
@@ -914,7 +909,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
           </section>
 
           <section class="gallery-view" id="view-gallery" hidden>
-            <button class="back" id="gl-back" type="button">← Return to his forms</button>
+            <button class="back" id="gl-back" type="button">← Return to the overview</button>
             <h3 class="det-title" id="gl-title"></h3>
             <div class="ar-tools">
               <button class="btn" id="btn-add-art" type="button" hidden>Add an art piece</button>
@@ -949,7 +944,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
           </section>
 
           <section class="plate-view" id="view-plate" hidden>
-            <button class="back" id="pl-back" type="button">← Return to his forms</button>
+            <button class="back" id="pl-back" type="button">← Return to the overview</button>
             <p class="empty" id="pl-empty" hidden>The art pieces will be shown here.</p>
             <figure class="plate" id="pl-figure">
               <p class="plate-no" id="pl-no"></p>
@@ -2129,7 +2124,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.afSubmit.textContent = a ? "Save changes" : "Add the art piece";
     el.afBack.textContent = a ? "← Return without revising" : "← Return without adding";
     // which of his forms it shows: the one it is in, or, for a new piece, the one open
-    fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: g.name }); }).concat([h("option", { value: "", text: "Other art (none of his forms)" })]));
+    fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: g.name }); }).concat([h("option", { value: "", text: "Other art (no form)" })]));
     el.afGallery.value = a ? a.gallery : galleryOf(galleryId) && galleryId !== OTHER ? galleryId : "";
     fill(el.afVersions, a ? a.versions.map(versionRow) : [versionRow(null, 0)]);
     updateVersionRows();
