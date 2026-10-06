@@ -1798,7 +1798,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.encEdit.hidden = e.unreadable; // it can only be removed
     fill(el.encText, e.unreadable ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })]
       : e.text ? [trp(e.text)] : [h("p", { class: "empty", text: "Nothing is written about it yet." })]);
-    var priv = owner && Object.prototype.hasOwnProperty.call(privates, e.id) ? privates[e.id] : undefined;
+    // one only for the keeper that can no longer be read says so once, above (its private section said it again)
+    var priv = owner && !e.unreadable && Object.prototype.hasOwnProperty.call(privates, e.id) ? privates[e.id] : undefined;
     el.encPrivate.hidden = priv === undefined;
     fill(el.encPrivateText, priv === null ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })] : priv ? [trp(priv)] : []);
     var learned = newest(state.records.filter(function (r) { return r.encounter === e.id; }));
@@ -1818,7 +1819,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function showGalleries() { shown = null; showView("galleries"); renderArt(); }
   function showGallery(id) {
     var g = galleryOf(id);
-    if (!g || (g.other && !piecesOf(OTHER).length)) { showGalleries(); return; }
+    // as in the overview, a form with no art is there only for the keeper (its address showed it to anyone)
+    if (!g || (!piecesOf(g.id).length && (g.other || !canPost()))) { showGalleries(); return; }
     galleryId = g.id;
     disarm(el.glDelete);
     showView("gallery");
@@ -1839,11 +1841,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     renderPlate();
     renderOwnerUI();
   }
-  // From the list: a plate whose main image is mature asks at once, as a click on its cover would
+  // From the list: a plate whose main image is mature asks at once, as a click on its cover would. The cover takes the
+  // focus first, so the age check gives it back there, not to the list left behind (it went nowhere).
   function openPlate(id) {
     showPlate(id);
     var a = findArt(id);
-    if (a && a.versions[0].mature) showMature(a.versions[0]);
+    if (a && a.versions[0].mature) { el.plOpen.focus(); showMature(a.versions[0]); }
   }
   function pickVersion(a, v) {
     showPlate(a.id, v.id);
@@ -1855,7 +1858,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function leaveCurrentForm() {
     if (currentView === "form") leaveForm();
     else if (currentView === "aboutForm") showView("about");
-    else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing); else showGallery(galleryId); }
+    else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing, versionId); else showGallery(galleryId); } // back on the image it was opened from
     else if (currentView === "galleryForm") { if (galleryOf(galEditing)) showGallery(galEditing); else showGalleries(); }
     else if (currentView === "encounterForm") { if (findEnc(encEditing)) showEncounter(encEditing); else showView("encounters"); }
   }
@@ -2334,7 +2337,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.artForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (busy || !mayPost()) return;
-    var prev = artEditing ? findArt(artEditing) : null, rows = Array.prototype.slice.call(el.afVersions.children);
+    var prev = artEditing ? findArt(artEditing) : null, rows = Array.prototype.slice.call(el.afVersions.children), vid = versionId;
     if (!rows.length) { formError("artForm", "Add an image first."); el.afAdd.focus(); return; }
     var empty = rows.filter(function (r) { return !r.dataset.id && !r._draft; })[0];
     if (empty) { formError("artForm", "Choose an image or a video for each new row, or remove the row."); empty.querySelector('[data-k="file"]').focus(); return; }
@@ -2362,7 +2365,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }).then(function (data) {
       setBusy(el.afSubmit, false);
       applyArchive(data.archive);
-      showPlate(data.id);
+      showPlate(data.id, prev ? vid : null); // a revised piece stays on the image on view, if it kept it (it went back to the main one)
       toast(prev ? "The art piece is revised." : "The art piece is added.");
     }, function (err) {
       setBusy(el.afSubmit, false);
@@ -2468,7 +2471,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function showMature(v) {
     askAge(function () {
       shown = v.id;
-      if (!el.lightbox.hidden) renderLightbox(); else renderPlate();
+      if (el.lightbox.hidden) { renderPlate(); return; }
+      renderLightbox();
+      // the cover that had the focus is gone; left on nothing, the focus took the arrow keys out of the full-size view
+      if (!el.lightbox.contains(document.activeElement)) el.lbClose.focus();
     });
   }
   function askAge(then) {
@@ -2662,6 +2668,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!on) { privates = {}; privatesLoaded = false; forgetSealed(); wipeForms(); fill(el.encPrivateText, []); el.encPrivate.hidden = true; }
     renderAll(); // a record on view too, which loses its link to one of them
     if (!on && currentView === "encounter" && !findEnc(encounterId)) showView("encounters");
+    if (!on && currentView === "gallery" && !piecesOf(galleryId).length) showGalleries(); // a form with no art is the keeper's alone
+    if (on && awaited && currentView === "galleries" && galleryOf(awaited)) showGallery(awaited); // the keeper's address of one
     if (on) loadPrivate();
     watchSession();
   }
@@ -2687,10 +2695,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     state.records.forEach(function (r) { if (gone[r.encounter]) r.encounter = ""; });
     if (gone[encounterId]) { encounterId = null; el.encTitle.textContent = ""; fill(el.encText, []); fill(el.encPrivateText, []); el.encSealed.hidden = true; }
   }
-  // What the forms held, unless one is open (a session that ran out keeps it, to be saved once unsealed again)
-  function wipeForms() {
-    if (currentView !== "encounterForm") el.encounterForm.reset();
-    if (currentView !== "form") fill(el.fEncounter, []);
+  // What the forms held, unless one is open (a session that ran out keeps it, to be saved once unsealed again); with
+  // `all`, once the tome has closed, that one too, since nothing leads back to it
+  function wipeForms(all) {
+    if (all || currentView !== "encounterForm") el.encounterForm.reset();
+    if (all || currentView !== "form") fill(el.fEncounter, []);
   }
   // The encounters' private sections, decrypted by the server for the keeper's session alone (null: unreadable),
   // and the archive as the keeper sees it, with the encounters only for the keeper
@@ -3630,6 +3639,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     shown = null;
     clearMedia();
     closeSeal(false);
+    if (!owner) wipeForms(true); // a form kept open as the session ended is left now: what it held stayed in the page
     root.append(el.toast);
     disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete); disarm(el.encDelete);
     el.stage.classList.remove("is-paused");
@@ -3656,15 +3666,16 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // A shared address opens its chapter at once, without waking the construct: #about, #art, #knowledge, #encounters,
   // #art/<form>, #art/<art piece>, #knowledge/<record>, #encounters/<encounter>
   // An encounter only for the keeper is not in the page until the keeper's archive arrives, after the session is
-  // known: until then its address shows the list, and `awaited` keeps it, to be opened then unless the keeper has
-  // moved on meanwhile (showView lets go of it).
+  // known, and a form with no art yet is shown only once the session is known: until then its address shows the
+  // list, and `awaited` keeps it, to be opened then unless the keeper has moved on meanwhile (showView lets go of it).
   var awaited = null;
   function route() {
     var m = /^#(about|art|knowledge|encounters)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
     if (!m || (el.archive.open && FORMS[currentView])) return;
     showHub(false);
     openArchive({ book: m[1], id: m[2] });
-    awaited = m[1] === "encounters" && m[2] && !findEnc(m[2]) && !privatesLoaded ? m[2] : null;
+    awaited = m[2] && (m[1] === "encounters" ? !findEnc(m[2]) && !privatesLoaded
+      : m[1] === "art" && m[2] !== OTHER && currentView === "galleries" && !!galleryOf(m[2])) ? m[2] : null;
   }
   window.addEventListener("hashchange", route);
 
