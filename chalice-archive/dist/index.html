@@ -140,7 +140,12 @@ button, input, textarea { font: inherit; color: inherit; }
 .hub.show .hub-opt { animation: hub-in .8s cubic-bezier(.2, .8, .2, 1) both; }
 .hub.show .hub-opt:nth-child(2) { animation-delay: .12s; }
 .hub.show .hub-opt:nth-child(3) { animation-delay: .24s; }
+.hub.show .hub-opt:nth-child(4) { animation-delay: .36s; }
 @keyframes hub-in { 0% { opacity: 0; translate: 0 12px; filter: blur(6px) brightness(2.2); } 35% { opacity: .6; } 45% { opacity: .25; } 60% { opacity: 1; filter: blur(0) brightness(1.5); } 100% { opacity: 1; translate: 0 0; filter: none; } }
+@media (max-width: 620px) { /* two by two */
+  .hub { flex-wrap: wrap; width: min(380px, calc(100vw - 32px)); }
+  .hub-opt { width: calc(50% - clamp(8px, 1.8vw, 18px) / 2); }
+}
 @media (max-width: 520px) {
   .hub-opt { padding: 13px 6px 12px; }
   .hub-label { font-size: 13px; letter-spacing: .1em; text-indent: .1em; }
@@ -190,8 +195,9 @@ button, input, textarea { font: inherit; color: inherit; }
 .page-r { padding-top: 36px; padding-bottom: clamp(36px, 4.4vw, 56px); }
 .book[data-solo] .page-l { display: none; }
 .book[data-solo] .page-r { padding-top: clamp(34px, 4.4vw, 54px); }
-.book[data-view="plates"] .page-r { display: none; } /* the list of plates alone; a plate opens on its own */
-.book[data-view="plates"] .page-l { padding-bottom: clamp(36px, 4.4vw, 56px); }
+/* the lists alone (plates, records, encounters); each opens on a page of its own */
+.book[data-view="plates"] .page-r, .book[data-view="overview"] .page-r, .book[data-view="encounters"] .page-r { display: none; }
+.book[data-view="plates"] .page-l, .book[data-view="overview"] .page-l, .book[data-view="encounters"] .page-l { padding-bottom: clamp(36px, 4.4vw, 56px); }
 
 /* The keeper's clasp: a small brass keyhole on the fore-edge. The word it asks for shows or hides the editing tools. */
 .clasp { position: absolute; z-index: 4; right: -11px; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 22px; height: 52px; padding: 0; border: 1px solid var(--leather-dark); border-radius: 4px; cursor: pointer; color: var(--leather-dark); background: linear-gradient(90deg, #6a4714, var(--brass) 35%, var(--brass-light) 55%, #8a6420); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5); }
@@ -222,44 +228,19 @@ button, input, textarea { font: inherit; color: inherit; }
 .back { justify-self: start; }
 .back:hover { color: var(--rubric); text-decoration-color: currentColor; }
 
-.glyph { flex: none; box-sizing: border-box; width: 9px; height: 9px; rotate: 45deg; border: 1.5px solid var(--c); background: var(--c); }
-[data-s="remembered"] { --c: var(--ink-copper); }
-[data-s="superseded"] { --c: var(--rubric); }
-[data-s="relearned"] { --c: var(--ink-verdigris); }
-[data-s="fragment"] { --c: var(--ink-ochre); }
-[data-s="sought"] { --c: var(--sepia-faint); }
-.glyph[data-s="fragment"] { background: linear-gradient(135deg, var(--c) 50%, transparent 50%); }
-.glyph[data-s="sought"] { background: transparent; }
-.glyph[data-s="superseded"] { background: linear-gradient(transparent 36%, var(--c) 36% 64%, transparent 64%); }
-
-
-/* the views: the index, or a record, or a form */
-#view-overview { display: grid; gap: 34px; }
-.recent { margin: 0; padding: 0; list-style: none; }
-.recent li + li { border-top: 1px solid rgb(var(--sepia-rgb) / .15); }
-.rec-btn { display: grid; grid-template-columns: 9px minmax(0, 1fr); column-gap: 14px; row-gap: 1px; width: 100%; padding: 10px 4px 11px 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; }
-.rec-btn .glyph { grid-row: 1; margin-top: 6px; }
-.rec-date { font-family: var(--font-book-sc); font-size: 15px; color: var(--sepia-faint); }
-.rec-title { grid-column: 2; font-size: 21px; line-height: 1.2; color: var(--sepia); }
-.rec-note { grid-column: 2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
-.rec-btn:hover .rec-title, .topic:hover .topic-title { color: var(--rubric); }
-
-.index { display: grid; gap: 22px; }
-.domain { margin: 0; }
-.domain-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; font-family: var(--font-title); font-size: 17px; font-weight: 700; line-height: 1.25; color: var(--sepia); }
-.domain-head .numeral { flex: none; min-width: 2.2em; color: var(--rubric); }
-.domain-head .name { flex: 1; min-width: 0; }
-.domain-count { flex: none; font-family: var(--font-book); font-size: 15px; font-weight: 400; font-style: italic; color: var(--sepia-faint); }
-.topics { margin: 0; padding: 0 0 0 calc(2.2em * 17 / 18 + 10px); list-style: none; }
-.topic { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 5px 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; }
-.topic .glyph { align-self: center; }
-.topic-title { min-width: 0; font-size: 18px; line-height: 1.3; color: var(--sepia); }
-.leader { flex: 1 1 24px; min-width: 24px; border-bottom: 2px dotted rgb(var(--sepia-rgb) / .38); translate: 0 -.3em; }
-.topic-status { flex: none; font-family: var(--font-book-sc); font-size: 15px; color: var(--c); }
+/* the lists of records and encounters: newest first, each a title with its date and the start of its text */
+.entries { margin: 0; padding: 0; list-style: none; }
+.entries li + li { border-top: 1px solid rgb(var(--sepia-rgb) / .15); }
+.entry { display: grid; gap: 1px; width: 100%; padding: 11px 4px 12px 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; }
+.entry-meta { font-family: var(--font-book-sc); font-size: 15px; color: var(--sepia-faint); }
+.entry-meta:empty { display: none; }
+.entry-title { font-size: 21px; line-height: 1.2; color: var(--sepia); overflow-wrap: anywhere; }
+.entry-note { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
+.entry:hover .entry-title { color: var(--rubric); }
 
 .detail { max-width: 36rem; }
+.det-meta:empty { display: none; }
 .det-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 18px 0 8px; font-family: var(--font-book-sc); font-size: 15px; color: var(--sepia-faint); }
-.det-status { display: inline-flex; align-items: center; gap: 8px; color: var(--c); }
 .det-title { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 3vw, 38px); line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
 .det-title::after { content: ""; display: block; width: 120px; height: 9px; margin-top: 12px; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
 .det-note { margin: 18px 0 0; max-width: 60ch; font-size: 19px; line-height: 1.6; white-space: pre-line; color: var(--sepia); }
@@ -268,6 +249,16 @@ button, input, textarea { font: inherit; color: inherit; }
 .det-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 18px; margin: 24px 0 0; padding-top: 14px; border-top: 1px solid rgb(var(--sepia-rgb) / .2); font-size: 17px; }
 .det-facts dt { font-family: var(--font-book-sc); color: var(--rubric); }
 .det-facts dd { margin: 0; font-style: italic; color: var(--sepia-soft); }
+.link-to { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: var(--rubric); text-decoration: underline; text-decoration-color: rgb(142 29 18 / .45); text-underline-offset: 3px; }
+.link-to:hover { text-decoration-color: currentColor; }
+.enc-text { margin-top: 20px; }
+/* an encounter's private section: only for the keeper, never sent to anyone else */
+.private { margin-top: 30px; padding: 16px 20px 18px; border: 1px dashed rgb(var(--sepia-rgb) / .5); border-radius: 2px; background: rgb(var(--sepia-rgb) / .06); }
+.private-head { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-family: var(--font-book-sc); font-size: 16px; font-weight: 400; color: var(--rubric); }
+.private-head svg { flex: none; width: 11px; height: 15px; }
+.private .trp { font-size: 18px; }
+.private .empty { padding: 0; }
+.learned { margin-top: 34px; }
 .owner-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 
 /* About, laid out like a Total RP 3 profile: his names head the page; beneath them what he is doing
@@ -432,6 +423,7 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .field > label, .field > legend { padding: 0; font-family: var(--font-book-sc); font-size: 16px; color: var(--rubric); }
 .field > legend { margin-bottom: 6px; }
 .help { margin: 0; font-size: 15px; font-style: italic; color: var(--sepia-faint); }
+.opt { font-family: var(--font-book); font-style: italic; color: var(--sepia-faint); }
 .input { box-sizing: border-box; width: 100%; min-height: 40px; padding: 6px 2px; border: 0; border-bottom: 1px solid rgb(var(--sepia-rgb) / .55); border-radius: 0; background: transparent; color: var(--sepia); font-family: var(--font-book); font-size: 19px; color-scheme: light; }
 .input::placeholder { color: rgb(var(--sepia-rgb) / .38); font-style: italic; }
 textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding-top: 0; border: 0; background-image: linear-gradient(transparent 29px, rgb(var(--sepia-rgb) / .28) 29px); background-size: 100% 30px; background-attachment: local; }
@@ -447,6 +439,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
 .form-error { margin: 0; font-size: 16px; font-style: italic; color: var(--rubric); }
 .form-actions { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 4px; }
 textarea.input.short { min-height: 90px; }
+textarea.input.long { min-height: 220px; max-height: 70vh; field-sizing: content; }
 select.input { appearance: none; padding-right: 26px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--sepia-soft) 50%), linear-gradient(135deg, var(--sepia-soft) 50%, transparent 50%); background-position: calc(100% - 13px) 55%, calc(100% - 8px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
 .input[type="file"] { min-height: 0; padding: 6px 0; border: 0; font-size: 16px; cursor: pointer; }
 .input[type="file"]::file-selector-button { margin-right: 12px; min-height: 32px; padding: 0 14px; border: 1px solid #2a0302; border-radius: 4px; cursor: pointer; font-family: var(--font-title); font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--wow-gold); text-shadow: 0 1px 1px #000; background: linear-gradient(180deg, #b3241a 0%, var(--wow-red) 48%, var(--wow-red-dark) 100%); box-shadow: inset 0 0 0 1px rgb(var(--brass-rgb) / .95); }
@@ -572,6 +565,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 8.5C11.2 6.4 7.4 5.6 3 6v15c4.4-.4 8.2.4 11 2.5 2.8-2.1 6.6-2.9 11-2.5V6c-4.4-.4-8.2.4-11 2.5z"></path><path d="M14 8.5v15"></path></svg>
         <span class="hub-label">Character Knowledge</span>
       </button>
+      <button class="hub-opt" type="button" data-book="encounters" aria-haspopup="dialog">
+        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="9.5" cy="9" r="3.3"></circle><path d="M3.5 23c0-4.4 2.7-7.4 6-7.4s6 3 6 7.4"></path><circle cx="19" cy="10.5" r="2.9"></circle><path d="M16.4 16.6c.8-.5 1.6-.7 2.6-.7 3 0 5.5 2.8 5.5 7.1"></path></svg>
+        <span class="hub-label">Encounters</span>
+      </button>
     </nav>
   </div>
 </main>
@@ -580,6 +577,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     <button class="tab" type="button" data-book="about">About</button>
     <button class="tab" type="button" data-book="art">Art</button>
     <button class="tab" type="button" data-book="knowledge">Character Knowledge</button>
+    <button class="tab" type="button" data-book="encounters">Encounters</button>
   </nav>
   <div class="tome" id="tome">
     <i class="corner tl" aria-hidden="true"></i><i class="corner tr" aria-hidden="true"></i><i class="corner bl" aria-hidden="true"></i><i class="corner br" aria-hidden="true"></i>
@@ -618,10 +616,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
               <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
               <button class="btn" id="btn-clear-examples" type="button" hidden>Remove examples</button>
             </div>
-            <section aria-labelledby="recent-title">
-              <h3 class="rubric" id="recent-title">Recent accessions <span id="recent-count"></span></h3>
-              <ol class="recent" id="recent"></ol>
-            </section>
+            <h3 class="sr-only">The records</h3>
+            <ol class="entries" id="records"></ol>
           </div>
 
           <div class="leaf" id="leaf-about" hidden>
@@ -633,6 +629,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                 <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
               </div>
             </header>
+          </div>
+
+          <div class="leaf" id="leaf-encounters" hidden>
+            <div class="ar-tools">
+              <button class="btn" id="btn-add-encounter" type="button" hidden>Record an encounter</button>
+            </div>
+            <h3 class="sr-only">The encounters</h3>
+            <ol class="entries" id="encounters"></ol>
           </div>
 
           <div class="leaf" id="leaf-art" hidden>
@@ -647,25 +651,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         </section>
 
         <section class="page page-r" id="page-r">
-          <section id="view-overview">
-            <section aria-labelledby="index-title">
-              <h3 class="rubric" id="index-title">Index of knowledge <span id="index-count"></span></h3>
-              <div class="index" id="index"></div>
-            </section>
-          </section>
+          <section id="view-overview"></section>
 
           <section class="detail" id="view-detail" hidden>
-            <button class="back" id="det-back" type="button">← Return to the index</button>
-            <div class="det-meta">
-              <span class="det-status" id="det-status"><span class="glyph" id="det-glyph"></span><span id="det-status-label"></span></span>
-              <span id="det-domain"></span>
-              <time id="det-date"></time>
-            </div>
+            <button class="back" id="det-back" type="button">← Return to Character Knowledge</button>
+            <div class="det-meta"><time id="det-date"></time></div>
             <h3 class="det-title" id="det-title"></h3>
             <p class="det-note" id="det-note"></p>
             <dl class="det-facts">
               <dt>Learned from</dt><dd id="det-source"></dd>
-              <dt>State</dt><dd id="det-state"></dd>
             </dl>
             <div class="owner-row" id="det-tools" hidden>
               <button class="btn" id="det-edit" type="button">Revise</button>
@@ -681,25 +675,18 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                 <label for="f-title">Title</label>
                 <input class="input" id="f-title" name="title" maxlength="120" autocomplete="off" placeholder="The Sundering">
               </div>
-              <div class="row-2">
-                <div class="field">
-                  <label for="f-domain">Domain</label>
-                  <input class="input" id="f-domain" name="domain" list="domain-list" maxlength="60" autocomplete="off" placeholder="Wars &amp; catastrophes">
-                  <datalist id="domain-list"></datalist>
-                </div>
-                <div class="field">
-                  <label for="f-date">Date</label>
-                  <input class="input" id="f-date" name="date" type="date">
-                </div>
+              <div class="field">
+                <label for="f-date">Date <span class="opt">(optional)</span></label>
+                <input class="input" id="f-date" name="date" type="date">
               </div>
-              <fieldset class="field">
-                <legend>What he knows</legend>
-                <div class="status-pick" id="status-pick"></div>
-                <p class="help" id="f-status-desc"></p>
-              </fieldset>
               <div class="field">
                 <label for="f-note">Record</label>
                 <textarea class="input" id="f-note" name="note" maxlength="4000" placeholder="What he learned, in his own words."></textarea>
+              </div>
+              <div class="field">
+                <label for="f-encounter">Learned in an encounter</label>
+                <select class="input" id="f-encounter" name="encounter"></select>
+                <p class="help">The record then links to the encounter, which tells what happened.</p>
               </div>
               <div class="field">
                 <label for="f-source">Learned from</label>
@@ -821,6 +808,55 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
             </form>
           </section>
 
+          <section class="detail" id="view-encounter" hidden>
+            <button class="back" id="enc-back" type="button">← Return to the encounters</button>
+            <div class="det-meta"><time id="enc-date"></time></div>
+            <h3 class="det-title" id="enc-title"></h3>
+            <div class="trp enc-text" id="enc-text"></div>
+            <section class="private" id="enc-private" aria-labelledby="enc-private-title" hidden>
+              <h4 class="private-head" id="enc-private-title"><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Private: only you can see this</h4>
+              <div class="trp" id="enc-private-text"></div>
+            </section>
+            <section class="learned" id="enc-learned" aria-labelledby="enc-learned-title" hidden>
+              <h4 class="rubric" id="enc-learned-title">What he learned from it</h4>
+              <ul class="entries" id="enc-records"></ul>
+            </section>
+            <div class="owner-row" id="enc-tools" hidden>
+              <button class="btn" id="enc-edit" type="button">Revise</button>
+              <button class="btn" id="enc-delete" type="button">Remove encounter</button>
+            </div>
+          </section>
+
+          <section id="view-encounter-form" hidden>
+            <form class="form" id="encounter-form" novalidate>
+              <button class="back" id="ef-back" type="button">← Return without saving</button>
+              <h3 id="ef-heading">Record an encounter</h3>
+              <div class="field">
+                <label for="ef-title">Title</label>
+                <input class="input" id="ef-title" name="title" maxlength="120" autocomplete="off" placeholder="An encounter with a druid">
+              </div>
+              <div class="field">
+                <label for="ef-date">Date <span class="opt">(optional)</span></label>
+                <input class="input" id="ef-date" name="date" type="date">
+              </div>
+              <div class="field">
+                <label for="ef-text">What happened</label>
+                <textarea class="input long" id="ef-text" name="text" maxlength="20000" placeholder="What happened, as anyone may read it."></textarea>
+                <p class="help">Everyone can read this. Total RP 3's markup works here, as on the About page.</p>
+              </div>
+              <div class="field">
+                <label for="ef-private">Private</label>
+                <textarea class="input long" id="ef-private" name="private" maxlength="20000" placeholder="What only you should know."></textarea>
+                <p class="help" id="ef-private-help">Only you can see this, and only while the archive is unsealed. It is encrypted before it is stored, with a key that only your word unlocks.</p>
+              </div>
+              <p class="form-error" id="ef-error" role="alert" hidden></p>
+              <div class="form-actions">
+                <button class="btn" id="ef-submit" type="submit">Save the encounter</button>
+                <button class="btn" id="ef-cancel" type="button">Cancel</button>
+              </div>
+            </form>
+          </section>
+
           <section class="plate-view" id="view-plate" hidden>
             <button class="back narrow-only" id="pl-back" type="button">← Return to the plates</button>
             <p class="empty" id="pl-empty" hidden>The plates will be shown here.</p>
@@ -917,16 +953,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 <script id="ca-app">
 (function () {
   "use strict";
-  var STATUS = {
-    remembered: { label: "Remembered", desc: "Known before the slumber and still true." },
-    superseded: { label: "Superseded", desc: "Known before the slumber, but no longer true." },
-    relearned: { label: "Re-learned", desc: "Learned since waking." },
-    fragment: { label: "Fragmentary", desc: "Heard of, not yet understood." },
-    sought: { label: "Sought", desc: "A gap he means to fill." }
-  };
-  var ORDER = Object.keys(STATUS);
-  var SUGGESTED_DOMAINS = ["Dragonkind & the Aspects", "Peoples & factions", "Wars & catastrophes", "Places", "Cosmology & the beyond"];
-  var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge" };
+  var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge", encounters: "Encounters" };
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
   var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * 1024 * 1024 };
   // The About page follows a Total RP 3 profile: the directory, additional information, personality traits, at first
@@ -964,11 +991,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function normalize(raw) {
     raw = raw || {};
     var profile = Object.assign({ name: "Unnamed Dracthyr", epithet: "", construct: "Eternal Gladiator's Chalice", constructNote: "" }, raw.profile || {});
+    // encounters, and records of what he knows, which may name an encounter as where he learned it
+    var encounters = (Array.isArray(raw.encounters) ? raw.encounters : []).filter(function (e) { return e && e.id && e.title; }).map(function (e) {
+      return { id: String(e.id), title: String(e.title), date: isDate(e.date) ? e.date : "", text: String(e.text || ""), added: Number(e.added) || 0, example: !!e.example };
+    });
     var records = (Array.isArray(raw.records) ? raw.records : []).filter(function (r) { return r && r.id && r.title; }).map(function (r) {
       return {
-        id: String(r.id), title: String(r.title), domain: String(r.domain || "Unsorted"),
-        status: STATUS[r.status] ? r.status : "fragment", note: String(r.note || ""), source: String(r.source || ""),
-        date: isDate(r.date) ? r.date : today(), added: Number(r.added) || 0, example: !!r.example
+        id: String(r.id), title: String(r.title), note: String(r.note || ""), source: String(r.source || ""),
+        encounter: encounters.some(function (e) { return e.id === r.encounter; }) ? r.encounter : "",
+        date: isDate(r.date) ? r.date : "", added: Number(r.added) || 0, example: !!r.example
       };
     });
     // a plate is one or more images (versions): the first is its main image, the others its alternates
@@ -997,7 +1028,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       sections: list(ab.sections, ["heading", "body", "color"]).map(function (x) { if (!/^#[0-9a-f]{6}$/i.test(x.color)) x.color = ""; return x; })
     };
     ABOUT_TEXT.forEach(function (k) { about[k] = typeof ab[k] === "string" ? ab[k] : ""; });
-    return { profile: profile, about: about, art: art, records: records };
+    return { profile: profile, about: about, art: art, records: records, encounters: encounters };
   }
   function loadState() {
     try { return normalize(JSON.parse(byId("ca-data").textContent || "{}")); } catch (e) { return normalize({}); }
@@ -1035,23 +1066,24 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       .forEach(function (p) { while (n >= p[0]) { out += p[1]; n -= p[0]; } });
     return out;
   }
-  function glyph(s) { return h("span", { class: "glyph", "data-s": s, "aria-hidden": "true" }); }
   function find(id) { return state.records.find(function (r) { return r.id === id; }); }
   function findArt(id) { return state.art.find(function (a) { return a.id === id; }); }
-  function sorted() {
-    return state.records.slice().sort(function (a, b) {
-      return b.date.localeCompare(a.date) || (b.added - a.added) || a.title.localeCompare(b.title);
-    });
+  function findEnc(id) { return state.encounters.find(function (e) { return e.id === id; }); }
+  // Newest first: by date, and those without one by when they were added
+  function newest(list) {
+    function key(x) { return x.date || new Date(x.added).toISOString().slice(0, 10); }
+    return list.slice().sort(function (a, b) { return key(b).localeCompare(key(a)) || (b.added - a.added) || a.title.localeCompare(b.title); });
   }
-  function domains() {
-    var seen = {};
-    state.records.forEach(function (r) { seen[r.domain] = true; });
-    var list = Object.keys(seen);
-    return list.sort(function (a, b) {
-      var ia = SUGGESTED_DOMAINS.indexOf(a), ib = SUGGESTED_DOMAINS.indexOf(b);
-      if (ia < 0) ia = 99; if (ib < 0) ib = 99;
-      return ia - ib || a.localeCompare(b);
-    });
+  // A list entry: its date and source, its title, and the start of its text; it opens on a page of its own
+  function entry(title, meta, note, open) {
+    return h("li", null, h("button", { class: "entry", type: "button", onclick: open },
+      h("span", { class: "entry-meta", text: meta }), h("span", { class: "entry-title", text: title }), note ? h("span", { class: "entry-note", text: note }) : null));
+  }
+  // TRP markup without the markup, for a list's excerpt: each block's text, a space between.
+  function plain(text) {
+    var out = [];
+    trp(text).childNodes.forEach(function (n) { var t = n.textContent.replace(/\s+/g, " ").trim(); if (t) out.push(t); });
+    return out.join(" ");
   }
   function plateNo(a) { return "Plate " + roman(state.art.indexOf(a) + 1) + "."; }
   // One image of a plate. width and height only give the browser its shape before it loads.
@@ -1154,55 +1186,29 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var detailId = null, editingId = null, plateId = null, versionId = null, artEditing = null;
   var busy = false;
 
-  function renderAll() { renderLanding(); renderArchive(); renderAbout(); renderArt(); renderOwnerUI(); }
+  function renderAll() { renderLanding(); renderArchive(); renderEncounters(); renderAbout(); renderArt(); renderOwnerUI(); }
 
-  // Knowledge: recent accessions on the left, the index on the right
+  // Character Knowledge: his records, newest first
   function renderArchive() {
-    var p = state.profile, total = state.records.length;
+    var p = state.profile;
     el.arName.textContent = p.name || "Unnamed Dracthyr";
-
-    // the owner can clear the example records in one go while any remain
-    var ex = state.records.filter(function (r) { return r.example; }).length;
+    // the owner can clear the example records and encounters in one go while any remain
+    var ex = state.records.filter(function (r) { return r.example; }).length + state.encounters.filter(function (e) { return e.example; }).length;
     el.btnClearExamples.hidden = !(ex && canPost());
     if (!el.btnClearExamples.dataset.armed) el.btnClearExamples.textContent = "Remove " + ex + " example" + (ex === 1 ? "" : "s");
+    fill(el.records, state.records.length ? newest(state.records).map(function (r) {
+      var e = r.encounter && findEnc(r.encounter), from = e ? e.title : r.source;
+      return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), r.note, function () { showDetail(r.id); });
+    }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." }))]);
+  }
 
-    // recent accessions
-    var recent = sorted().slice(0, 6);
-    el.recentCount.textContent = total ? "the latest " + recent.length : "";
-    el.recent.replaceChildren();
-    if (!recent.length) {
-      el.recent.append(h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." })));
-    }
-    recent.forEach(function (r) {
-      el.recent.append(h("li", null, h("button", { class: "rec-btn", type: "button", "data-s": r.status, onclick: function () { showDetail(r.id); } },
-        glyph(r.status),
-        h("span", { class: "rec-date" }, h("time", { datetime: r.date, text: fmtDate(r.date) }), " · " + STATUS[r.status].label),
-        h("span", { class: "rec-title", text: r.title }),
-        r.note ? h("span", { class: "rec-note", text: r.note }) : null
-      )));
-    });
-
-    // knowledge index
-    el.index.replaceChildren();
-    var shown = 0;
-    domains().forEach(function (d, chapter) {
-      var items = state.records.filter(function (r) { return r.domain === d; });
-      if (!items.length) return;
-      items.sort(function (a, b) { return ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || a.title.localeCompare(b.title); });
-      shown += items.length;
-      var all = state.records.filter(function (r) { return r.domain === d; });
-      var learned = all.filter(function (r) { return r.status === "relearned" || r.status === "remembered"; }).length;
-      el.index.append(h("section", { class: "domain" },
-        h("h4", { class: "domain-head" }, h("span", { class: "numeral", text: roman(chapter + 1) + "." }), h("span", { class: "name", text: d }),
-          h("span", { class: "domain-count", text: learned + " of " + all.length + " known" })),
-        h("ul", { class: "topics" }, items.map(function (r) {
-          return h("li", null, h("button", { class: "topic", type: "button", "data-s": r.status, onclick: function () { showDetail(r.id); } },
-            glyph(r.status), h("span", { class: "topic-title", text: r.title }), h("span", { class: "leader", "aria-hidden": "true" }), h("span", { class: "topic-status", text: STATUS[r.status].label })));
-        }))
-      ));
-    });
-    el.indexCount.textContent = total ? "in " + domains().length + (domains().length === 1 ? " chapter" : " chapters") : "";
-    if (!shown) el.index.append(h("p", { class: "empty", text: "Records appear here, gathered into chapters by domain." }));
+  // Encounters: newest first; each tells what happened, and, to the keeper alone, its private section
+  function renderEncounters() {
+    fill(el.encounters, state.encounters.length ? newest(state.encounters).map(function (e) {
+      var n = state.records.filter(function (r) { return r.encounter === e.id; }).length;
+      return entry(e.title, [e.date ? fmtDate(e.date) : "", n ? n + (n === 1 ? " record" : " records") : ""].filter(Boolean).join(" · "), plain(e.text), function () { showEncounter(e.id); });
+    }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No encounters yet. Record the first." : "No encounters yet." }))]);
+    if (currentView === "encounter") renderEncounter();
   }
 
   // About: his names at the head of the page, then the profile as in Total RP 3
@@ -1317,10 +1323,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // The editing tools show only while the server says this browser holds the keeper's session
   function renderOwnerUI() {
     var on = canPost();
-    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = !on;
+    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = el.btnAddEncounter.hidden = el.encTools.hidden = !on;
     el.plTools.hidden = !(on && findArt(plateId));
     el.clasp.classList.toggle("is-open", on);
-    var ex = state.records.some(function (r) { return r.example; });
+    var ex = state.records.some(function (r) { return r.example; }) || state.encounters.some(function (e) { return e.example; });
     el.btnClearExamples.hidden = !(ex && on);
   }
 
@@ -1329,9 +1335,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var VIEWS = {
     overview: ["viewOverview", "knowledge"], detail: ["viewDetail", "knowledge", 1], form: ["viewForm", "knowledge", 1],
     about: ["viewAbout", "about"], aboutForm: ["viewAboutForm", "about", 1],
-    plates: ["viewPlate", "art"], plate: ["viewPlate", "art", 1], artForm: ["viewArtForm", "art", 1]
+    plates: ["viewPlate", "art"], plate: ["viewPlate", "art", 1], artForm: ["viewArtForm", "art", 1],
+    encounters: ["viewEncounter", "encounters"], encounter: ["viewEncounter", "encounters", 1], encounterForm: ["viewEncounterForm", "encounters", 1]
   };
-  var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError" };
+  var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError", encounterForm: "efError" };
   function showView(name) {
     var v = VIEWS[name], book = v[1];
     Object.keys(VIEWS).forEach(function (k) { el[VIEWS[k][0]].hidden = VIEWS[k][0] !== v[0]; });
@@ -1350,7 +1357,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   // The address names the open chapter, and the open record or plate, so it can be shared: #art/a1b2c3
   function setHash() {
-    var id = currentView === "detail" ? detailId : currentView === "plate" ? plateId : "";
+    var id = currentView === "detail" ? detailId : currentView === "plate" ? plateId : currentView === "encounter" ? encounterId : "";
     var want = el.archive.open ? "#" + currentBook + (id ? "/" + id : "") : "";
     if (want === location.hash) return;
     try { history.replaceState(null, "", want || location.pathname + location.search); } catch (e) {}
@@ -1370,6 +1377,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function openBook(book, id) {
     if (book === "about") showView("about");
     else if (book === "art") { if (id && findArt(id)) showPlate(id); else showPlates(); }
+    else if (book === "encounters") { if (id && findEnc(id)) showEncounter(id); else showView("encounters"); }
     else if (id && find(id)) showDetail(id);
     else showView("overview");
   }
@@ -1378,21 +1386,47 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var r = find(id);
     if (!r) { showView("overview"); return; }
     detailId = id;
-    el.detStatus.setAttribute("data-s", r.status);
-    el.detGlyph.setAttribute("data-s", r.status);
-    el.detStatusLabel.textContent = STATUS[r.status].label;
-    el.detDomain.textContent = r.domain;
-    el.detDate.textContent = fmtDate(r.date);
+    el.detDate.textContent = r.date ? fmtDate(r.date) : "";
     el.detDate.setAttribute("datetime", r.date);
     el.detTitle.textContent = r.title;
     el.detNote.textContent = r.note || "Nothing inscribed beyond the title yet.";
     el.detNote.classList.toggle("is-empty", !r.note);
-    el.detSource.textContent = r.source || "Not recorded";
-    el.detState.textContent = STATUS[r.status].desc;
+    // where he learned it: the encounter, as a link to it, and his own words
+    var e = r.encounter && findEnc(r.encounter);
+    fill(el.detSource, [
+      e ? h("button", { class: "link-to", type: "button", text: e.title, onclick: function () { showEncounter(e.id); } }) : null,
+      e && r.source ? "; " : null, r.source || null, !e && !r.source ? "Not recorded" : null
+    ].filter(Boolean));
     disarm(el.detDelete);
     renderOwnerUI();
     showView("detail");
   }
+  // An encounter: what happened; the private section only for the keeper, once it has been fetched; and what he
+  // learned from it
+  var encounterId = null, encEditing = null;
+  function renderEncounter() {
+    var e = findEnc(encounterId);
+    if (!e) return;
+    el.encDate.textContent = e.date ? fmtDate(e.date) : "";
+    el.encDate.setAttribute("datetime", e.date);
+    el.encTitle.textContent = e.title;
+    fill(el.encText, e.text ? [trp(e.text)] : [h("p", { class: "empty", text: "Nothing is written about it yet." })]);
+    var priv = owner && Object.prototype.hasOwnProperty.call(privates, e.id) ? privates[e.id] : undefined;
+    el.encPrivate.hidden = priv === undefined;
+    fill(el.encPrivateText, priv === null ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })] : priv ? [trp(priv)] : []);
+    var learned = newest(state.records.filter(function (r) { return r.encounter === e.id; }));
+    el.encLearned.hidden = !learned.length;
+    fill(el.encRecords, learned.map(function (r) { return entry(r.title, r.date ? fmtDate(r.date) : "", r.note, function () { showDetail(r.id); }); }));
+  }
+  function showEncounter(id) {
+    if (!findEnc(id)) { showView("encounters"); return; }
+    encounterId = id;
+    renderEncounter();
+    disarm(el.encDelete);
+    renderOwnerUI();
+    showView("encounter");
+  }
+
   // Back to the list of plates: every mature image is covered again
   function showPlates() { shown = null; renderArt(); showView("plates"); }
   // A plate, at one of its images (the main one by default). A mature image stays shown only while it is the one
@@ -1425,34 +1459,24 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (currentView === "form") leaveForm();
     else if (currentView === "aboutForm") showView("about");
     else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing); else showPlates(); }
+    else if (currentView === "encounterForm") { if (findEnc(encEditing)) showEncounter(encEditing); else showView("encounters"); }
   }
 
   // A record
-  ORDER.forEach(function (s) {
-    el.statusPick.append(h("label", { class: "status-opt", "data-s": s },
-      h("input", { type: "radio", name: "f-status", id: "f-s-" + s, value: s }), glyph(s), STATUS[s].label));
-  });
-  el.statusPick.addEventListener("change", updateStatusDesc);
-  function selectedStatus() { var i = el.statusPick.querySelector("input:checked"); return i ? i.value : "relearned"; }
-  function updateStatusDesc() { el.fStatusDesc.textContent = STATUS[selectedStatus()].desc; }
-
   function openForm(id) {
     var r = id ? find(id) : null;
     editingId = r ? r.id : null;
     el.formHeading.textContent = r ? "Revise record" : "Inscribe a record";
     el.fSubmit.textContent = r ? "Save changes" : "Inscribe";
     el.fTitle.value = r ? r.title : "";
-    el.fDomain.value = r ? r.domain : "";
-    el.fDate.value = r ? r.date : today();
+    el.fDate.value = r ? r.date : "";
     el.fNote.value = r ? r.note : "";
     el.fSource.value = r ? r.source : "";
-    var s = r ? r.status : "relearned";
-    byId("f-s-" + s).checked = true;
-    updateStatusDesc();
+    fill(el.fEncounter, [h("option", { value: "", text: "None" })].concat(newest(state.encounters).map(function (e) {
+      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") });
+    })));
+    el.fEncounter.value = r ? r.encounter : "";
     el.fError.hidden = true;
-    var ds = domains();
-    SUGGESTED_DOMAINS.forEach(function (d) { if (ds.indexOf(d) < 0) ds.push(d); });
-    fill(el.domainList, ds.map(function (d) { return h("option", { value: d }); }));
     showView("form");
     setTimeout(function () { if (!el.recForm.contains(document.activeElement) || document.activeElement === el.fBack) el.fTitle.focus(); }, 40);
   }
@@ -1465,8 +1489,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!title) { formError("form", "Give the record a title."); el.fTitle.focus(); return; }
     var prev = editingId ? find(editingId) : null;
     var rec = {
-      title: title, domain: el.fDomain.value.trim(), status: selectedStatus(), note: el.fNote.value.trim(), source: el.fSource.value.trim(),
-      date: isDate(el.fDate.value) ? el.fDate.value : today()
+      title: title, note: el.fNote.value.trim(), source: el.fSource.value.trim(), encounter: el.fEncounter.value,
+      date: isDate(el.fDate.value) ? el.fDate.value : ""
     };
     save(prev ? "PUT" : "POST", prev ? "api/records/" + encodeURIComponent(prev.id) : "api/records", rec,
       function (data) { if (find(data.id)) showDetail(data.id); else showView("overview"); }, el.fSubmit, prev ? "Saving…" : "Inscribing…",
@@ -1474,6 +1498,49 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   });
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
+
+  // An encounter. Its private text goes to the server only when it was changed here, so one saved before its private
+  // section had arrived, or one that can no longer be read, keeps what is stored.
+  var PRIVATE_HELP = el.efPrivateHelp.textContent, encWas = "", privWas = "";
+  function encFromForm() {
+    return { title: el.efTitle.value.trim(), date: isDate(el.efDate.value) ? el.efDate.value : "", text: el.efText.value.trim(), private: el.efPrivate.value.trim() };
+  }
+  function fillPrivate(e) {
+    var priv = e ? privates[e.id] : "";
+    el.efPrivate.value = typeof priv === "string" ? priv : "";
+    el.efPrivateHelp.textContent = priv === null ? "What was written here before can no longer be read: it was written under a word that was forgotten. Writing here replaces it." : PRIVATE_HELP;
+    privWas = el.efPrivate.value;
+    encWas = JSON.stringify(encFromForm());
+  }
+  function openEncounterForm(id) {
+    var e = id ? findEnc(id) : null;
+    encEditing = e ? e.id : null;
+    el.efHeading.textContent = e ? "Revise the encounter" : "Record an encounter";
+    el.efSubmit.textContent = e ? "Save changes" : "Save the encounter";
+    el.efTitle.value = e ? e.title : "";
+    el.efDate.value = e ? e.date : "";
+    el.efText.value = e ? e.text : "";
+    el.efError.hidden = true;
+    fillPrivate(e);
+    showView("encounterForm");
+    if (e && !privatesLoaded) loadPrivate().then(function () { if (currentView === "encounterForm" && encEditing === e.id && el.efPrivate.value === privWas) fillPrivate(e); });
+    setTimeout(function () { if (!el.encounterForm.contains(document.activeElement) || document.activeElement === el.efBack) el.efTitle.focus(); }, 40);
+  }
+  function encounterChanged() { return currentView === "encounterForm" && JSON.stringify(encFromForm()) !== encWas; }
+  el.encounterForm.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (busy || !canPost()) return;
+    var body = encFromForm(), prev = encEditing ? findEnc(encEditing) : null;
+    if (!body.title) { formError("encounterForm", "Give the encounter a title."); el.efTitle.focus(); return; }
+    if (prev && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
+    save(prev ? "PUT" : "POST", prev ? "api/encounters/" + encodeURIComponent(prev.id) : "api/encounters", body, function (data) {
+      if (body.private !== undefined) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
+      if (findEnc(data.id)) showEncounter(data.id); else showView("encounters");
+      loadPrivate();
+    }, el.efSubmit, prev ? "Saving…" : "Recording…", prev ? "The encounter is revised." : "The encounter is recorded.");
+  });
+  el.efCancel.addEventListener("click", leaveCurrentForm);
+  el.efBack.addEventListener("click", leaveCurrentForm);
 
   // The About page: names, the Total RP 3 fields, and rows the keeper can add, move and remove: additional
   // information, personality traits, glances and the description's sections
@@ -1630,7 +1697,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.abfError.hidden = true;
     showView("aboutForm");
     aboutWas = JSON.stringify(aboutFromForm());
-    setTimeout(function () { el.abfTitle.focus(); }, 40);
+    setTimeout(function () { if (!el.aboutForm.contains(document.activeElement) || document.activeElement === el.abfBack) el.abfTitle.focus(); }, 40);
   }
   function aboutFromForm() {
     var body = {
@@ -1814,6 +1881,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var r = find(detailId); if (!r || !canPost()) return;
     save("DELETE", "api/records/" + encodeURIComponent(r.id), undefined, function () { showView("overview"); }, el.detDelete, "Removing…", "Removed “" + r.title + "”.");
   });
+  arm(el.encDelete, function () { return "Confirm removal"; }, function () {
+    var e = findEnc(encounterId); if (!e || !canPost()) return;
+    save("DELETE", "api/encounters/" + encodeURIComponent(e.id), undefined, function () { delete privates[e.id]; showView("encounters"); }, el.encDelete, "Removing…", "Removed “" + e.title + "”.");
+  });
   arm(el.btnClearExamples, function () { return "Confirm: remove examples"; }, function () {
     if (!canPost()) return;
     save("POST", "api/records/clear-examples", undefined, function () { showView("overview"); }, el.btnClearExamples, "Removing…", "Examples removed.");
@@ -1951,7 +2022,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // body: an object, sent as JSON, or a Blob (an image), sent as it is with its own type
   function call(method, url, body) {
     var headers = { Accept: "application/json" }, blob = typeof Blob !== "undefined" && body instanceof Blob;
-    if (method !== "GET") headers["X-CSRF-Token"] = csrf;
+    if (csrf) headers["X-CSRF-Token"] = csrf; // GET too: the private sections are read with it
     if (body !== undefined) headers["Content-Type"] = blob ? body.type : "application/json";
     return request(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store" })
       .then(function (res) {
@@ -2014,7 +2085,20 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function setOwner(on, token) {
     owner = on;
     csrf = on ? token || "" : "";
+    if (!on) { privates = {}; privatesLoaded = false; } // sealed: the private sections leave the page's memory too
     renderAll();
+    if (on) loadPrivate();
+  }
+  // The encounters' private sections, decrypted by the server for the keeper's session alone (null: unreadable)
+  var privates = {}, privatesLoaded = false;
+  function loadPrivate() {
+    if (!owner) return Promise.resolve();
+    return call("GET", "api/private").then(function (d) {
+      if (!owner) return;
+      privates = d.encounters || {};
+      privatesLoaded = true;
+      if (currentView === "encounter") renderEncounter();
+    }, function () {});
   }
   function refreshSession() {
     return call("GET", "api/session").then(function (s) { setOwner(!!s.owner, s.csrf); }, function () {});
@@ -2891,7 +2975,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     else if (!el.seal.hidden) { e.preventDefault(); closeSeal(true); }
     else if (FORMS[currentView]) {
       e.preventDefault();
-      if (aboutChanged()) toast("There are unsaved changes. Save the page, or press Cancel to let them go.");
+      if (aboutChanged() || encounterChanged()) toast("There are unsaved changes. Save them, or press Cancel to let them go.");
       else leaveCurrentForm();
     }
   });
@@ -2906,7 +2990,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     shown = null;
     closeSeal(false);
     root.append(el.toast);
-    disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete);
+    disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete); disarm(el.encDelete);
     el.stage.classList.remove("is-paused");
     motes.resume();
     model3d.resume();
@@ -2917,14 +3001,18 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.detBack.addEventListener("click", function () { showView("overview"); });
   el.detEdit.addEventListener("click", function () { openForm(detailId); });
   el.btnInscribe.addEventListener("click", function () { openForm(null); });
+  el.encBack.addEventListener("click", function () { showView("encounters"); });
+  el.encEdit.addEventListener("click", function () { openEncounterForm(encounterId); });
+  el.btnAddEncounter.addEventListener("click", function () { openEncounterForm(null); });
   el.btnAmend.addEventListener("click", openAboutForm);
   el.btnAddArt.addEventListener("click", function () { openArtForm(null); });
   el.plEdit.addEventListener("click", function () { openArtForm(plateId); });
   el.plBack.addEventListener("click", showPlates);
 
-  // A shared address opens its chapter at once, without waking the construct: #about, #art, #knowledge, #art/<plate>, #knowledge/<record>
+  // A shared address opens its chapter at once, without waking the construct: #about, #art, #knowledge, #encounters,
+  // #art/<plate>, #knowledge/<record>, #encounters/<encounter>
   function route() {
-    var m = /^#(about|art|knowledge)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
+    var m = /^#(about|art|knowledge|encounters)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
     if (!m || (el.archive.open && FORMS[currentView])) return;
     showHub(false);
     openArchive({ book: m[1], id: m[2] });

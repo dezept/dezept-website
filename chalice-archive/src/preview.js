@@ -2,19 +2,20 @@
    Artifact so the owner can see changes before deploying them; build.py never puts it into dist/index.html.
    The Artifact viewer allows no network requests, so this answers the page's requests in memory: the model comes
    from #ca-model, the example plates' images from #ca-files, and the API behaves like the real one, except that
-   the word is "preview" and every change, uploaded images included, is lost when the page reloads. */
+   the word is "preview" and every change, uploaded images included, is lost when the page reloads. The example
+   encounters' private sections come from #ca-private and are kept apart from the archive, as the server keeps
+   them; here they are only in memory, not encrypted. */
 (function () {
   "use strict";
   var LIMIT = {
-    title: 120, domain: 60, note: 4000, source: 160, upload: 8 * 1024 * 1024, art: 500, versions: 12, label: 60,
+    title: 120, note: 4000, source: 160, encounters: 2000, story: 20000, private: 20000, encounterBody: 160 * 1024, upload: 8 * 1024 * 1024, art: 500, versions: 12, label: 60,
     artist: 80, link: 300, caption: 1000, facts: 24, factLabel: 40, factValue: 400, sections: 24, heading: 120, section: 40000,
     traits: 24, pole: 40, glances: 5, glanceTitle: 80, glanceText: 1000, aboutBody: 256 * 1024
   };
   var ABOUT_TEXT = { title: 60, currently: 1000, ooc: 1000, race: 60, "class": 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120 };
-  var STATUSES = ["remembered", "superseded", "relearned", "fragment", "sought"];
   var IMAGE_TYPES = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
-  var word = "preview", csrf = "", archive = null, model = null, files = null, sizes = {};
+  var word = "preview", csrf = "", archive = null, model = null, files = null, sizes = {}, secret = null;
 
   function data() {
     if (!archive) {
@@ -22,8 +23,16 @@
       archive = archive && Array.isArray(archive.records) ? archive : { profile: {}, records: [] };
       if (!Array.isArray(archive.art)) archive.art = [];
       if (!archive.about) archive.about = { facts: [], sections: [] };
+      if (!Array.isArray(archive.encounters)) archive.encounters = [];
     }
     return archive;
+  }
+  // encounter id -> its private text, never part of the archive
+  function privates() {
+    if (!secret) {
+      try { secret = JSON.parse(document.getElementById("ca-private").textContent) || {}; } catch (e) { secret = {}; }
+    }
+    return secret;
   }
   // image name -> data: URI: the example plates' images, then whatever is uploaded
   function fileMap() {
@@ -50,12 +59,25 @@
     if (!title) throw fail(400, "Give the record a title.");
     return {
       id: prev ? prev.id : "r" + token().slice(0, 12), title: title,
-      domain: str(input.domain, LIMIT.domain) || "Unsorted",
-      status: STATUSES.indexOf(input.status) >= 0 ? input.status : "fragment",
       note: str(input.note, LIMIT.note), source: str(input.source, LIMIT.source),
-      date: validDate(input.date) ? input.date : today(),
+      encounter: typeof input.encounter === "string" && data().encounters.some(function (e) { return e.id === input.encounter; }) ? input.encounter : "",
+      date: validDate(input.date) ? input.date : "",
       added: prev ? prev.added : Date.now(), example: false
     };
+  }
+  function cleanEncounter(input, prev) {
+    var title = str(input && input.title, LIMIT.title);
+    if (!title) throw fail(400, "Give the encounter a title.");
+    return {
+      id: prev ? prev.id : "e" + token().slice(0, 12), title: title, date: validDate(input.date) ? input.date : "",
+      text: str(input.text, LIMIT.story), added: prev ? prev.added : Date.now(), example: false
+    };
+  }
+  // undefined keeps the private text, "" removes it
+  function keepPrivate(id, text) {
+    if (text === undefined) return;
+    var t = str(text, LIMIT.private);
+    if (t) privates()[id] = t; else delete privates()[id];
   }
   function cleanLink(v) {
     var s = str(v, LIMIT.link);
@@ -189,8 +211,38 @@
       if (!ok) return reply(409, { error: "The plates have changed. Reload and try again." });
       return reply(200, { archive: change({ art: ids.map(function (id) { return byId[id]; }) }) });
     }
+    if (method === "GET" && path === "api/private") {
+      var out = {};
+      a.encounters.forEach(function (e) { if (privates()[e.id] !== undefined) out[e.id] = privates()[e.id]; });
+      return reply(200, { encounters: out });
+    }
+    if (method === "POST" && path === "api/encounters") {
+      if (JSON.stringify(body).length > LIMIT.encounterBody) return reply(413, { error: "That is too large." });
+      var enc = cleanEncounter(body);
+      keepPrivate(enc.id, body.private);
+      return reply(200, { archive: change({ encounters: a.encounters.concat([enc]) }), id: enc.id });
+    }
+    var em = path.match(/^api\/encounters\/([^/]+)$/);
+    if (em) {
+      var eid = decodeURIComponent(em[1]), was = a.encounters.filter(function (e) { return e.id === eid; })[0];
+      if (!was) return reply(404, { error: "That encounter is gone." });
+      if (method === "PUT") {
+        if (JSON.stringify(body).length > LIMIT.encounterBody) return reply(413, { error: "That is too large." });
+        var revised = cleanEncounter(body, was);
+        keepPrivate(eid, body.private);
+        return reply(200, { archive: change({ encounters: a.encounters.map(function (e) { return e.id === eid ? revised : e; }) }), id: eid });
+      }
+      if (method === "DELETE") {
+        delete privates()[eid];
+        return reply(200, { archive: change({ encounters: a.encounters.filter(function (e) { return e.id !== eid; }),
+          records: a.records.map(function (r) { return r.encounter === eid ? Object.assign({}, r, { encounter: "" }) : r; }) }) });
+      }
+    }
     if (method === "POST" && path === "api/records/clear-examples") {
-      return reply(200, { archive: change({ records: a.records.filter(function (r) { return !r.example; }) }) });
+      var kept = a.encounters.filter(function (e) { if (e.example) delete privates()[e.id]; return !e.example; });
+      return reply(200, { archive: change({ encounters: kept, records: a.records.filter(function (r) { return !r.example; }).map(function (r) {
+        return kept.some(function (e) { return e.id === r.encounter; }) ? r : Object.assign({}, r, { encounter: "" });
+      }) }) });
     }
     if (method === "POST" && path === "api/records") {
       var rec = clean(body);

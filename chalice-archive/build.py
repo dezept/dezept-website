@@ -52,8 +52,9 @@ def jpeg_size(b: bytes) -> tuple[int, int]:
     raise ValueError("no frame header")
 
 
-def preview_archive() -> tuple[dict, dict]:
-    """src/seed.json with the preview's examples added, and the examples' images by name, as data: URIs."""
+def preview_archive() -> tuple[dict, dict, dict]:
+    """src/seed.json with the preview's examples added, the examples' images by name, as data: URIs, and the example
+    encounters' private sections, which the stand-in keeps apart from the archive as the server does."""
     archive = json.loads((ROOT / "src/seed.json").read_text(encoding="utf-8"))
     examples = json.loads((ROOT / "src/preview-examples.json").read_text(encoding="utf-8"))
     files, art = {}, []
@@ -68,7 +69,9 @@ def preview_archive() -> tuple[dict, dict]:
         art.append({**ex, "versions": versions, "added": n, "example": True})
     archive["art"] = art
     archive["about"] = examples["about"]
-    return archive, files
+    archive["encounters"] = [{**e, "added": n, "example": True} for n, e in enumerate(examples["encounters"])]
+    archive["records"] = [{**r, "added": n, "example": True} for n, r in enumerate(examples["records"])]
+    return archive, files, examples["private"]
 
 
 def cut(text: str, part: str) -> str:
@@ -89,7 +92,7 @@ assert page.count("__ARCHIVE__") == 1, "src/page.html must contain __ARCHIVE__ e
 # the preview: a fragment for the Artifact skeleton, with the model inline and the server's stand-in before the app
 shim = (ROOT / "src/preview.js").read_text(encoding="utf-8")
 assert "</script" not in shim.lower()
-archive, files = preview_archive()
+archive, files, private = preview_archive()
 preview = page.replace("__ARCHIVE__", script_json(archive))
 preview = cut(preview, '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
                        '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n')
@@ -99,6 +102,7 @@ preview = cut(preview, "</body>\n</html>\n")
 preview = preview.replace('<script id="ca-app">',
                           '<script type="application/octet-stream" id="ca-model">' + base64.b64encode(model).decode() + "</script>\n"
                           '<script type="application/json" id="ca-files">' + script_json(files) + "</script>\n"
+                          '<script type="application/json" id="ca-private">' + script_json(private) + "</script>\n"
                           '<script id="ca-preview">\n' + shim + "</script>\n"
                           '<script id="ca-app">', 1)
 assert preview.startswith("<title>")

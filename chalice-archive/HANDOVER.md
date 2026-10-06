@@ -6,10 +6,11 @@ Each choice opens its chapter of the archive: a single parchment page in a leath
 
 - **About:** laid out like a Total RP 3 profile. His title, name and full title head the page; then Currently and OOC, the directory (race, class, age, eyes …), additional information, personality traits, at first glance, and the description in sections. The description keeps TRP3's markup, so a TRP profile can be pasted in.
 - **Art:** the plates (pictures of him) as a list; a plate opens on its own page, and a full-size view shows it on a dark ground. A plate is one or more images: its main image and alternate versions. Any image can be flagged **mature**: it stays covered, and is not even loaded, until a visitor says they are 18 or older, and it is covered again once they move on.
-- **Character Knowledge:** his records: the most recent first, then a chaptered index of everything he has re-learned since waking.
+- **Character Knowledge:** his records, newest first: what he has learned, with an optional date, and where he learned it, in his own words or by naming one of the encounters, which then links to it.
+- **Encounters:** what happened when he met someone or something, newest first, with what he learned from each. Each can have a **private section** only the keeper sees while unsealed. It is never sent to visitors, and it is stored encrypted with a key that only the keeper's word unlocks.
 
 - **Self-hosted** on the owner's VPS: Cloudflare in front, then Caddy, then a small Node server (`server/server.mjs`, no dependencies) that serves the page and the model, stores the records, and checks the keeper's word. **`deploy/README.md` is the step-by-step setup.**
-- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check; version 16 is the single-page layout with the TRP-style About; version 17 sets section headings as pull quotes with a colour each; version 18 replaces the scan with the gem drawing the light in, and adds the flares; version 19 takes the portrait off the About page.
+- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check; version 16 is the single-page layout with the TRP-style About; version 17 sets section headings as pull quotes with a colour each; version 18 replaces the scan with the gem drawing the light in, and adds the flares; version 19 takes the portrait off the About page; version 20 simplifies Character Knowledge and adds Encounters with private sections.
   - Before the move, its data (no records, no word) matched `src/seed.json`, so nothing needed migrating.
 
 ## Status
@@ -17,18 +18,19 @@ Each choice opens its chapter of the archive: a single parchment page in a leath
 | Area | State |
 |---|---|
 | Landing (the construct alone, no text), the gem drawing the light in, archive (one page per chapter), record detail | Done |
-| **Hub** (About, Art, Character Knowledge beneath the construct once it has drawn the light in, no other text) and the tome's chapter tabs | Done |
+| **Hub** (About, Art, Character Knowledge, Encounters beneath the construct once it has drawn the light in, no other text) and the tome's chapter tabs | Done |
 | **About** page, as a Total RP 3 profile (no portrait): title, name, full title, currently and OOC, directory, additional information, personality traits, at first glance, description with TRP markup; amended by the keeper | Done, through the server's API |
 | **Art**: plates uploaded from the keeper's browser, ordered, captioned, shown full size | Done, through the server's API |
 | **Alternate versions** (up to 12 images per plate) and **mature** images behind an age check | Done |
-| Addresses: `#about`, `#art`, `#knowledge`, `#art/<plate>` and `#knowledge/<record>` open there at once | Done |
+| Addresses: `#about`, `#art`, `#knowledge`, `#encounters`, `#art/<plate>`, `#knowledge/<record>` and `#encounters/<encounter>` open there at once | Done |
 | Inscribe / revise / remove record, remove examples | Done, through the server's API |
+| **Encounters** with an encrypted private section; records can name an encounter as their source | Done, through the server's API |
 | **Keeper's seal** | **Done.** A brass clasp on the tome's edge opens a small panel. The keeper's word is checked on the server and gives a session; **Seal it again** ends it. The word is set on the VPS with `set-password` and can be changed from the panel. |
 | Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (120 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's; its per-route body limits were checked again with Caddy 2.10.2. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
 | Profile (name, epithet, construct name and note) | The name and epithet are shown on the About page and amended there. The construct's name and note are kept in the data but not shown. |
 | **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutout remains as the fallback. |
 | Preview on claude.ai | Done. The Artifact shows the current build with an in-page stand-in for the server (version 14). |
-| Content | No records, no About text and no plates yet. The preview shows example plates and an example About page; the real site starts empty. |
+| Content | No records, encounters, About text or plates yet. The preview shows example plates, an example About page, and example encounters and records; the real site starts empty. |
 
 ## Files
 
@@ -94,8 +96,9 @@ How the preview differs from the real page:
 - **Stand-in server:** `<script id="ca-preview">` (`src/preview.js`) sets `window.CA_PREVIEW`. `ca-app` then sends its requests there instead of to `fetch`, and asks `CA_PREVIEW.src(name)` for each plate's image instead of `art/<name>`. That covers the model and every API route, image uploads included, with the same validation and error messages as the server.
 - **Examples:** the preview adds `src/preview-examples.json` to `src/seed.json`: an About page and three plates (renders of the construct), one with alternate versions. Two images are flagged mature only to show the cover and the age check; none is really mature. They are marked as examples in their titles and never reach the real site.
 - **The word** is `preview`, and the seal panel says so. Changing the word works until reload.
-- **Records, the About page and plates** start from the seed and the examples and live only in memory (uploaded images as data: URIs), so a reload forgets every change and seals the archive again.
+- **Records, encounters, the About page and plates** start from the seed and the examples and live only in memory (uploaded images as data: URIs), so a reload forgets every change and seals the archive again.
 - **The real page carries none of this:** `dist/index.html` has no `ca-preview`, `ca-model` or `ca-files`, and `window.CA_PREVIEW` can't be set there, because its CSP runs no other inline script. The smoke test checks both.
+- **Private sections:** the example encounter's private text is in `#ca-private` (from `preview-examples.json`'s `private`), apart from the archive as on the server. The stand-in returns it only to the unsealed preview, from memory; it is not encrypted there, since there is no server.
 - **Never put real records or the real word into the preview.** Never use the Artifact's own capabilities (`artifact.publish`) to save; that path was removed on purpose.
 
 ## How the page works
@@ -123,7 +126,11 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 | `POST /api/records` | keeper | new record → `{archive, id}` |
 | `PUT /api/records/:id` | keeper | revise → `{archive, id}` |
 | `DELETE /api/records/:id` | keeper | remove → `{archive}` |
-| `POST /api/records/clear-examples` | keeper | remove example records → `{archive}` |
+| `POST /api/records/clear-examples` | keeper | remove the example records and encounters → `{archive}` |
+| `GET /api/private` | keeper, with the CSRF token | `{encounters: {id: text}}`: the private sections, decrypted; `null` for one that cannot be decrypted |
+| `POST /api/encounters` | keeper | new encounter `{title, date, text, private}` → `{archive, id}` |
+| `PUT /api/encounters/:id` | keeper | revise; `private` left out keeps it, `""` removes it → `{archive, id}` |
+| `DELETE /api/encounters/:id` | keeper | remove; records that named it keep their own words, without the link → `{archive}` |
 | `PUT /api/about` | keeper | the whole page: `{name, epithet, title, currently, ooc, race, class, age, eyes, eyeColor, height, build, birthplace, residence, facts, traits, glances, sections}` → `{archive}` |
 | `POST /api/uploads` | keeper | an image's raw bytes, sent with its type (PNG, JPEG or WebP, at most 8 MiB) → `{file, width, height}` |
 | `POST /api/art` | keeper | new plate `{title, artist, link, date, note, versions: [{file, thumb, label, mature}]}` → `{archive, id}`; it goes first |
@@ -133,7 +140,9 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 
 - **Keeper-only routes** need the session cookie, an `X-CSRF-Token` header equal to the session's token and an `Origin` equal to `PUBLIC_ORIGIN`. Bodies must be a JSON object (`Content-Type: application/json`, at most 64 KiB; 256 KiB for the About page), except uploads.
 - **Server-side cleaning:** ids, `added` and `example` are set by the server. Text is trimmed, stripped of control characters and capped:
-  - records: title 120, domain 60, note 4000, source 160. Unknown states become `fragment`, bad dates become today, an empty domain becomes "Unsorted".
+  - records: title 120, note 4000, source 160. A bad or missing date is left empty (dates are optional). `encounter` must name an existing encounter, or is left empty.
+  - encounters: title 120, text 20 000 (TRP markup kept as text), private 20 000, a body of at most 160 KiB. A bad date is left empty.
+- **Every answer** carries `publicArchive()`: the archive without the encounters' private sections, not even their ciphertext. The page's data block is the same. Only `GET /api/private` returns them.
   - About: name 60, epithet (the full title) 280, title 60, currently and OOC 1000 each, directory fields 60 (birthplace and residence 120). The eye colour must be `#rrggbb` or is dropped. Up to 24 lines of additional information (label 40, value 400), 24 traits (each pole 40; the value is rounded into 0–20, anything else becomes 10), 5 glances (title 80, text 1000) and 24 sections (heading 120, text 40 000, heading colour `#rrggbb` or dropped; the 256 KiB body is the real limit, about 250 000 characters in all, and a longer page is refused with a message that says so). Empty rows are dropped. Unknown fields are dropped. A portrait that names no plate is cleared. Section text keeps TRP markup as plain text; only the page reads it.
   - plates: title 120, artist 80, note 1000, at most 500 plates of 1 to 12 images each, image labels 60. Only `"mature": true` flags an image. A link must be `http(s)` (a bare `artstation.com/x` becomes `https://artstation.com/x`); anything else, `javascript:` included, is dropped. Width and height come from the image file, never from the request.
 - **Uploads:** the type is read from the bytes and must match the `Content-Type` (PNG, JPEG or WebP; never SVG or HTML). At most 8 MiB and 10000 pixels on a side. The file is stored as `DATA_DIR/art/<first 32 hex digits of its SHA-256>.<png|jpg|webp>`, so the same image is stored once.
@@ -176,34 +185,32 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
   "records": [{
     "id": "r…",               // set by the server: "r" + 12 random base64url characters
     "title": "",
-    "domain": "",             // free text; SUGGESTED_DOMAINS sets display order
-    "status": "relearned",    // see below
-    "note": "", "source": "",
-    "date": "YYYY-MM-DD",
+    "note": "", "source": "", // source: where he learned it, in his own words
+    "encounter": "",          // or an encounter's id, or ""
+    "date": "",               // "YYYY-MM-DD" or ""
     "added": 0,               // ms timestamp, tie-breaker for ordering
     "example": false
+  }],
+  "encounters": [{
+    "id": "e…",               // set by the server: "e" + 12 random base64url characters
+    "title": "", "date": "",  // date: "YYYY-MM-DD" or ""
+    "text": "",               // what happened; TRP markup
+    "private": { "iv": "", "tag": "", "data": "" }, // only when there is one: AES-256-GCM, base64; never sent to visitors
+    "added": 0, "example": false
   }]
 }
 ```
 
-| `status` | Label | Meaning | Colour / glyph |
-|---|---|---|---|
-| `remembered` | Remembered | Known before the slumber and still true | Copper, filled diamond |
-| `superseded` | Superseded | Known before, no longer true | Rose, struck diamond |
-| `relearned` | Re-learned | Learned since waking | Teal, filled diamond |
-| `fragment` | Fragmentary | Heard of, not understood | Amber, half diamond |
-| `sought` | Sought | A gap he means to fill | Grey, hollow diamond |
-
-- **Recent accessions:** sorted by `date` desc, then `added` desc, top 6.
-- **Knowledge index:** grouped by domain.
+- **Lists:** records and encounters are newest first, by `date`, those without one by the day they were added (`newest()` in `ca-app`).
+- **Older archives:** a record's `domain` and `status` from before are dropped when the server loads the archive.
 - **Plates saved with a single image** (before plates had versions) carry `file`, `thumb`, `width` and `height` on the plate itself. The server reads them as a plate of one image, with the id `v` + the first 12 hex digits of its file name, and writes them in the new form on the next change.
 
 ### Design
 
 - **Two worlds, one token set** (`:root` of `ca-style`): the landing and the hub are the dark void (navy grounds, teal light, copper). The archive is the tome (leather, parchment, sepia ink, red rubric ink, brass, and the game's red-and-gold buttons). The full-size plate goes back to the dark ground. It is a single deliberate look, not light and dark themes.
-- **The hub** (`#hub`, inside `.core`): once the light is drawn in, `.has-hub` on the stage lifts the construct 56 px and three choices appear beneath it, each a glyph (a slit-pupilled eye, a framed picture, an open book) and its label: About, Art, Character Knowledge. There is no other text. They are dark panes with teal corner brackets, and they flicker in one after another as the gem flashes. On short landscape screens they stand beside the construct instead. Waking the construct from the keyboard moves the focus to the first. The hub stays once shown; closing the tome returns the focus to the choice that opened it.
+- **The hub** (`#hub`, inside `.core`): once the light is drawn in, `.has-hub` on the stage lifts the construct 56 px and four choices appear beneath it, each a glyph (a slit-pupilled eye, a framed picture, an open book, two figures) and its label: About, Art, Character Knowledge, Encounters. Below 620 px they stand two by two. There is no other text. They are dark panes with teal corner brackets, and they flicker in one after another as the gem flashes. On short landscape screens they stand beside the construct instead. Waking the construct from the keyboard moves the focus to the first. The hub stays once shown; closing the tome returns the focus to the choice that opened it.
 - **Chapter tabs** (`#tabs`): leather index tabs on the tome's top edge; the open chapter's tab is a parchment leaf. While a form is open, they only say to finish or cancel it, so nothing written is lost. Escape leaves the About form only while nothing in it has changed; otherwise it says there are unsaved changes.
-- **Views:** each view belongs to a chapter and shows below that chapter's own leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`) in one column (`VIEWS` in `ca-app`). The DOM still has the two `#page-l` and `#page-r` sections, but they are stacked: `#page-l` holds the chapter's leaf, `#page-r` the view. `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`, which hides the chapter's leaf so the record, plate or form has the page to itself. In Art, the list of plates (`data-view="plates"`) shows alone, and a plate opens on its own with "← Return to the plates".
+- **Views:** each view belongs to a chapter and shows below that chapter's own leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`, `#leaf-encounters`) in one column (`VIEWS` in `ca-app`). The DOM still has the two `#page-l` and `#page-r` sections, but they are stacked: `#page-l` holds the chapter's leaf, `#page-r` the view. `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`, which hides the chapter's leaf so the record, plate or form has the page to itself. In Art, Character Knowledge and Encounters, the list (`data-view` `plates`, `overview`, `encounters`) shows alone, and an entry opens on its own page with a link back.
 - **About** (a Total RP 3 profile):
   - **Header**, centred: the title in red small capitals, the name with the record title's rule and red dot beneath it, and the full title (the `epithet`) in italic. There is no portrait; one was there before (a plate shown as a frontispiece) and was taken out, along with "Make it the portrait" on plates. An `about.portrait` left in an older `archive.json` is dropped when the server loads it.
   - **Below it**, each part only when it has something in it: Currently and Out of character in a note box; the **Directory** (two columns of label and value; the eyes get a colour swatch); **Additional information** (the old particulars, one column); **Personality traits** (each a bar between its two poles with a brass marker; the pole it leans toward is darker, and screen readers hear "fairly Lawful"); **At first glance** (up to five cards); then the **description**'s sections. Each section's heading is set like a pull quote: large italic IM Fell English in faded curly quotes, centred between two flourishes that fade out from a small diamond (`sectionHeading()`, `.ab-heading`). Quotes typed into the heading are dropped, so they never double. Its colour is the section's own `color` made readable by `ink()`; without one it is TRP's gold, `{col:ffd100}` darkened (`--ink-gold`, #705c00). The first plain paragraph of the description, if longer than 120 characters, opens with a red drop capital.
@@ -218,15 +225,16 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
   - Whatever the answer, a mature image is covered again as soon as another image takes its place, the visitor goes back to the plates or another chapter, or the tome closes (`shown` in `ca-app` holds the one image on view). In the full-size view, stepping onto a mature image shows its cover.
   - It is an honest question, not proof of age, as on most sites: nothing stops someone from claiming to be 18, and the image addresses are in the page's data for anyone who digs. What it guarantees is that nobody sees a mature image without choosing to and saying they are an adult.
 - **Full-size plate** (`#lightbox`, inside the dialog): the image on the dark ground with its number, title, label and artist in the game's gold; the game's round red buttons step through every image of every plate in order (arrow keys too) and close it. It shows the thumbnail at once and swaps in the full image when it has loaded. While it is open, the tome is `inert`; Escape closes only it. On narrow screens the step buttons sit at the bottom.
-- **Addresses:** the open chapter is written into the address with `history.replaceState` (`#about`, `#art/<plate>`, `#knowledge/<record>`), so it can be copied and shared. Opening such an address goes straight to it, without waking the construct, and so does changing the hash.
+- **Addresses:** the open chapter is written into the address with `history.replaceState` (`#about`, `#art/<plate>`, `#knowledge/<record>`, `#encounters/<encounter>`), so it can be copied and shared. Opening such an address goes straight to it, without waking the construct, and so does changing the hash.
 - **Fonts:** Cinzel (titles, buttons, the game's inscriptional capitals), IM Fell English (the book's text, an 18th-century typeface with old-style numerals) and IM Fell English SC (labels and dates).
 - **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon hanging out below the page.
   - **The page:** one parchment page (`.book`) with a printed double rule, at most 800 px of text column centred on it. The paper is fine SVG grain plus a stretched low-frequency stain (`--grain`, `--mottle`); a tiled stain showed a seam. Stacked page edges show beneath. The page keeps its height; its contents scroll inside `#book-scroll`, fading out at the rules.
-  - **Character Knowledge:** the keeper's buttons (Inscribe record, and Remove examples while any exist; shown only during the keeper's session), then "Recent accessions", the latest six records with date, state and the start of the note, then the "Index of knowledge" as a table of contents. Domains are numbered chapters with roman numerals, and each entry runs to its state on dotted leaders. A record or a form has the page to itself. A record has a red drop capital and its sources as marginalia. Forms are written on ruled lines.
+  - **Character Knowledge:** the keeper's buttons (Inscribe record, and Remove examples while any example records or encounters exist; shown only during the keeper's session), then the records: each its date and source ("from …"), title and the start of its note. A record has the page to itself: its date, title, a red drop capital, and "Learned from": the encounter as a link to it, and/or his own words. Its form has the title, an optional date, the note, an encounter to choose and the free-text source. Forms are written on ruled lines.
+  - **Encounters:** the keeper's button (Record an encounter), then the encounters: each its date, how many records name it, title and the start of its text. An encounter's page has its date, title, its text through `trp()`, then, for the keeper alone, the **private section** in a dashed box with a lock ("Private: only you can see this"), and "What he learned from it": the records that name it. Its form has the title, an optional date, what happened and the private section. Its private text is sent only when it was changed in the form, so an encounter saved before its private section arrived keeps it. Escape leaves the form only while nothing in it has changed.
   - **Game styling:** buttons copy the game's red panel buttons (gold text, brass rim). The close button is the round red one, and notices are dark tooltips with gold text.
   - **Narrow screens (≤ 860 px):** the same page with a thinner binding and narrower margins; form rows stack. At 560 px and below, the About header stacks too.
 - **Landing:** only the construct, centred on the dark stage, with its ambient light (below). There is no visible text until the hub appears. The character's name is in a visually hidden `<h1>`, the button's accessible name ("Open the archive of …") and the archive's hidden heading, and visibly on the About page.
-- **Not shown anywhere:** the construct's name and note from the profile, the state-of-knowledge ledger and filters, and "Example" tags. The removed pieces are gone from the code, not hidden. The `example` flag stays in the data so **Remove examples** still works.
+- **Not shown anywhere:** the construct's name and note from the profile, the state-of-knowledge ledger and filters, the old record states and domains, and "Example" tags. The removed pieces are gone from the code, not hidden. The `example` flag stays in the data so **Remove examples** still works.
 - **Float (cutout fallback only):** three nested wrappers with different periods, so the motion never visibly loops: `.fx-x` 13 s drift, `.fx-y` 5.6 s bob, `.fx-tilt` 9 s tilt. In 3D mode they stop: the model hovers on its own, and the canvas must stay put under the cursor it aims at.
 - **Waking the construct:** only the gem does it. A pointer click must land on the gem: `model3d.gemAt(x, y)` raycasts the gem mesh in its current pose, with slack inside 55 % of its projected bounding circle. While the pointer is over the gem, the stage gets `.on-gem` (hand cursor) and the gem brightens. Clicks anywhere else do nothing. Keyboard activation of the construct button (Tab, then Enter or Space; the click reports `detail` 0) always does. Without the 3D model, the hit area is the cutout's gem overlay.
 - **Drawing the light in** (`summon()`): `.is-drawing` on the stage; `model3d.charge()` slows the model to 15 % speed and charges its gem, and `motes.gather()` sets everything on the canvas spiralling in (below). At 1.35 s the gem is at its brightest, `motes.pulse()` sends a ring of light (and a fainter second one) out from it, and the hub appears. `.is-drawing` clears at 1.95 s; the model is back to full speed at 2.6 s. There is no scan line, grid or lock-on any more.
@@ -247,11 +255,13 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 - **Unsealing:** the word goes to `POST /api/login` over HTTPS. The server compares it with the stored scrypt hash (N=2¹⁷, r=8, p=1, 16-byte salt, 64-byte key; one check at a time, so a burst cannot exhaust memory). The right word gets a random 256-bit session token in a `__Host-ca_session` cookie (HttpOnly, Secure, SameSite=Strict, 12 hours), plus a CSRF token in the response body, kept in a variable.
 - **Wrong words:** two free misses per client address, then waits of 2 s, 4 s, 8 s … up to an hour (429 with Retry-After). More than 50 misses in ten minutes from anywhere pauses all logins until the window clears. Behind Caddy, the client address is Cloudflare's `CF-Connecting-IP`, trusted only from Cloudflare's ranges and passed on as `X-Real-IP`; the server believes `X-Real-IP` only from loopback and only with `TRUST_PROXY=true`.
 - **Panel modes:** unsealed, the panel offers **Seal it again** (logout) and **Change the word** (current word, new word twice; at least 12 characters). Changing the word signs every other session out.
-- **Setting the word:** only on the server, as the service user: `node server/server.mjs set-password` asks twice with hidden input (or reads two lines from stdin). It refuses words under 12 characters. There is no web form for a first word, so nobody can claim the archive before the keeper does. Running it again is also the recovery path for a forgotten word.
+- **Setting the word:** only on the server, as the service user: `node server/server.mjs set-password` asks twice with hidden input (or reads two lines from stdin). It refuses words under 12 characters. There is no web form for a first word, so nobody can claim the archive before the keeper does. Once there are private sections, it also asks for the current word (a third line on stdin) and carries the private key over; without it, it refuses and changes nothing. For a forgotten word, `set-password --forget-private` sets the new word and lets the key go: the private sections written so far can never be read again.
 - **Where the word goes:** typed into the panel, sent once over HTTPS, hashed, discarded. It is never logged, stored in the browser, or written into the page. The inputs are cleared after use.
 - **Encryption:**
   - In transit: visitor ↔ Cloudflare uses Cloudflare's edge certificate, and Cloudflare ↔ Caddy uses the Origin Certificate in Full (strict) mode with Authenticated Origin Pulls, TLS 1.2+. Caddy ↔ Node is plain HTTP on loopback only.
-  - At rest: the records are not encrypted, because they are published to every visitor. The word is hashed, not encrypted, so it cannot be recovered from `auth.json`.
+  - At rest: the records, encounters, About page and plates are not encrypted, because they are published to every visitor. The word is hashed, not encrypted, so it cannot be recovered from `auth.json`.
+  - **The encounters' private sections** are encrypted at rest with AES-256-GCM under one random 256-bit key, each bound to its encounter's id (as associated data), so ciphertext moved onto another encounter does not decrypt. The key is made on the first login and stored only wrapped (AES-256-GCM) by a key derived from the word with scrypt (its own salt, the same cost as the password hash) in `auth.json`. The server unwraps it when the word is spoken and keeps it only in memory, with each session; a restart forgets it until the next login. Changing the word wraps the same key under the new word. So `archive.json`, every backup and `auth.json` together still need the word to read a private section: a leaked or stolen copy of the data directory, or a bug that reads files, gives ciphertext. There is no database, so SQL injection does not apply; what could reach the private text is someone holding the keeper's session (it needs the CSRF token as well) or code running inside the server while the keeper is logged in.
+  - **Never to visitors:** the private sections are stripped from the page, `GET /api/archive` and every write's answer (`publicArchive()`), ciphertext included. The page fetches them with `GET /api/private` only while unsealed and forgets them when sealed.
 - **Untrusted input:** every record, About and plate field is rendered with `textContent`, never as HTML. A plate's link becomes an `<a>` only if it starts with `http(s)://`, on the server and again in the page. The data block escapes `<`, `>`, `&`, U+2028 and U+2029. The CSP blocks any script that is not the page's own.
 - **Images:** only PNG, JPEG and WebP whose bytes match their type, served with that type and `nosniff`, so an upload can never be read as a page or a script. Uploads need the keeper's session like every other write.
 - **Headers on every response:** the CSP (`default-src 'none'`; scripts: the page's hash and jsDelivr's `/npm/`; styles: the page's hash and Google Fonts; `connect-src 'self'`; `frame-ancestors 'none'`), HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, COOP/CORP same-origin and a restrictive Permissions-Policy.
@@ -311,17 +321,20 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - field cleaning and size limits;
   - stored markup escaping;
   - backups;
+  - encounters: cleaning; the private section encrypted in `archive.json`, its key only wrapped in `auth.json`, absent from the page and the API, read back only with the session and its CSRF token, kept when not sent, removed when empty, still readable after the word changes; records naming an encounter, unlinked when it is removed;
   - the About page's cleaning;
   - uploads: session, CSRF and Origin; SVG, HTML and JSON refused; bytes that don't match their type; size and dimension limits; storage under the content hash; a JPEG's size from its header;
   - plates: links, sizes from the file, several images per plate (reordered, relabelled, flagged, added), order, serving only the images in use, the sweep;
   - an archive saved before plates had several images (a separate server start);
+  - the private sections across restarts (more server starts on the same data): no file holds their text; the word unlocks them after a restart; ciphertext copied onto another encounter does not decrypt; `set-password` refuses without the current word, carries the key over with it, and `--forget-private` leaves the old private sections unreadable while new ones can be written;
   - changing the word, which signs older sessions out;
   - logout;
   - per-address throttling via `X-Real-IP`.
-- **Browser checks** run Chromium against the server's real CSP and treat any console error or CSP violation as a failure. They walk the gem until it reveals the hub, open Knowledge from it, then:
+- **Browser checks** run Chromium against the server's real CSP and treat any console error or CSP violation as a failure. They walk the gem until it reveals the hub's four choices, open Character Knowledge from it, then:
   - try a wrong word, then the right one, confirming the cookie stays invisible to scripts;
   - inscribe a record containing markup, which must stay text;
   - reload, still unsealed, then revise and remove the record;
+  - record an encounter with TRP markup, an `<img>` and a private section; inscribe an undated record naming it; follow the record's link to it and find the record listed there; seal, and check the private section has left the page; open the encounter's address in a second browser and check nothing it receives holds the private text;
   - amend the About page in TRP terms: title, a directory field, lines of additional information (one moved up), TRP's standard traits with one slid, a glance with markup, and a description with TRP markup (a centred heading, a white and a gold colour, a `javascript:` and an https link, an icon) and an `<img>`; check that Escape keeps the unsaved form, that the colours are darkened, that only the https link is a link and that the HTML stays text;
   - upload a plate of two images, the second flagged mature (re-encoded to WebP in the browser, then served under the CSP), with a `javascript:` link that must be dropped;
   - check the mature image is covered and not loaded; answer the age check (0 is refused, 30 shows it); see it covered again back at the plates, and open without a second question; see it covered in the full-size view;
@@ -335,6 +348,7 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - the About page shows its example profile, and can be amended;
   - the seal panel names the preview word;
   - only `preview` unseals;
+  - the example encounter's private section shows once unsealed;
   - a record can be inscribed, and a plate uploaded and shown from memory;
   - a reload forgets them;
   - there are no console errors;

@@ -1,5 +1,5 @@
 {
-  "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The About page is a made-up example laid out like a Total RP 3 profile, with TRP markup in its description; the images are rendered from the game's model by tools/example_plates.js. None of them is mature; two are flagged so the preview shows how a mature image is covered.",
+  "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The About page is a made-up example laid out like a Total RP 3 profile, with TRP markup in its description; the images are rendered from the game's model by tools/example_plates.js. None of them is mature; two are flagged so the preview shows how a mature image is covered. The encounters and records are examples too; the private text of the first encounter is kept apart, in \"private\", as the server keeps such text encrypted and gives it only to the keeper.",
   "about": {
     "title": "Archivist",
     "currently": "Cataloguing a shelf of the Valdrakken library he was not asked to catalogue. Ask him what year it is.",
@@ -156,5 +156,48 @@
         }
       ]
     }
-  ]
+  ],
+  "encounters": [
+    {
+      "id": "eexampledruid",
+      "title": "Example: an encounter with a druid",
+      "date": "2026-09-30",
+      "text": "{p:c}{col:66efdc}“The Dream remembers what the waking world forgets.”{/col}{/p}\n\nA night elf druid sat by the Ruby Life Pools and, unasked, explained the Emerald Dream to him as though to a child. He let her.\n\nShe spoke of a war against a creature of shadow and flame that had nearly burned the Dream away, and of keepers who sleep for years to guard it. He wrote down every word."
+    },
+    {
+      "id": "eexamplemap",
+      "title": "Example: the map in Valdrakken",
+      "date": "",
+      "text": "A map pinned to a wall in the Seat of the Aspects. He stood before it for an hour, looking for the one continent he remembered."
+    }
+  ],
+  "records": [
+    {
+      "id": "rexampledruids",
+      "title": "Druids",
+      "note": "Keepers of the wild, of many peoples, who can walk the Emerald Dream. Some sleep for years to guard it.",
+      "source": "",
+      "encounter": "eexampledruid",
+      "date": "2026-09-30"
+    },
+    {
+      "id": "rexampledream",
+      "title": "The Emerald Dream",
+      "note": "A realm of growing things beside the waking world. It was nearly burned away in a recent war.",
+      "source": "",
+      "encounter": "eexampledruid",
+      "date": ""
+    },
+    {
+      "id": "rexamplesundering",
+      "title": "The Sundering",
+      "note": "He remembered a single continent. There is no single continent.",
+      "source": "",
+      "encounter": "eexamplemap",
+      "date": "2026-09-02"
+    }
+  ],
+  "private": {
+    "eexampledruid": "An example private section, only in the preview: only the keeper sees this, once unsealed.\n\nHe suspects the druid knew more about the Forbidden Reach than she let on."
+  }
 }
