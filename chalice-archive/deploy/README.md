@@ -25,9 +25,8 @@ Replace `archive.example.com` everywhere below with your hostname.
 sudo git clone https://github.com/dezept/dezept-website.git /opt/dezept-website
 ```
 
-- Until this setup is merged, add `-b claude/new-session-qjr9xt`.
 - If the repository is private, give the VPS a read-only deploy key.
-- `dist/` is committed, so the VPS needs no build step.
+- `dist/` is committed, so the VPS needs no build step. It holds three.js too: the site serves it itself, so no visitor's browser runs code from a CDN.
 
 ## 3. Run the archive server
 
@@ -38,6 +37,8 @@ sudo nano /etc/systemd/system/chalice-archive.service     # set PUBLIC_ORIGIN=ht
 sudo systemctl daemon-reload
 sudo systemctl enable --now chalice-archive
 ```
+
+- `SESSION_HOURS` (1 to 720) and `PORT` must be plain numbers. Anything else, such as `12h`, stops the server with a message in the journal, rather than letting sessions last for ever.
 
 - systemd creates `/var/lib/chalice-archive` (mode 0700, owned by `chalice`).
 - On the first start the server copies `src/seed.json` into `archive.json` there.
@@ -111,6 +112,7 @@ sudo SSH_PORT=2222 sh /opt/dezept-website/chalice-archive/deploy/firewall.sh    
 ```
 
 - The script allows SSH (rate-limited) and 443 from Cloudflare's current ranges, and denies everything else.
+- It checks every range it fetches before using it. If one is not a plain IPv4 or IPv6 range, or is wide enough to open the port to most of the internet, it stops and changes nothing.
 - Run it again now and then to pick up new Cloudflare ranges.
 - When Cloudflare's list changes, update the `trusted_proxies` line in the Caddyfile too.
 
@@ -161,7 +163,8 @@ Then open the site:
 - **The word**:
   - Stored only as a salted scrypt hash (N=2¹⁷, r=8, p=1).
   - Checked only on the server, one check at a time.
-  - From the third wrong try from one address, each miss imposes a wait that doubles (2 s, 4 s, 8 s …), up to an hour.
+  - From the third wrong try from one address, each miss imposes a wait that doubles (2 s, 4 s, 8 s …), up to an hour. An IPv6 address counts with the rest of its /64, which one client usually holds whole.
+  - Each try counts the moment it is made, so a burst of guesses sent all at once gets no more tries than guesses sent one after another.
   - Over 50 failures in ten minutes from anywhere pauses all logins for a while.
 - **The session**:
   - A random 256-bit token in a `__Host-` cookie: HttpOnly, Secure, SameSite=Strict.
@@ -175,8 +178,10 @@ Then open the site:
   - Every field is validated and capped on the server. Artists' links must be `http(s)`.
   - The page shows all of it as text, never as markup.
 - **The page**:
-  - The CSP allows only its own inline script and style, by hash, plus three.js from jsDelivr and the fonts from Google.
-  - Also sent: HSTS, `nosniff`, no framing, no referrer.
+  - The CSP allows only its own inline script and style, by hash, three.js from the site itself, and the fonts from Google. No CDN can run code in the page, so none could reach the keeper's session or the private sections.
+  - It also requires Trusted Types: browsers that support them (Chrome and Edge among them) refuse any attempt to write HTML into the page or turn text into script, so even a mistake in the page's code could not become cross-site scripting.
+  - Also sent: HSTS, `nosniff`, no framing, no referrer, and a Permissions-Policy that switches off the camera, microphone, location and other features the page never uses.
+- **Slow requests**: a JSON body has 60 seconds to arrive, so nobody can hold connections open by sending a login a byte at a time.
 - **The machine**:
   - Node runs as an unprivileged user.
   - It can write only `/var/lib/chalice-archive` and talk only to loopback.

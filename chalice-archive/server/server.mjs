@@ -17,7 +17,7 @@
                                            the address visitors use. Logins and writes must come from it.
      TRUST_PROXY=true                      take the client IP from X-Real-IP (set by Caddy), only from a loopback peer
      COOKIE_SECURE=false                   only for local testing over plain http
-     SESSION_HOURS=12                      how long a login lasts
+     SESSION_HOURS=12                      how long a login lasts, 1 to 720 (anything else stops the server, as does a bad PORT)
 
    Security, in short (deploy/README.md has the whole picture):
      - The keeper's word is stored only as a salted scrypt hash (N=2^17, r=8, p=1), set from the command line,
@@ -26,18 +26,21 @@
        The server keeps only the token's SHA-256. Changing the word signs every session out.
      - Writes need that session, its CSRF token in a header, a JSON body (or, for art, a PNG, JPEG, WebP or GIF
        image, or an MP4 or WebM video, whose bytes match its type) and an Origin equal to PUBLIC_ORIGIN.
-     - Failed logins are throttled per client IP (rising waits) and overall.
+     - Failed logins are throttled per client IP (an IPv6 address by its /64; rising waits) and overall, and each
+       try counts the moment it is made, so parallel guesses gain nothing.
      - The encounters' private sections are encrypted at rest with a key that only the keeper's word unwraps, and
        are never sent to visitors.
      - Every field is validated and capped here; the page renders all of it as text.
      - Every response carries a strict Content-Security-Policy built from hashes of the page's own inline
-       script and style, so no other inline code can run.
-     - Only the page, the model and the art the archive names are served, art only under its content hash.
+       script and style, so no other inline code can run; scripts come only from this server (three.js is served
+       here, not from a CDN), and Trusted Types forbid writing HTML into the page.
+     - Only the page, the model, three.js and the art the archive names are served, art only under its content hash.
        There is no static directory to wander through.
 */
 import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -47,15 +50,28 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
 const env = process.env;
 
+// A number from the environment, or the default when unset. Anything else stops the server: a mistyped
+// SESSION_HOURS ("12h") would otherwise make every session last for ever.
+function envNumber(name, fallback, min, max) {
+  const raw = env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < min || n > max) {
+    console.error(`${name} must be a number from ${min} to ${max}, not ${JSON.stringify(raw)}.`);
+    process.exit(2);
+  }
+  return n;
+}
+
 const CONFIG = {
-  port: Number(env.PORT ?? 8080),
+  port: Math.round(envNumber("PORT", 8080, 0, 65535)),
   host: env.HOST || "127.0.0.1",
   dataDir: path.resolve(env.DATA_DIR || path.join(HERE, "data")),
   siteDir: path.resolve(env.SITE_DIR || path.join(ROOT, "dist")),
   origin: (env.PUBLIC_ORIGIN || "").replace(/\/+$/, ""),
   trustProxy: env.TRUST_PROXY === "true",
   secureCookie: env.COOKIE_SECURE !== "false",
-  sessionMs: Math.max(1, Number(env.SESSION_HOURS || 12)) * 3600e3,
+  sessionMs: envNumber("SESSION_HOURS", 12, 1, 24 * 30) * 3600e3,
 };
 
 const SCRYPT = { N: 2 ** 17, r: 8, p: 1, keylen: 64, maxmem: 256 * 1024 * 1024 };
@@ -106,9 +122,14 @@ function ensureDataDir() {
 // Write to a temporary file, flush it to disk, then rename over the target: a crash never leaves half a file.
 function writeAtomic(file, text) { // text: a string or a Buffer
   const tmp = `${file}.${crypto.randomBytes(6).toString("hex")}.tmp`;
-  const fd = fs.openSync(tmp, "w", 0o600);
-  try { fs.writeSync(fd, text); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
-  fs.renameSync(tmp, file);
+  try {
+    const fd = fs.openSync(tmp, "wx", 0o600);
+    try { fs.writeSync(fd, text); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+    fs.renameSync(tmp, file);
+  } catch (err) {
+    fs.rmSync(tmp, { force: true }); // a full disk leaves no half-written temporary file behind
+    throw err;
+  }
 }
 
 // ---------- the keeper's word ----------
@@ -139,7 +160,8 @@ function readAuth() {
   try {
     const a = JSON.parse(fs.readFileSync(FILES.auth, "utf8"));
     const sane = a && a.kdf === "scrypt" && typeof a.salt === "string" && typeof a.hash === "string" && typeof a.generation === "string"
-      && Number.isInteger(a.N) && a.N >= 2 ** 14 && a.N <= 2 ** 20 && a.r >= 1 && a.r <= 32 && a.p >= 1 && a.p <= 4;
+      && Number.isInteger(a.N) && a.N >= 2 ** 14 && a.N <= 2 ** 20 && a.r >= 1 && a.r <= 32 && a.p >= 1 && a.p <= 4
+      && (a.key === undefined || validWrapped(a.key)); // the private key, wrapped by the word, once there is one
     return sane ? a : null;
   } catch { return null; }
 }
@@ -163,6 +185,7 @@ const b64 = (buf) => buf.toString("base64");
 const validBox = (b) => Boolean(b) && typeof b === "object" && ["iv", "tag", "data"].every((k) => typeof b[k] === "string")
   && Buffer.from(b.iv, "base64").length === 12 && Buffer.from(b.tag, "base64").length === 16;
 const box = (b) => ({ iv: b.iv, tag: b.tag, data: b.data });
+const validWrapped = (w) => validBox(w) && typeof w.salt === "string" && Buffer.from(w.salt, "base64").length === 16;
 function encrypt(key, plain, aad) {
   const iv = crypto.randomBytes(12), c = crypto.createCipheriv("aes-256-gcm", key, iv);
   c.setAAD(Buffer.from(aad, "utf8"));
@@ -195,6 +218,7 @@ let keyChain = Promise.resolve();
 function keeperKey(word) {
   const run = keyChain.then(async () => {
     const auth = readAuth();
+    if (!auth) throw new HttpError(503, "The keeper's word was just changed on the server. Try again.");
     if (auth.key) return unwrapKey(word, auth.key);
     const key = crypto.randomBytes(32);
     writeAtomic(FILES.auth, JSON.stringify({ ...auth, key: await wrapKey(word, key) }, null, 2) + "\n");
@@ -213,7 +237,12 @@ function validWord(word) {
 // ---------- the archive ----------
 const str = (v, max) => (typeof v === "string" ? v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").trim().slice(0, max) : "");
 const today = () => new Date().toISOString().slice(0, 10);
-const validDate = (d) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d + "T00:00:00Z"));
+// A day that exists: Date.parse alone takes 2024-02-30 (and rolls it over into March)
+const validDate = (d) => {
+  if (typeof d !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+  const t = Date.parse(d + "T00:00:00Z");
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === d;
+};
 const validId = (id) => typeof id === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(id);
 
 // A record of something he knows: a title, his note, and where he learned it, in his own words, from one of the
@@ -567,7 +596,11 @@ function loadArchive() {
 // Keep the previous version as a backup (the last 50), then write the new one.
 function commit(next) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  if (fs.existsSync(FILES.archive)) fs.copyFileSync(FILES.archive, path.join(FILES.backups, `archive-${stamp}.json`));
+  if (fs.existsSync(FILES.archive)) {
+    let n = 0; // a second change in the same millisecond gets the next number, so no backup overwrites another
+    while (fs.existsSync(path.join(FILES.backups, `archive-${stamp}-${n}.json`))) n++;
+    fs.copyFileSync(FILES.archive, path.join(FILES.backups, `archive-${stamp}-${n}.json`), fs.constants.COPYFILE_EXCL);
+  }
   const old = fs.readdirSync(FILES.backups).filter((f) => /^archive-.*\.json$/.test(f)).sort();
   for (const f of old.slice(0, Math.max(0, old.length - 50))) fs.unlinkSync(path.join(FILES.backups, f));
   writeAtomic(FILES.archive, JSON.stringify(next, null, 2) + "\n");
@@ -651,8 +684,7 @@ function loginWait(ip) {
   return f && f.until > now ? Math.ceil((f.until - now) / 1000) : 0;
 }
 
-function noteFailure(ip) {
-  const now = Date.now();
+function noteFailure(ip, now = Date.now()) {
   recentFailures.push(now);
   const f = failures.get(ip) || { count: 0, until: 0, last: 0 };
   if (now - f.last > 24 * 3600e3) f.count = 0; // forgive after a quiet day
@@ -663,6 +695,36 @@ function noteFailure(ip) {
   failures.set(ip, f);
   if (failures.size > 10000) for (const [k, v] of failures) if (now - v.last > 3600e3) failures.delete(k);
   return secs;
+}
+
+function refuseWhileWaiting(ip) {
+  const wait = loginWait(ip);
+  if (wait) throw new HttpError(429, `Too many tries. Wait ${wait} s.`, { "Retry-After": String(wait) });
+}
+// A try at the word counts as a failure from the moment it is made, and is forgiven once the word proves right.
+// The wait is checked and the try counted together, with nothing awaited in between, so a burst of parallel tries
+// cannot all slip past the wait before the first of them has failed.
+function beginTry(ip) {
+  refuseWhileWaiting(ip);
+  const at = Date.now();
+  return { ip, at, secs: noteFailure(ip, at) };
+}
+function forgive(t) {
+  failures.delete(t.ip);
+  const i = recentFailures.indexOf(t.at);
+  if (i >= 0) recentFailures.splice(i, 1);
+}
+
+// What failed logins are counted against: an IPv4 address, or an IPv6 address's /64, since one client usually
+// holds a whole /64 and could otherwise take a fresh address for every guess
+function throttleKey(ip) {
+  const v4 = /^(?:::ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (v4) return v4[1];
+  if (!net.isIPv6(ip)) return ip;
+  const [head, tail] = ip.toLowerCase().split("::");
+  const a = head ? head.split(":") : [], b = tail ? tail.split(":") : [];
+  const groups = tail === undefined ? a : [...a, ...Array(Math.max(0, 8 - a.length - b.length)).fill("0"), ...b];
+  return groups.slice(0, 4).map((g) => parseInt(g, 16).toString(16)).join(":") + "::/64";
 }
 
 function clientIp(req) {
@@ -690,12 +752,17 @@ function loadSite() {
   const styleHash = inline(/<style id="ca-style">([\s\S]*?)<\/style>/, "style block");
   const modelName = (page.match(/"(chalice\.[0-9a-f]{12}\.glb)"/) || [])[1];
   if (!modelName) throw new Error(`${pagePath} does not name a model file`);
+  const threeName = (page.match(/"\.\/(three\.[0-9a-f]{12}\.js)"/) || [])[1];
+  if (!threeName) throw new Error(`${pagePath} does not name its three.js file; run python3 build.py`);
   return {
     before: parts[0], after: parts[1],
     model: { name: modelName, body: fs.readFileSync(path.join(CONFIG.siteDir, modelName)) },
+    three: { name: threeName, body: fs.readFileSync(path.join(CONFIG.siteDir, threeName)) },
     csp: [
       "default-src 'none'",
-      `script-src ${appHash} https://cdn.jsdelivr.net/npm/`,
+      // The page's own script, by its hash, and three.js, which the site serves itself ('self': nothing else here is
+      // served as JavaScript, and every response says nosniff). No CDN can run code in the page.
+      `script-src ${appHash} 'self'`,
       `style-src ${styleHash} https://fonts.googleapis.com`,
       "font-src https://fonts.gstatic.com",
       "img-src 'self' data:",
@@ -705,6 +772,10 @@ function loadSite() {
       "form-action 'none'",
       "frame-ancestors 'none'",
       "object-src 'none'",
+      // The page builds every element with createElement and textContent, never from HTML, so browsers that
+      // support Trusted Types refuse any HTML or script sink (innerHTML, eval …) outright
+      "require-trusted-types-for 'script'",
+      "trusted-types 'none'",
     ].join("; "),
   };
 }
@@ -717,6 +788,10 @@ function scriptJson(obj) {
 
 // ---------- http ----------
 let SITE = null;
+// Powerful browser features the page never uses are switched off for it (full screen stays, for the video player)
+const PERMISSIONS = ["accelerometer", "browsing-topics", "camera", "display-capture", "geolocation", "gyroscope", "hid",
+  "identity-credentials-get", "idle-detection", "magnetometer", "microphone", "midi", "payment", "publickey-credentials-get", "screen-wake-lock",
+  "serial", "usb", "xr-spatial-tracking"].map((f) => f + "=()").join(", ");
 
 function securityHeaders(res) {
   res.setHeader("Content-Security-Policy", SITE.csp);
@@ -725,7 +800,7 @@ function securityHeaders(res) {
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+  res.setHeader("Permissions-Policy", PERMISSIONS);
   if (CONFIG.secureCookie) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 }
 
@@ -735,25 +810,36 @@ function sendJson(req, res, status, body, headers = {}) {
   res.end(req.method === "HEAD" ? undefined : text);
 }
 
-function readBody(req, limit, tooLarge = "That is too large.") {
+// The body, at most `limit` bytes. With `deadlineMs`, a body still arriving after that long is refused, so a client
+// cannot hold a connection open by sending a small body a byte at a time (the server's own timeout is long, for videos).
+function readBody(req, limit, tooLarge = "That is too large.", deadlineMs = 0) {
   return new Promise((resolve, reject) => {
     const declared = Number(req.headers["content-length"] || 0);
     if (declared > limit) return reject(new HttpError(413, tooLarge));
     const chunks = [];
-    let size = 0;
+    let size = 0, done = false;
+    const finish = (err, value) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (err) reject(err); else resolve(value);
+    };
+    const timer = deadlineMs ? setTimeout(() => { finish(new HttpError(408, "The request took too long.")); req.destroy(); }, deadlineMs) : null;
     req.on("data", (c) => {
+      if (done) return;
       size += c.length;
-      if (size > limit) { reject(new HttpError(413, tooLarge)); req.destroy(); return; }
+      if (size > limit) { finish(new HttpError(413, tooLarge)); req.destroy(); return; }
       chunks.push(c);
     });
-    req.on("end", () => resolve(Buffer.concat(chunks)));
-    req.on("error", reject);
+    req.on("end", () => finish(null, Buffer.concat(chunks)));
+    req.on("error", (err) => finish(err));
+    req.on("close", () => finish(new HttpError(400, "The request was cut off.")));
   });
 }
 
 async function readJson(req, limit = LIMIT.body) {
   if (!/^application\/json\b/i.test(String(req.headers["content-type"] || ""))) throw new HttpError(415, "Send JSON.");
-  const body = await readBody(req, limit);
+  const body = await readBody(req, limit, undefined, 60e3);
   let value;
   try { value = JSON.parse(body.toString("utf8") || "{}"); } catch { throw new HttpError(400, "The request is not valid JSON."); }
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new HttpError(400, "The request is malformed.");
@@ -774,31 +860,30 @@ function csrfOk(req, session) {
 
 async function login(req, res) {
   if (!sameOrigin(req)) throw new HttpError(403, "The request was refused.");
-  const ip = clientIp(req);
-  const wait = loginWait(ip);
-  if (wait) throw new HttpError(429, `Too many tries. Wait ${wait} s.`, { "Retry-After": String(wait) });
+  const ip = throttleKey(clientIp(req));
+  refuseWhileWaiting(ip);
   const body = await readJson(req);
   const word = typeof body.password === "string" ? body.password.slice(0, WORD.max) : "";
   const auth = readAuth();
+  const attempt = beginTry(ip);
   if (!word || !(await checkWord(word, auth))) {
-    const secs = noteFailure(ip);
-    throw new HttpError(401, "The seal does not yield.", secs ? { "Retry-After": String(secs) } : undefined);
+    throw new HttpError(401, "The seal does not yield.", attempt.secs ? { "Retry-After": String(attempt.secs) } : undefined);
   }
-  failures.delete(ip);
+  forgive(attempt);
   const { token, csrf } = createSession(auth, await keeperKey(word));
   sendJson(req, res, 200, { owner: true, csrf }, { "Set-Cookie": sessionCookie(token, CONFIG.sessionMs) });
 }
 
 async function changeWord(req, res, session) {
-  const ip = clientIp(req);
-  const wait = loginWait(ip);
-  if (wait) throw new HttpError(429, `Too many tries. Wait ${wait} s.`, { "Retry-After": String(wait) });
+  const ip = throttleKey(clientIp(req));
+  refuseWhileWaiting(ip);
   const body = await readJson(req);
   const auth = readAuth();
+  const attempt = beginTry(ip);
   if (!(await checkWord(typeof body.current === "string" ? body.current.slice(0, WORD.max) : "", auth))) {
-    noteFailure(ip);
     throw new HttpError(401, "The current word is wrong.");
   }
+  forgive(attempt);
   const problem = validWord(body.next);
   if (problem) throw new HttpError(400, problem);
   const next = { ...(await hashWord(body.next)), key: await wrapKey(body.next, session.privateKey) }; // the same private key, under the new word
@@ -917,6 +1002,10 @@ async function handle(req, res) {
     if (pathname === "/" + SITE.model.name) {
       res.writeHead(200, { "Content-Type": "model/gltf-binary", "Cache-Control": "public, max-age=31536000, immutable", "Content-Length": SITE.model.body.length });
       return res.end(req.method === "HEAD" ? undefined : SITE.model.body);
+    }
+    if (pathname === "/" + SITE.three.name) { // named by its hash, like the model
+      res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=31536000, immutable", "Content-Length": SITE.three.body.length });
+      return res.end(req.method === "HEAD" ? undefined : SITE.three.body);
     }
     if (pathname === "/api/session") {
       const s = sessionOf(req);

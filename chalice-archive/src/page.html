@@ -6,7 +6,7 @@
 <title>Chalice Archive</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 7-6 7-6-7z' fill='%2366efdc' stroke='%230a0e1a' stroke-width='1.2'/%3E%3Cpath d='M8 1l3 7-3 7' fill='%23fff' fill-opacity='.35'/%3E%3C/svg%3E">
 <link rel="preload" href="__MODEL_URL__" as="fetch" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="__THREE_URL__">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
 <style id="ca-style">
 /* Layout: one dark stage where the construct is the only bright object. A click on its gem draws in the light drifting around it and projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
@@ -1091,7 +1091,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var d = new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
     return isNaN(d) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   }
-  function isDate(v) { return /^\d{4}-\d{2}-\d{2}$/.test(v); }
+  function isDate(v) { // a day that exists, as the server takes it: not 2024-02-30
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    var t = Date.parse(v + "T00:00:00Z");
+    return !isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
+  }
   function traitValue(v) { v = Math.round(Number(v)); return isFinite(v) ? Math.min(20, Math.max(0, v)) : 10; }
 
   // The server puts the archive into #ca-data, and answers every accepted change with the whole archive again
@@ -1130,13 +1134,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       };
     }).filter(function (a) { return a.versions.length; });
     var ab = raw.about || {};
+    function rows(v) { return (Array.isArray(v) ? v : []).filter(function (x) { return x && typeof x === "object"; }); }
     function list(v, keys) {
-      return (Array.isArray(v) ? v : []).filter(Boolean).map(function (x) { var o = {}; keys.forEach(function (k) { o[k] = String(x[k] || ""); }); return o; });
+      return rows(v).map(function (x) { var o = {}; keys.forEach(function (k) { o[k] = String(x[k] || ""); }); return o; });
     }
     var about = {
       eyeColor: /^#[0-9a-f]{6}$/i.test(ab.eyeColor) ? ab.eyeColor : "",
       facts: list(ab.facts, ["label", "value"]),
-      traits: list(ab.traits, ["left", "right"]).map(function (t, i) { t.value = traitValue(ab.traits[i].value); return t; }),
+      // each trait's value from its own row: the rows left out above must not shift the values onto other traits
+      traits: rows(ab.traits).map(function (x) { return { left: String(x.left || ""), right: String(x.right || ""), value: traitValue(x.value) }; }),
       glances: list(ab.glances, ["title", "text"]),
       sections: list(ab.sections, ["heading", "body", "color"]).map(function (x) { if (!/^#[0-9a-f]{6}$/i.test(x.color)) x.color = ""; return x; })
     };
@@ -1572,7 +1578,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         h("span", { class: "mount" }, x.mature ? spoiler(x) : verImg(x, "thumb", ""), x.mature ? null : badge(x)),
         h("span", { class: "ver-name", text: verName(a, x) + (x.mature ? " (18+)" : "") }));
     }));
-    var back = focused && el.plVersions.querySelector('[data-vid="' + focused + '"]');
+    var back = focused && Array.prototype.find.call(el.plVersions.children, function (b) { return b.dataset.vid === focused; });
     if (back) back.focus();
     el.plTitle.textContent = a.title || "Untitled";
     var credit = [];
@@ -1774,6 +1780,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
 
   // A record
+  var recWas = ""; // the form as it opened, so Escape can tell whether anything would be lost
+  function recFromForm() {
+    return { title: el.fTitle.value.trim(), note: el.fNote.value.trim(), source: el.fSource.value.trim(), encounter: el.fEncounter.value, date: isDate(el.fDate.value) ? el.fDate.value : "" };
+  }
+  function recordChanged() { return currentView === "form" && JSON.stringify(recFromForm()) !== recWas; }
   function openForm(id) {
     var r = id ? find(id) : null;
     editingId = r ? r.id : null;
@@ -1789,6 +1800,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.fEncounter.value = r ? r.encounter : "";
     el.fError.hidden = true;
     showView("form");
+    recWas = JSON.stringify(recFromForm());
     setTimeout(function () { if (!el.recForm.contains(document.activeElement) || document.activeElement === el.fBack) el.fTitle.focus(); }, 40);
   }
   function leaveForm() { if (editingId && find(editingId)) showDetail(editingId); else showView("overview"); }
@@ -1796,13 +1808,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.recForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (busy || !canPost()) return;
-    var title = el.fTitle.value.trim();
-    if (!title) { formError("form", "Give the record a title."); el.fTitle.focus(); return; }
-    var prev = editingId ? find(editingId) : null;
-    var rec = {
-      title: title, note: el.fNote.value.trim(), source: el.fSource.value.trim(), encounter: el.fEncounter.value,
-      date: isDate(el.fDate.value) ? el.fDate.value : ""
-    };
+    var rec = recFromForm(), prev = editingId ? find(editingId) : null;
+    if (!rec.title) { formError("form", "Give the record a title."); el.fTitle.focus(); return; }
     save(prev ? "PUT" : "POST", prev ? "api/records/" + encodeURIComponent(prev.id) : "api/records", rec,
       function (data) { if (find(data.id)) showDetail(data.id); else showView("overview"); }, el.fSubmit, prev ? "Saving…" : "Inscribing…",
       prev ? "Record revised." : "Record inscribed.");
@@ -2153,6 +2160,17 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.afAdd.disabled = el.afVersions.children.length >= MAX.versions;
     rowButtons(el.afVersions, 1);
   }
+  // What the art piece form holds, its images included, so Escape can tell whether anything would be lost
+  var artWas = "";
+  function artSnapshot() {
+    return JSON.stringify([el.afTitle.value, el.afGallery.value, el.afArtist.value, el.afLink.value, el.afDate.value, el.afNote.value,
+      Array.prototype.map.call(el.afVersions.children, function (row) {
+        var file = row.querySelector('[data-k="file"]');
+        return [row.dataset.id || "", file ? file.value : "", row.querySelector('[data-k="label"]').value,
+                row.querySelector('[data-k="mature"]').checked, row.querySelector('[data-k="loop"]').checked];
+      })]);
+  }
+  function artChanged() { return currentView === "artForm" && artSnapshot() !== artWas; }
   function openArtForm(id) {
     var a = id ? findArt(id) : null;
     artEditing = a ? a.id : null;
@@ -2171,6 +2189,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.afNote.value = a ? a.note : "";
     el.afError.hidden = true;
     showView("artForm");
+    artWas = artSnapshot();
     setTimeout(function () { (a ? el.afTitle : el.afVersions.querySelector('[data-k="file"]')).focus(); }, 40);
   }
   el.artForm.addEventListener("click", function (e) { rowAction(e, updateVersionRows, function () { return el.afAdd; }); });
@@ -2247,6 +2266,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.afBack.addEventListener("click", leaveCurrentForm);
 
   // One of his forms: only its name
+  var galWas = ""; // the name as the form opened, so Escape can tell whether anything would be lost
+  function galleryChanged() { return currentView === "galleryForm" && el.gfName.value !== galWas; }
   function openGalleryForm(id) {
     var g = id ? galleryOf(id) : null;
     galEditing = g && !g.other ? g.id : null;
@@ -2256,6 +2277,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.gfName.value = galEditing ? g.name : "";
     el.gfError.hidden = true;
     showView("galleryForm");
+    galWas = el.gfName.value;
     setTimeout(function () { el.gfName.focus(); }, 40);
   }
   el.galleryForm.addEventListener("submit", function (e) {
@@ -2939,10 +2961,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // MODEL_URL is the Chalice's own M2, converted to GLB by tools/m2_to_glb.py and named by its hash so it can be
   // cached for good. Its materials carry the game's
   // shading in extras.wow, and the shaders below reproduce those combiners. The cutout image stays in place
-  // until the first frame is drawn, and for good if WebGL or the CDN is unavailable.
+  // until the first frame is drawn, and for good if WebGL or three.js is unavailable.
+  // three.js and its GLTFLoader: on the site, one file it serves itself (assets/vendor/three.module.js, named by its
+  // hash), so both addresses are the same; in the preview, which can load scripts only from CDNs, jsDelivr's copies.
   var MODEL_URL = "__MODEL_URL__";
-  var THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm";
-  var GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js/+esm";
+  var THREE_URL = "__THREE_URL__";
+  var GLTF_URL = "__GLTF_URL__";
   var model3d = (function () {
     var api = { pause: function () {}, resume: function () {}, charge: function () {}, absorb: function () {}, lift: function () { return .5; }, gemAt: function () { return false; } };
     var canvas = el.constructGl;
@@ -3434,7 +3458,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     else if (!el.lightbox.hidden) closeLightbox();
     else if (!el.seal.hidden) closeSeal(true);
     else if (FORMS[currentView]) {
-      if (aboutChanged() || encounterChanged()) toast("There are unsaved changes. Save them, or press Cancel to let them go.");
+      if (aboutChanged() || encounterChanged() || recordChanged() || artChanged() || galleryChanged()) toast("There are unsaved changes. Save them, or press Cancel to let them go.");
       else leaveCurrentForm();
     } else return false;
     return true;

@@ -11,7 +11,9 @@ Environment:
 
 Checks:
   1. Over HTTP, against a server set up as in production (Secure cookies, PUBLIC_ORIGIN, TRUST_PROXY):
-     security headers and a CSP whose hashes match the page; nothing outside the page, the model, the API and
+     security headers and a CSP whose hashes match the page, with no CDN among its script sources and Trusted Types
+     required; three.js served by the site itself, named by its hash; a SESSION_HOURS or PORT that is not a number in
+     range stops the server; nothing outside the page, the model, three.js, the API and
      the art in use can be fetched; logins and writes refuse a foreign or missing Origin, a missing or wrong CSRF
      token, and non-JSON bodies; the session cookie's flags; field validation and size limits; stored markup
      cannot end the page's data block; backups; the About page's cleaning; image uploads (type sniffed from the
@@ -20,9 +22,12 @@ Checks:
      which lose their metadata, and WebM videos; videos served in byte ranges; encounters, whose private sections are stored
      encrypted, never reach visitors, and need the session and its CSRF token; encounters only for the keeper, stored
      encrypted whole, of which visitors receive nothing; plates saved before
-     they had several images; the password file; changing the word signs other sessions out; failed logins are
-     throttled per IP.
-  2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
+     they had several images; the password file; dates that do not exist are dropped; backups never overwrite one
+     another; changing the word signs other sessions out; failed logins are throttled per IP (an IPv6 address by its
+     /64), and a burst of parallel guesses gets no more tries than guesses one after another.
+  2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors, and nothing
+     is fetched from a CDN; Trusted Types stop any script writing HTML into the page; Escape keeps every form that has
+     unsaved writing in it, and leaves one that has none; only
      the gem wakes the construct, which reveals the choices, and they go again when the tome closes; a wrong word is refused; the right word shows the
      tools; records can be inscribed, revised and removed, and markup in them stays text; an encounter with a private
      section can be recorded, a record can name it and link to it, and the private section shows only while unsealed; the About page can be
@@ -71,9 +76,9 @@ const failures = [];
 function check(ok, what) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${what}`); if (!ok) failures.push(what); }
 
 // ---------- server helpers ----------
-function run(args, env, input) {
+function run(args, env, input, timeout = 60000) { // a run that has not ended by then is stopped (code null)
   return new Promise((resolve) => {
-    const p = spawn(process.execPath, [SERVER, ...args], { env: { ...process.env, ...env } });
+    const p = spawn(process.execPath, [SERVER, ...args], { env: { ...process.env, ...env }, timeout });
     let out = '';
     p.stdout.on('data', (d) => { out += d; });
     p.stderr.on('data', (d) => { out += d; });
@@ -169,6 +174,8 @@ async function apiChecks() {
     check((await run(['set-password'], { DATA_DIR: s.dataDir }, 'too short\ntoo short\n')).code !== 0 &&
       (await run(['set-password'], { DATA_DIR: s.dataDir }, `${WORD}\n${WORD}!\n`)).code !== 0 &&
       fs.readFileSync(path.join(s.dataDir, 'auth.json'), 'utf8') === authText, 'set-password refuses a short word and two words that differ');
+    const misconfigured = await Promise.all([{ SESSION_HOURS: '12h' }, { SESSION_HOURS: '0' }, { PORT: 'eighty' }].map((e) => run([], { DATA_DIR: s.dataDir, PORT: '0', ...e }, '', 5000)));
+    check(misconfigured.every((r) => r.code === 2 && /must be a number/.test(r.out)), 'the server will not start with a SESSION_HOURS or PORT that is not a number in range (so no session can last for ever)');
 
     // headers and the CSP
     const page = await call('GET', '/');
@@ -177,6 +184,14 @@ async function apiChecks() {
       csp.includes(inlineHash(page.text, /<style id="ca-style">([\s\S]*?)<\/style>/)) && !csp.includes('unsafe') &&
       /default-src 'none'/.test(csp) && /frame-ancestors 'none'/.test(csp) && /connect-src 'self'/.test(csp),
       "the CSP allows only the page's own inline script and style, by hash, and no 'unsafe-' sources");
+    const scriptSrc = (csp.match(/script-src ([^;]*)/) || [])[1] || '';
+    check(scriptSrc.split(' ').every((s) => s === "'self'" || /^'sha256-[A-Za-z0-9+/=]{44}'$/.test(s)) && /require-trusted-types-for 'script'/.test(csp) && /trusted-types 'none'/.test(csp),
+      'scripts may come only from the page itself and the site: no CDN; and Trusted Types forbid every HTML and script sink');
+    const threeName = (page.text.match(/"\.\/(three\.[0-9a-f]{12}\.js)"/) || [])[1];
+    const three = threeName && await call('GET', '/' + threeName);
+    check(!!three && three.status === 200 && three.headers['content-type'] === 'text/javascript; charset=utf-8' && /immutable/.test(three.headers['cache-control']) &&
+      crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'dist', threeName))).digest('hex').startsWith(threeName.split('.')[1]) &&
+      /^\/\* three\.js \d+\.\d+\.\d+ /.test(three.text) && !page.text.includes('cdn.jsdelivr.net'), 'three.js is served by the site itself, named by its hash, and the page names no CDN');
     const h = page.headers;
     check(h['strict-transport-security'] === 'max-age=31536000; includeSubDomains' && h['x-content-type-options'] === 'nosniff' &&
       h['x-frame-options'] === 'DENY' && h['referrer-policy'] === 'no-referrer' && h['cache-control'] === 'no-store' &&
@@ -234,6 +249,8 @@ async function apiChecks() {
       rec.note === 'line one\nline two' && rec.example === false && rec.id !== '../../etc' && !('extra' in rec) && rec.added > 1,
       'a new record is cleaned: lengths capped, no state or domain, a bad date and an unknown encounter left empty, control characters stripped, id and flags set by the server');
     check((await write('POST', '/api/records', { title: '   ' })).status === 400, 'a record without a title is refused');
+    const dated = async (date) => { const r = await write('POST', '/api/records', { title: 'Dated', date }); await write('DELETE', '/api/records/' + r.json.id); return r.json.archive.records.find((x) => x.id === r.json.id).date; };
+    check((await dated('2024-02-30')) === '' && (await dated('2023-02-29')) === '' && (await dated('2024-02-29')) === '2024-02-29', 'a date that does not exist (30 February) is left empty, a leap day kept');
     check((await write('POST', '/api/records', { title: 'x', note: 'y'.repeat(70 * 1024) })).status === 413, 'a body over 64 KB is refused (413)');
     check((await call('POST', '/api/records', { headers: { Cookie: cookie, Origin: ORIGIN, 'X-CSRF-Token': csrf }, body: '{"title":' })).status === 400, 'malformed JSON is refused');
     check((await write('PUT', '/api/records/nope', { title: 'x' })).status === 404 && (await write('PUT', '/api/records/..%2f..%2fx', { title: 'x' })).status === 404,
@@ -315,6 +332,8 @@ async function apiChecks() {
     const backups = fs.readdirSync(path.join(s.dataDir, 'backups')).filter((f) => f.endsWith('.json'));
     const archiveMode = fs.statSync(path.join(s.dataDir, 'archive.json')).mode & 0o777;
     check(backups.length >= 3 && archiveMode === 0o600, `each change keeps a backup of the previous archive (${backups.length} so far), and archive.json is 0600`);
+    check(backups.every((f) => /^archive-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-\d+\.json$/.test(f)),
+      'each backup is numbered within its millisecond, so two changes at once never overwrite one backup with another');
 
     // the About page
     const about = await write('PUT', '/api/about', {
@@ -516,6 +535,19 @@ async function apiChecks() {
     check(locked.status === 429, 'while locked out, even the right word is not checked');
     const bystander = await call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': '203.0.113.10' }, body: { password: NEW_WORD } });
     check(bystander.status === 200, "another client address (from Caddy's X-Real-IP) is not affected");
+    // a burst of guesses sent all at once: the wait is checked and each try counted together, so only as many are
+    // checked as one after another would be (two free, then the one that starts the wait)
+    const burst = await Promise.all(Array.from({ length: 8 }, (_, i) =>
+      call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': '203.0.113.20' }, body: { password: 'parallel guess ' + i } })));
+    const tally = (n) => burst.filter((r) => r.status === n).length;
+    check(tally(401) <= 3 && tally(429) >= 5 && tally(200) === 0, `a burst of parallel guesses cannot slip past the wait (${tally(401)} checked, ${tally(429)} told to wait)`);
+    // IPv6: one client usually holds a whole /64, so guesses from any address in it count together
+    const v6 = (host, password = 'v6 guess') => call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': `2001:db8:5:6::${host}` }, body: { password } });
+    const v6Tries = [];
+    for (const host of ['1', '2', '3', 'beef']) v6Tries.push(await v6(host));
+    const v6Other = await call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': '2001:db8:5:7::1' }, body: { password: NEW_WORD } });
+    check(v6Tries.slice(0, 3).every((r) => r.status === 401) && v6Tries[3].status === 429 && v6Other.status === 200,
+      'IPv6 addresses are throttled by their /64: a new address in it still waits, and another /64 does not');
   } finally {
     s.stop();
   }
@@ -625,8 +657,11 @@ async function browserChecks() {
       // the expected 401 when a wrong word is tried shows up as a failed request
       if ((m.type() === 'error' || m.type() === 'warning') && !/status of 401/.test(m.text())) errors.push(m.text());
     });
+    const elsewhere = []; // everything the page asks for that is not the site itself or its fonts
+    page.on('request', (r) => { if (!r.url().startsWith(s.url) && !/^data:|^blob:|^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(r.url())) elsewhere.push(r.url()); });
     await page.goto(s.url);
     check(await page.waitForSelector('.core.is-3d', { timeout: 30000 }).then(() => true, () => false), '3D model replaces the cutout under the CSP');
+    check(elsewhere.length === 0, `three.js and the model come from the site itself: nothing is fetched from a CDN${elsewhere.length ? ': ' + elsewhere.join(' ') : ''}`);
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(OUT, 'landing.png') });
 
@@ -684,8 +719,16 @@ async function browserChecks() {
     // records
     const xss = '<img src=x onerror="window.__xss=1">';
     await page.click('#btn-inscribe');
+    await page.waitForTimeout(150);
+    await page.keyboard.press('Escape');
+    check(await page.waitForSelector('#book[data-view="overview"]', { timeout: 3000 }).then(() => true, () => false) && await page.$('#archive[open]') !== null,
+      'Escape leaves a record form with nothing written in it');
+    await page.click('#btn-inscribe');
     await page.fill('#f-title', 'Smoke record');
     await page.fill('#f-note', 'Learned in the smoke test. ' + xss);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    check(await page.$('#view-form:not([hidden])') !== null && (await page.inputValue('#f-title')) === 'Smoke record', 'Escape does not throw away an unsaved record');
     await page.click('#f-submit');
     await page.waitForSelector('#view-detail:not([hidden])', { timeout: 10000 });
     check((await page.textContent('#det-title')) === 'Smoke record' && (await page.textContent('#det-note')).includes(xss) &&
@@ -766,6 +809,12 @@ async function browserChecks() {
     await visitor.waitForTimeout(500);
     check((await visitor.textContent('#enc-title')) === 'An encounter with a druid' && await visitor.$('#enc-private[hidden]') !== null &&
       visitorSaw.length > 0 && !visitorSaw.some((t) => t.includes(secret)), 'a visitor reads the encounter but receives nothing of its private section');
+    // (eval itself cannot be tried from here: the DevTools protocol, which Playwright evaluates through, is exempt from it)
+    const sinks = await visitor.evaluate(() => [() => { document.createElement('div').innerHTML = '<b>x</b>'; },
+      () => { document.createElement('script').text = 'window.__sink = 1'; }, () => setTimeout('window.__sink = 1')]
+      .map((f) => { try { f(); return 'ran'; } catch (e) { return e.name; } }).join());
+    check(sinks === 'TypeError,TypeError,TypeError' && !(await visitor.evaluate(() => window.__sink)),
+      `Trusted Types are enforced: no script in the page can write HTML into it or turn text into script (${sinks})`);
     await visitor.goto(s.url + onlyHash);
     await visitor.waitForSelector('#archive[open] #encounters', { timeout: 20000 });
     await visitor.waitForTimeout(500);
@@ -827,6 +876,9 @@ async function browserChecks() {
     await page.click('.tab[data-book="art"]');
     await page.click('#btn-add-gallery');
     await page.fill('#gf-name', 'Smoke (Dracthyr)');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    check(await page.$('#view-gallery-form:not([hidden])') !== null && (await page.inputValue('#gf-name')) === 'Smoke (Dracthyr)', "Escape does not throw away a form's unsaved name");
     await page.click('#gf-submit');
     check(await page.waitForFunction(() => document.getElementById('gl-title').textContent === 'Smoke (Dracthyr)' && !document.getElementById('view-gallery').hidden, null, { timeout: 10000 }).then(() => true, () => false) &&
       /^#art\/g[\w-]+$/.test(await page.evaluate(() => location.hash)), 'a form can be added; it opens at its own address');
@@ -834,6 +886,10 @@ async function browserChecks() {
     check((await page.$eval('#af-gallery', (n) => n.options[n.selectedIndex].text)) === 'Smoke (Dracthyr)', 'a new art piece goes into the form it is added from');
     await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', { name: 'smoke.png', mimeType: 'image/png', buffer: makePng(300, 200) });
     await page.waitForFunction(() => /300 × 200/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    check(await page.$('#view-art-form:not([hidden])') !== null && /300 × 200/.test(await page.textContent('#af-versions [data-k="status"]')),
+      'Escape does not throw away an art piece whose image has been chosen');
     await page.click('#af-add');
     await page.setInputFiles('#af-versions .row >> nth=1 >> [data-k="file"]', { name: 'mature.png', mimeType: 'image/png', buffer: makePng(200, 300) });
     await page.waitForFunction(() => /200 × 300/.test(document.querySelectorAll('#af-versions [data-k="status"]')[1].textContent), null, { timeout: 10000 }).catch(() => {});
