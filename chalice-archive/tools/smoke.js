@@ -59,10 +59,16 @@ Checks:
      section leaves it, and a form being written stays, with the seal panel open. Just after unsealing, before the
      keeper's archive is back, a record keeps its link to an encounter only for the keeper, such an encounter is revised
      rather than saved a second time, and Escape keeps what was written in an encounter's form; the close button keeps
-     unsaved writing; the video's bar follows the video after a click on it; a moved art piece stays on its image.
+     unsaved writing; the video's bar follows the video after a click on it; a moved art piece stays on its image, and
+     so does one revised, or whose revision is cancelled. A form with no art yet shows a visitor only the overview,
+     also at its own address, which still opens it for the keeper after a reload. A mature image uncovered in the
+     full-size view leaves the focus there. An encounter's form kept open as the session ended lets go of its private
+     section once the tome is closed. An encounter only for the keeper written under a forgotten word says once that
+     it can no longer be read.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
-     network requests at all): the model, the example forms and their plates, GIF and video load from the page, the
-     stand-in server accepts only "preview", the About page can be amended and records and plates added, and a reload
+     network requests at all): the model, the example forms and their plates, GIF and video load from the page; an
+     art piece whose main image is mature, opened from the list by keyboard, asks first and leaves the focus on its
+     cover; the stand-in server accepts only "preview", the About page can be amended and records and plates added, and a reload
      forgets them. The real page carries no trace of the stand-in.
 Screenshots go to tools/.smoke/.
 */
@@ -1253,6 +1259,21 @@ async function browserChecks() {
     await page.click('#gf-submit');
     check(await page.waitForFunction(() => document.getElementById('gl-title').textContent === 'Smoke (Dracthyr)' && !document.getElementById('view-gallery').hidden, null, { timeout: 10000 }).then(() => true, () => false) &&
       /^#art\/g[\w-]+$/.test(await page.evaluate(() => location.hash)), 'a form can be added; it opens at its own address');
+    // A form with no art yet is the keeper's alone, as in the overview: its address showed it to anyone. It still opens
+    // for the keeper after a reload, once the session is known.
+    const emptyHash = await page.evaluate(() => location.hash);
+    const strangerCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const stranger = watch(await strangerCtx.newPage());
+    await stranger.goto(s.url + emptyHash);
+    await settle(stranger);
+    const strangerSees = await stranger.waitForFunction(() => document.getElementById('archive').open && /^galler/.test(document.getElementById('book').dataset.view), null, { timeout: 20000 })
+      .then(() => stranger.evaluate(() => document.getElementById('book').dataset.view + (document.getElementById('archive').textContent.includes('Smoke (Dracthyr)') ? ', named' : '')), () => 'not opened');
+    await strangerCtx.close();
+    await page.reload();
+    await settle(page);
+    check(strangerSees === 'galleries' && await page.waitForFunction(() => document.getElementById('gl-title').textContent === 'Smoke (Dracthyr)' &&
+      !document.getElementById('view-gallery').hidden && !document.getElementById('btn-add-art').hidden, null, { timeout: 15000 }).then(() => true, () => false),
+      `a form with no art yet shows a visitor only the overview, which does not name it (${strangerSees}); its address opens it for the keeper, also after a reload`);
     await page.click('#btn-add-art');
     check((await page.$eval('#af-gallery', (n) => n.options[n.selectedIndex].text)) === 'Smoke (Dracthyr)', 'a new art piece goes into the form it is added from');
     await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', { name: 'smoke.png', mimeType: 'image/png', buffer: makePng(300, 200) });
@@ -1306,6 +1327,11 @@ async function browserChecks() {
     await page.waitForSelector('#lightbox:not([hidden])', { timeout: 3000 });
     await page.keyboard.press('ArrowRight');
     check(await page.waitForSelector('#lb-frame .lb-cover', { timeout: 3000 }).then(() => true, () => false), 'in the full-size view, the mature image arrives covered');
+    await page.click('#lb-frame .lb-cover'); // the answer holds: it opens at once, and the cover that had the focus goes
+    const lbKeeps = await page.waitForSelector('#lb-frame img', { timeout: 3000 }).then(() => page.evaluate(() => document.getElementById('lightbox').contains(document.activeElement)), () => false);
+    await page.keyboard.press('ArrowLeft');
+    check(lbKeeps && await page.waitForFunction(() => / · Main$/.test(document.getElementById('lb-title').textContent), null, { timeout: 3000 }).then(() => true, () => false),
+      'uncovered there, it leaves the focus in the full-size view, and the arrow keys go on stepping');
     await page.keyboard.press('Escape');
     check(await page.$('#lightbox[hidden]') !== null && await page.$('#archive[open]') !== null, 'Escape closes only the full-size view');
 
@@ -1366,6 +1392,16 @@ async function browserChecks() {
     check(await page.waitForFunction(() => document.getElementById('pl-no').textContent === 'Art piece II. · Version 2' && !!document.querySelector('#pl-open .gif') &&
       document.querySelector('#pl-versions .ver-btn[aria-pressed="true"]') === document.querySelectorAll('#pl-versions .ver-btn')[1], null, { timeout: 10000 }).then(() => true, () => false),
       'moved later, an art piece stays on the image that was on view');
+    await page.click('#pl-edit');
+    await page.click('#af-cancel');
+    const cancelledOn = await page.textContent('#pl-no');
+    await page.click('#pl-edit');
+    await page.fill('#af-note', 'Revised on its second image.');
+    await page.click('#af-submit');
+    check(cancelledOn === 'Art piece II. · Version 2' && await page.waitForFunction(() => document.getElementById('pl-note').textContent === 'Revised on its second image.' &&
+      document.getElementById('pl-no').textContent === 'Art piece II. · Version 2' && !!document.querySelector('#pl-open .gif'), null, { timeout: 10000 }).then(() => true, () => false),
+      `revised, or its revision cancelled, an art piece stays on the image that was on view (${cancelledOn})`);
+    await page.click('#pl-versions .ver-btn >> nth=1'); // on the GIF either way, so the checks below still run if that one failed
     await page.click('#pl-open');
     await page.waitForSelector('#lightbox:not([hidden])', { timeout: 3000 });
     await page.keyboard.press('ArrowLeft');
@@ -1423,7 +1459,12 @@ async function browserChecks() {
 
     // The session ends where no tab can see it (here the word is changed on the server). A tab finds out as soon as it
     // is looked at: the private section leaves the page, and a form being written stays, with the seal panel open.
-    const tab3 = watch(await ctx.newPage()), tab4 = watch(await ctx.newPage());
+    const tab3 = watch(await ctx.newPage()), tab4 = watch(await ctx.newPage()), tab5 = watch(await ctx.newPage());
+    await tab5.goto(s.url + encHash); // the encounter's form, which holds its private section
+    await settle(tab5);
+    await tab5.waitForSelector('#enc-tools:not([hidden])', { timeout: 15000 });
+    await tab5.click('#enc-edit');
+    const tab5Holds = await tab5.waitForFunction((t) => document.getElementById('ef-private').value === t, secret, { timeout: 10000 }).then(() => true, () => false);
     await tab3.goto(s.url + encHash);
     await settle(tab3);
     const tab3Shows = await tab3.waitForSelector('#enc-private:not([hidden])', { timeout: 15000 }).then(() => true, () => false);
@@ -1442,6 +1483,33 @@ async function browserChecks() {
     check(await tab4.waitForSelector('#seal:not([hidden]) #seal-error:not([hidden])', { timeout: 5000 }).then(() => true, () => false) &&
       (await tab4.inputValue('#f-title')) === 'Written as the session ended' && await tab4.$('#view-form:not([hidden])') !== null,
       'a form being written as the session ended stays as it is, and the seal panel opens to unseal and send it');
+    // An encounter's form kept open as the session ended holds its private section until it is left; closing the tome
+    // leaves it (nothing leads back to it), so what it held must go with it. (In front: a tab in the background does
+    // not get the dialog's close event.)
+    await tab5.bringToFront();
+    await tab5.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    const tab5Kept = await tab5.waitForSelector('#seal:not([hidden])', { timeout: 5000 }).then(() => tab5.inputValue('#ef-private'), () => '') === secret;
+    await tab5.keyboard.press('Escape'); // the seal panel; the form has nothing unsaved in it, so the close button closes the tome
+    await tab5.click('#btn-close');
+    check(tab5Holds && tab5Kept && await tab5.waitForFunction(privateGone, secret, { timeout: 5000 }).then(() => true, () => false) && !(await tab5.$('#archive[open]')),
+      "an encounter's form kept open as the session ended lets go of its private section once the tome is closed");
+
+    // The word forgotten (set-password --forget-private): the encounter only for the keeper can no longer be read. Its
+    // page says so once; its private section, which said it again, stays hidden.
+    const FORGOT_WORD = 'a word chosen once the old one was forgotten';
+    const forgot = await run(['set-password', '--forget-private'], { DATA_DIR: s.dataDir }, `${FORGOT_WORD}\n${FORGOT_WORD}\n`);
+    await page.bringToFront();
+    await page.goto('about:blank');
+    await page.goto(s.url + onlyHash);
+    await settle(page);
+    await page.waitForSelector('#archive[open] #encounters', { timeout: 20000 });
+    await page.click('#clasp');
+    await page.fill('#seal-word', FORGOT_WORD);
+    await page.click('#seal-go');
+    check(forgot.code === 0 && await page.waitForFunction(() => !document.getElementById('view-encounter').hidden &&
+      /can no longer be read/.test(document.getElementById('enc-text').textContent), null, { timeout: 15000 }).then(() => true, () => false) &&
+      await page.$('#enc-private[hidden]') !== null && await page.$('#enc-edit[hidden]') !== null,
+      'an encounter only for the keeper written under a forgotten word says once that it can no longer be read, and can only be removed');
     check(errors.length === 0, `no console errors or CSP violations${errors.length ? ': ' + errors.join(' | ') : ''}`);
   } catch (e) { // where the keeper's page stood when a step failed, and how it looked
     if (main) {
@@ -1481,6 +1549,13 @@ async function previewChecks() {
       const imgs = [...document.querySelectorAll('#plates img')];
       return imgs.length === 2 && imgs.every((i) => i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/jpeg')) && document.querySelectorAll('#plates .spoiler').length === 1;
     }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: the example plates load from the page itself, and the one flagged mature shows only its cover');
+    await page.focus('#plates .plate-btn:has(.spoiler)'); // by keyboard: the age check, and going back from it, leave the focus on the piece's cover
+    await page.keyboard.press('Enter');
+    const asked = await page.waitForSelector('#gate:not([hidden]) #gate-field:not([hidden])', { timeout: 3000 }).then(() => true, () => false);
+    await page.click('#gate-back');
+    check(asked && await page.evaluate(() => document.activeElement === document.getElementById('pl-open') && !!document.querySelector('#pl-open .spoiler')),
+      'preview: opened from the list, an art piece whose main image is mature asks first, and going back leaves the focus on its cover');
+    await page.click('#pl-back');
     await page.click('#plates .plate-btn >> nth=0');
     await page.click('#pl-versions .ver-btn >> nth=2');
     await page.fill('#gate-age', '30');
