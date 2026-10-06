@@ -64,7 +64,9 @@ Checks:
      also at its own address, which still opens it for the keeper after a reload. A mature image uncovered in the
      full-size view leaves the focus there. An encounter's form kept open as the session ended lets go of its private
      section once the tome is closed. An encounter only for the keeper written under a forgotten word says once that
-     it can no longer be read.
+     it can no longer be read. A drag to select text, let go outside the tome, does not close it. Cancel while an art
+     piece uploads stops it: nothing is saved, and the page stays where the keeper went. A session check answered after
+     the tab was sealed does not unseal it again.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model, the example forms and their plates, GIF and video load from the page; an
      art piece whose main image is mature, opened from the list by keyboard, asks first and leaves the focus on its
@@ -963,6 +965,18 @@ async function browserChecks() {
       await page.evaluate(() => !window.__xss && !document.querySelector('#archive img')), 'an inscribed record is shown, and markup in it stays text');
     check((await page.textContent('#det-date')) === '1 May 35', `a date in a year below 100 is shown in that year (${await page.textContent('#det-date')})`);
     await page.screenshot({ path: path.join(OUT, 'record.png') });
+    // A drag to select some of the record's text, let go on the dark ground beyond the tome, ends in a click on the
+    // ground too: it closed the whole tome
+    const noteAt = await page.evaluate(() => { const r = document.createRange(), t = document.getElementById('det-note').firstChild; r.setStart(t, 3); r.setEnd(t, 4); const b = r.getBoundingClientRect(); return { x: b.x, y: b.y + b.height / 2 }; });
+    await page.mouse.move(noteAt.x, noteAt.y);
+    await page.mouse.down();
+    await page.mouse.move(noteAt.x + 120, noteAt.y, { steps: 6 });
+    await page.mouse.move(4, noteAt.y + 6, { steps: 6 });
+    const dragSelected = await page.evaluate(() => String(getSelection()).length > 0);
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    check(dragSelected && await page.$('#archive[open] #view-detail:not([hidden])') !== null, 'a drag to select text, let go outside the tome, does not close it');
+    await page.evaluate(() => getSelection().removeAllRanges());
 
     await page.goto(s.url); // without the address of the record
     await enter(page, 'knowledge');
@@ -1355,8 +1369,34 @@ async function browserChecks() {
       'under 18, the mature image stays covered for the visit and is never loaded');
     await minorCtx.close();
 
-    // a video and a GIF, as one art piece in the same form: each plays in its own player
+    // Cancel while an art piece is uploading stops it. The upload used to go on, the piece was saved anyway, and the
+    // page then jumped to it from wherever the keeper was, throwing away the record being written there.
     await page.click('#pl-back');
+    const formAt = await page.evaluate(() => location.hash);
+    await page.click('#btn-add-art');
+    await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', path.join(FIXTURES, 'smoke.webm'));
+    await page.waitForFunction(() => /^A video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
+    await page.fill('#af-title', 'Smoke cancelled');
+    let letUploadGo, uploadHeld = new Promise((r) => { letUploadGo = r; });
+    await page.route('**/api/uploads', async (route) => { await uploadHeld; route.continue().catch(() => {}); });
+    await page.click('#af-submit');
+    const cancelWhile = await page.waitForFunction(() => /^Uploading/.test(document.getElementById('af-submit').textContent), null, { timeout: 10000 }).then(() => true, () => false);
+    await page.click('#af-cancel');
+    await page.click('.tab[data-book="knowledge"]');
+    await page.click('#btn-inscribe');
+    await page.fill('#f-title', 'Written while it uploaded');
+    letUploadGo();
+    await page.waitForTimeout(2500);
+    await page.unroute('**/api/uploads');
+    const cancelled = (await page.evaluate(() => fetch('api/archive').then((r) => r.json()))).archive.art.some((a) => a.title === 'Smoke cancelled');
+    check(cancelWhile && !cancelled && await page.$('#view-form:not([hidden])') !== null && (await page.inputValue('#f-title')) === 'Written while it uploaded',
+      'Cancel while an art piece uploads stops it: nothing is saved, and the page stays where the keeper went');
+    await page.click('#f-cancel');
+    await page.goto(s.url + formAt);
+    await settle(page);
+    await page.waitForSelector('#view-gallery:not([hidden]) #btn-add-art:not([hidden])', { timeout: 15000 });
+
+    // a video and a GIF, as one art piece in the same form: each plays in its own player
     await page.click('#btn-add-art');
     await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', path.join(FIXTURES, 'smoke.webm'));
     await page.waitForFunction(() => /^A video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
@@ -1445,9 +1485,25 @@ async function browserChecks() {
     await page.click('#seal-go');
     await page.waitForSelector('#seal', { state: 'hidden', timeout: 15000 });
     check(await page.$('#btn-inscribe:not([hidden])') !== null, 'changing the word keeps this session unsealed');
+    // A session check asked just before "Seal it again" and answered just after it unsealed the tab again
+    let letCheckGo, checkHeld = new Promise((r) => { letCheckGo = r; }), heldOne = false;
+    await page.route('**/api/session', async (route) => {
+      if (heldOne) return route.continue();
+      heldOne = true;
+      const answer = await route.fetch(); // answered now, while the session still holds
+      await checkHeld;
+      route.fulfill({ response: answer }).catch(() => {});
+    });
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); // the tab is looked at again: it asks
+    await page.waitForTimeout(500);
     await page.click('#clasp');
     await page.click('#seal-lock');
     await page.waitForSelector('#btn-inscribe', { state: 'hidden', timeout: 10000 });
+    letCheckGo();
+    await page.waitForTimeout(1000);
+    await page.unroute('**/api/session');
+    check(heldOne && await page.$('#btn-inscribe[hidden]') !== null && !(await page.$eval('#clasp', (c) => c.classList.contains('is-open'))),
+      'a session check answered after the tab was sealed does not unseal it again');
     await page.goto(s.url);
     await enter(page, 'knowledge');
     await page.waitForTimeout(800);

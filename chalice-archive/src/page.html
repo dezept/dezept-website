@@ -1796,7 +1796,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function leaveCurrentForm() {
     if (currentView === "form") leaveForm();
     else if (currentView === "aboutForm") showView("about");
-    else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing, versionId); else showGallery(galleryId); } // back on the image it was opened from
+    else if (currentView === "artForm") { stopArtJob(); if (findArt(artEditing)) showPlate(artEditing, versionId); else showGallery(galleryId); } // back on the image it was opened from
     else if (currentView === "galleryForm") { if (galleryOf(galEditing)) showGallery(galEditing); else showGalleries(); }
     else if (currentView === "encounterForm") { if (findEnc(encEditing)) showEncounter(encEditing); else showView("encounters"); }
   }
@@ -2267,11 +2267,23 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       }
       return d;
     }, function (err) {
-      if (row._seq === seq) { input.value = ""; status.textContent = ""; formError("artForm", err.message); }
+      // the row has no file now, so sending the form asks for one (it showed this error again, after uploading the rows before it)
+      if (row._seq === seq) { input.value = ""; status.textContent = ""; row._draft = null; formError("artForm", err.message); }
       throw err;
     });
     row._draft.catch(function () {});
   });
+  // The art piece being uploaded and saved. Leaving its form (Cancel, or sealing) stops the uploads; a save already on
+  // its way is let finish, but no longer takes the keeper back to the piece. Before, the uploads went on, the piece was
+  // saved anyway, and the page then jumped to it from wherever the keeper was, throwing away a record being written.
+  var artJob = null;
+  function stopArtJob() {
+    var job = artJob;
+    if (!job) return;
+    artJob = null;
+    if (job.ctrl && !job.saving) job.ctrl.abort();
+    setBusy(el.afSubmit, false);
+  }
   el.artForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (busy || !mayPost()) return;
@@ -2280,6 +2292,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var empty = rows.filter(function (r) { return !r.dataset.id && !r._draft; })[0];
     if (empty) { formError("artForm", "Choose an image or a video for each new row, or remove the row."); empty.querySelector('[data-k="file"]').focus(); return; }
     var meta = { title: el.afTitle.value.trim(), gallery: el.afGallery.value, artist: el.afArtist.value.trim(), link: el.afLink.value.trim(), date: isDate(el.afDate.value) ? el.afDate.value : today(), note: el.afNote.value.trim() };
+    var job = artJob = { ctrl: typeof AbortController === "function" ? new AbortController() : null, saving: false };
+    function going() { if (artJob !== job) throw new Error("stopped"); }
+    function send(blob) { going(); return call("POST", "api/uploads", blob, job.ctrl ? job.ctrl.signal : undefined); }
     el.afError.hidden = true;
     setBusy(el.afSubmit, true, "Preparing…");
     // the new images go up one after another; then the plate is saved with all its images in the rows' order
@@ -2289,23 +2304,29 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                   loop: !row.querySelector('[data-k="loop-box"]').hidden && row.querySelector('[data-k="loop"]').checked };
         if (row.dataset.id) { v.id = row.dataset.id; return list.concat([v]); }
         return row._draft.then(function (d) {
+          going();
           el.afSubmit.textContent = d.full.size > 4 * MiB ? "Uploading " + size(d.full.size) + "…" : "Uploading…";
           if (d.kind === "video") { v.width = d.width; v.height = d.height; } // the server takes a video's size from here
-          return call("POST", "api/uploads", d.full).then(function (full) {
-            return call("POST", "api/uploads", d.thumb).then(function (thumb) { v.file = full.file; v.thumb = thumb.file; return list.concat([v]); });
+          return send(d.full).then(function (full) {
+            return send(d.thumb).then(function (thumb) { v.file = full.file; v.thumb = thumb.file; return list.concat([v]); });
           });
         });
       });
     }, Promise.resolve([])).then(function (versions) {
+      going();
       meta.versions = versions;
       el.afSubmit.textContent = "Saving…";
+      job.saving = true;
       return call(prev ? "PUT" : "POST", prev ? "api/art/" + encodeURIComponent(prev.id) : "api/art", meta);
     }).then(function (data) {
-      setBusy(el.afSubmit, false);
+      var here = artJob === job;
+      if (here) { artJob = null; setBusy(el.afSubmit, false); }
       applyArchive(data.archive);
-      showPlate(data.id, prev ? vid : null); // a revised piece stays on the image on view, if it kept it (it went back to the main one)
+      if (here) showPlate(data.id, prev ? vid : null); // a revised piece stays on the image on view, if it kept it (it went back to the main one)
       toast(prev ? "The art piece is revised." : "The art piece is added.");
     }, function (err) {
+      if (artJob !== job) return; // stopped: the keeper has left the form
+      artJob = null;
       setBusy(el.afSubmit, false);
       failed(err);
     });
@@ -2513,6 +2534,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (currentView === "plate" && at && findArt(at.plate)) { showPlate(at.plate, at.version); focusMedia(); } // the book follows the view
     else if (lbFrom && lbFrom.isConnected) lbFrom.focus();
   }
+  // A click on the dark ground around the tome or the full-size view closes it, but only when it was pressed and let go
+  // there: a drag to select text, let go outside, also ends in a click on the ground, and closed the whole tome
+  function onBackdrop(box, close) {
+    var down = null, up = null;
+    box.addEventListener("pointerdown", function (e) { down = e.target; });
+    box.addEventListener("pointerup", function (e) { up = e.target; });
+    box.addEventListener("click", function (e) { if (e.target === box && down === box && up === box) close(); });
+  }
   el.plOpen.addEventListener("click", function () {
     var a = findArt(plateId), v = a && versionIn(a, versionId);
     if (!v) return;
@@ -2521,15 +2550,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.lbClose.addEventListener("click", closeLightbox);
   el.lbPrev.addEventListener("click", function () { stepLightbox(-1); });
   el.lbNext.addEventListener("click", function () { stepLightbox(1); });
-  el.lightbox.addEventListener("click", function (e) { if (e.target === el.lightbox) closeLightbox(); });
+  onBackdrop(el.lightbox, closeLightbox);
 
   // ---------- Saving: each change goes to the server, which answers with the whole archive ----------
-  // body: an object, sent as JSON, or a Blob (an image), sent as it is with its own type
-  function call(method, url, body) {
+  // body: an object, sent as JSON, or a Blob (an image), sent as it is with its own type; signal: an AbortSignal, to stop it
+  function call(method, url, body, signal) {
     var headers = { Accept: "application/json" }, blob = typeof Blob !== "undefined" && body instanceof Blob;
     if (csrf) headers["X-CSRF-Token"] = csrf; // GET too: the private sections are read with it
     if (body !== undefined) headers["Content-Type"] = blob ? body.type : "application/json";
-    return request(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store" })
+    return request(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store", signal: signal })
       .then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (data) {
           if (res.ok) return data;
@@ -2598,7 +2627,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var WORD_MIN = 12;
   var owner = false, csrf = "", sealMode = "", sealBusy = false;
   function canPost() { return owner; }
+  // Each unseal, seal and change of the word starts a new turn. A session check asked before it is answered for the
+  // session as it was, so its answer is let go: sent just before "Seal it again" and answered just after, it unsealed
+  // the tab again, and one sent before a change of the word gave the tab back the old session's CSRF token.
+  var sessionTurn = 0;
   function setOwner(on, token) {
+    sessionTurn += 1;
     owner = on;
     csrf = on ? token || "" : "";
     // sealed: the private sections and the keeper's own encounters leave the page's memory too, and so does the last
@@ -2656,7 +2690,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   // Only a change re-renders the page: the check every minute must not disturb what is open
   function refreshSession() {
+    var turn = sessionTurn;
     return call("GET", "api/session").then(function (s) {
+      if (turn !== sessionTurn) { watchSession(); return; } // the session changed here meanwhile; the next check asks again
       var on = !!s.owner, lost = owner && !on;
       if (on === owner && (!on || s.csrf === csrf)) {
         if (on && !privatesLoaded) loadPrivate(); // it failed before: until it comes, the keeper's own encounters are missing
@@ -3545,9 +3581,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.stage.addEventListener("pointerleave", function () { setGemHover(false); });
   // The close button keeps unsaved writing, as Escape, the backdrop and the chapter tabs do
   el.btnClose.addEventListener("click", function () { if (formChanged()) toast(UNSAVED); else el.archive.close(); });
-  el.archive.addEventListener("click", function (e) {
-    if (e.target === el.archive && !FORMS[currentView] && el.lightbox.hidden && el.gate.hidden) el.archive.close();
-  });
+  onBackdrop(el.archive, function () { if (!FORMS[currentView] && el.lightbox.hidden && el.gate.hidden) el.archive.close(); });
   // Escape closes what is on top first: the age check, the full-size view, the seal panel, a form (unless it has
   // unsaved writing); only then the tome. It is handled on keydown, because Chrome lets a page hold back the
   // dialog's own cancel only once per click or key press, and a second Escape would close the whole tome. The cancel
