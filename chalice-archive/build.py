@@ -9,6 +9,8 @@ Writes dist/:
                              named by its SHA-256 so browsers and Cloudflare can cache it for good
   dist/three.<hash>.js       three.js with its GLTFLoader (assets/vendor/three.module.js, made by tools/vendor_three.mjs),
                              served by the site itself, so the page runs no script from a CDN; named by its SHA-256 too
+  dist/<font>.<hash>.woff2   the fonts (assets/fonts/, copied by tools/vendor_fonts.mjs), served by the site itself too, so
+                             no visitor's browser asks anyone else for anything; each named by its SHA-256
   dist/preview.html          the preview published as the claude.ai Artifact (git-ignored). The Artifact viewer wraps
                              the page in its own <html>/<head> and allows no network requests, so this build is a
                              page fragment with src/seed.json as its records, plus the example About page, forms and
@@ -20,6 +22,9 @@ Placeholders in src/page.html:
   __MODEL_URL__  the model's file name
   __THREE_URL__  three.js: dist/three.<hash>.js; in the preview, jsDelivr's copy of the same version
   __GLTF_URL__   its GLTFLoader: the same file; in the preview, jsDelivr's copy
+  __FONTS__      the fonts' @font-face rules (assets/fonts/fonts.css, with the hashed names), in the page's style block;
+                 nothing in the preview
+  __FONT_LINK__  nothing on the site; in the preview, Google Fonts' stylesheet (the viewer loads fonts only from there)
   __ARCHIVE__    left for the server (filled from src/seed.json in the preview)
 """
 import base64
@@ -112,6 +117,22 @@ three_version = re.match(rb"/\* three\.js (\d+\.\d+\.\d+) ", three).group(1).dec
 # The preview can load scripts only from CDNs, so it takes jsDelivr's copies of the same version
 CDN = f"https://cdn.jsdelivr.net/npm/three@{three_version}"
 PREVIEW_THREE = {"__THREE_URL__": f"{CDN}/+esm", "__GLTF_URL__": f"{CDN}/examples/jsm/loaders/GLTFLoader.js/+esm"}
+# The site serves its fonts itself, each named by its hash; the preview, which can load fonts only from Google, takes
+# Google's copies of the same faces
+fonts = {}  # hashed name -> bytes
+
+
+def hashed_font(m: re.Match) -> str:
+    data = (ROOT / "assets/fonts" / m.group(1)).read_bytes()
+    name = f"{m.group(1).removesuffix('.woff2')}.{hashlib.sha256(data).hexdigest()[:12]}.woff2"
+    fonts[name] = data
+    return f"url({name})"
+
+
+font_faces = re.sub(r"url\(([a-z0-9-]+\.woff2)\)", hashed_font, (ROOT / "assets/fonts/fonts.css").read_text(encoding="utf-8")).rstrip("\n")
+assert len(fonts) == 7, f"expected 7 font files in assets/fonts/fonts.css, found {len(fonts)}; run tools/vendor_fonts.mjs"
+GOOGLE_FONTS = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700'
+                '&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">')
 
 page = page.replace("__FRONT__", "data:image/webp;base64," + base64.b64encode((ROOT / "assets/front.webp").read_bytes()).decode())
 page = page.replace("__MODEL_URL__", model_name)
@@ -126,10 +147,13 @@ for placeholder, url in PREVIEW_THREE.items():
     preview = preview.replace(placeholder, url)
 # one file holds both; "./" because import() takes a bare name for a package, not a file
 page = page.replace("__THREE_URL__", "./" + three_name).replace("__GLTF_URL__", "./" + three_name)
+preview = preview.replace("__FONT_LINK__", GOOGLE_FONTS).replace("__FONTS__\n", "")
+page = page.replace("__FONT_LINK__\n", "").replace("__FONTS__", font_faces)
 for text in (page, preview):
-    leftover = [line.strip()[:80] for line in text.splitlines() if re.search(r"__(FRONT|MODEL_URL|THREE_URL|GLTF_URL)__", line)]
+    leftover = [line.strip()[:80] for line in text.splitlines() if re.search(r"__(FRONT|MODEL_URL|THREE_URL|GLTF_URL|FONTS|FONT_LINK)__", line)]
     assert not leftover, leftover
 assert "cdn.jsdelivr.net" not in page, "the site's page must load no script from a CDN"
+assert not re.search(r"fonts\.(googleapis|gstatic)\.com", page), "the site's page must load its fonts from the site"
 preview = cut(preview, '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
                        '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n')
 preview = cut(preview, f'<link rel="preload" href="{model_name}" as="fetch" crossorigin>\n')
@@ -144,11 +168,14 @@ preview = preview.replace('<script id="ca-app">',
 assert preview.startswith("<title>")
 
 DIST.mkdir(exist_ok=True)
-for old in [*DIST.glob("chalice.*.glb"), *DIST.glob("three.*.js"), *DIST.glob("chalice-archive*.html")]:
+for old in [*DIST.glob("chalice.*.glb"), *DIST.glob("three.*.js"), *DIST.glob("*.woff2"), *DIST.glob("chalice-archive*.html")]:
     old.unlink()
 (DIST / "index.html").write_text(page, encoding="utf-8")
 (DIST / model_name).write_bytes(model)
 (DIST / three_name).write_bytes(three)
+for name, data in fonts.items():
+    (DIST / name).write_bytes(data)
 (DIST / "preview.html").write_text(preview, encoding="utf-8")
 print(f"built {DIST / 'index.html'} ({len(page.encode()) / 1024:.0f} KB), {model_name} ({len(model) / 1024:.0f} KB), "
-      f"{three_name} (three.js {three_version}, {len(three) / 1024:.0f} KB) and preview.html ({len(preview.encode()) / 1024:.0f} KB)")
+      f"{three_name} (three.js {three_version}, {len(three) / 1024:.0f} KB), {len(fonts)} fonts ({sum(map(len, fonts.values())) / 1024:.0f} KB) "
+      f"and preview.html ({len(preview.encode()) / 1024:.0f} KB)")
