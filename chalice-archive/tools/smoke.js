@@ -22,13 +22,15 @@ Checks:
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
      the gem starts the scan, which reveals the three choices; a wrong word is refused; the right word shows the
      tools; records can be inscribed, revised and removed, and markup in them stays text; the About page can be
-     amended; a plate of two images, one mature, can be uploaded, shown full size, made the portrait, linked to
+     amended in Total RP 3's terms (directory, standard traits, glances, a description whose TRP markup becomes
+     headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved writing, and
+     making a plate the portrait keeps the rest of the page; a plate of two images, one mature, can be uploaded, shown full size, made the portrait, linked to
      and removed; a mature image stays covered and unloaded until a visitor says they are 18 or older, is covered
      again once they move on, and stays covered for someone under 18; the session survives a reload; the word can
      be changed from the page; sealing it again hides the tools.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model and the example plates load from the page, the stand-in server accepts
-     only "preview", records and plates can be added, and a reload forgets them. The real page carries no trace
+     only "preview", the About page can be amended and records and plates added, and a reload forgets them. The real page carries no trace
      of the stand-in.
 Screenshots go to tools/.smoke/.
 */
@@ -239,17 +241,25 @@ async function apiChecks() {
 
     // the About page
     const about = await write('PUT', '/api/about', {
-      name: 'Smoke ' + evil, epithet: 'e'.repeat(400), portrait: 'nope',
-      facts: [{ label: 'Race', value: 'Dracthyr' }, { label: ' ', value: '' }, ...Array.from({ length: 30 }, (_, i) => ({ label: 'L' + i, value: 'v' }))],
-      sections: [{ heading: 'History', body: 'b'.repeat(7000) }, 'junk', null, { heading: '', body: '' }],
+      name: 'Smoke ' + evil, epithet: 'e'.repeat(400), portrait: 'nope', title: 't'.repeat(99), race: 'Dracthyr', eyeColor: 'red; background: url(x)',
+      currently: 'line one\nline\u0000 two', admin: true,
+      facts: [{ label: 'Motto', value: 'v' }, { label: ' ', value: '' }, ...Array.from({ length: 30 }, (_, i) => ({ label: 'L' + i, value: 'v' }))],
+      traits: [{ left: 'Chaotic', right: 'Lawful', value: 99 }, { left: 'A', right: 'B', value: -4 }, { left: 'C', right: 'D', value: 'x' }, { left: 'E', right: 'F', value: 7.6 }, { left: '', right: '' }],
+      glances: Array.from({ length: 8 }, (_, i) => ({ title: 'Glance ' + i, text: 't' })),
+      sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000) }, 'junk', null, { heading: '', body: '' }],
     });
     const ab = about.json && about.json.archive;
     check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && ab.about.portrait === '' &&
-      ab.about.facts.length === 16 && ab.about.facts[0].label === 'Race' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 6000,
-      'the About page is cleaned: lengths and counts capped, empty rows dropped, an unknown portrait cleared');
+      ab.about.facts.length === 24 && ab.about.facts[0].label === 'Motto' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 40000 &&
+      ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
+      ab.about.currently === 'line one\nline two' && ab.about.traits.map((t) => t.value).join() === '20,0,10,8' && ab.about.glances.length === 5 && !('admin' in ab.about),
+      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and an unknown portrait cleared, TRP markup kept as text');
     const aboutPage = await call('GET', '/');
     check(!aboutPage.text.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/)[1].includes('<') && archiveIn(aboutPage.text).profile.name.startsWith('Smoke </script>'),
       "markup in the About page is escaped in the page's data block");
+    check((await write('PUT', '/api/about', { name: 'Smoke', eyeColor: '#A1B2C3' })).json.archive.about.eyeColor === '#a1b2c3', 'a valid eye colour is kept');
+    const tooLong = await write('PUT', '/api/about', { name: 'Smoke', sections: Array.from({ length: 8 }, () => ({ heading: 'x', body: 'z'.repeat(39000) })) });
+    check(tooLong.status === 413 && /too long/.test(tooLong.json.error), 'an About page over 256 KB is refused, and says so');
     check((await write('PUT', '/api/about', [1, 2])).status === 400 && (await write('PUT', '/api/about', 'null')).status === 400, 'a JSON body that is not an object is refused');
 
     // uploading images
@@ -495,19 +505,41 @@ async function browserChecks() {
     await page.click('.tab[data-book="about"]');
     await page.click('#btn-amend');
     await page.fill('#abf-name', 'Smoke ' + xss);
-    await page.fill('#abf-facts .row >> nth=0 >> [data-k="label"]', 'Race');
-    await page.fill('#abf-facts .row >> nth=0 >> [data-k="value"]', 'Dracthyr');
+    await page.fill('#abf-title', 'Archivist');
+    await page.fill('#abf-race', 'Dracthyr');
+    await page.fill('#abf-facts .row >> nth=0 >> [data-k="label"]', 'Motto');
+    await page.fill('#abf-facts .row >> nth=0 >> [data-k="value"]', 'What is not written is lost.');
     await page.click('#abf-add-fact');
-    await page.fill('#abf-facts .row >> nth=1 >> [data-k="label"]', 'Eyes');
-    await page.fill('#abf-facts .row >> nth=1 >> [data-k="value"]', 'Teal');
+    await page.fill('#abf-facts .row >> nth=1 >> [data-k="label"]', 'Pronouns');
+    await page.fill('#abf-facts .row >> nth=1 >> [data-k="value"]', 'He/him');
     await page.click('#abf-facts .row >> nth=1 >> [data-act="up"]');
+    await page.click('#abf-std-traits');
+    check((await page.$$('#abf-traits .row')).length === 11, "TRP's eleven standard traits can be added in one go");
+    await page.$eval('#abf-traits .range', (r) => { r.value = '3'; r.dispatchEvent(new Event('input', { bubbles: true })); });
+    await page.click('#abf-add-glance');
+    await page.fill('#abf-glances .row >> nth=0 >> [data-k="title"]', 'Scales ' + xss);
     await page.fill('#abf-sections .row >> nth=0 >> [data-k="heading"]', 'Appearance');
-    await page.fill('#abf-sections .row >> nth=0 >> [data-k="body"]', 'Scales the colour of old copper.');
+    await page.fill('#abf-sections .row >> nth=0 >> [data-k="body"]', '{h2:c}Smoke heading{/h2}\nScales the colour of old copper, in {col:ffffff}white{/col} ink and |cffffd100gold|r. ' +
+      xss + '\n\n{link*javascript:alert(1)*bad link} and {link*https://example.com/*good link}{icon:inv_misc_book_09:20}');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    check(await page.$('#view-about-form:not([hidden])') !== null && await page.$('#archive[open]') !== null, 'Escape does not throw away unsaved writing on the About page');
     await page.click('#abf-submit');
     await page.waitForSelector('#view-about:not([hidden])', { timeout: 10000 });
-    check((await page.textContent('#ab-name')) === 'Smoke ' + xss && (await page.$$eval('#ab-facts dt', (n) => n.map((x) => x.textContent).join())) === 'Eyes,Race' &&
-      (await page.textContent('#ab-sections')).includes('old copper') && await page.evaluate(() => !window.__xss && !document.querySelector('#ab-name img')),
-      'the About page can be amended, rows keep the order they were moved to, and markup stays text');
+    const aboutSeen = await page.evaluate(() => {
+      const out = document.getElementById('ab-sections');
+      return { heading: (out.querySelector('h6.al-c') || {}).textContent, text: out.textContent, img: !!document.querySelector('#view-about img, #leaf-about .ab-titles img'),
+        colours: [...out.querySelectorAll('.trp span')].map((n) => getComputedStyle(n).color), links: [...out.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+        xss: !!window.__xss, lean: (document.querySelector('#ab-traits .is-lean') || {}).textContent, traits: document.querySelectorAll('#ab-traits .trait').length };
+    });
+    check((await page.textContent('#ab-name')) === 'Smoke ' + xss && (await page.textContent('#ab-title')) === 'Archivist' && (await page.textContent('#ab-dir')).includes('Dracthyr') &&
+      (await page.$$eval('#ab-facts dt', (n) => n.map((x) => x.textContent).join())) === 'Pronouns,Motto' && aboutSeen.traits === 11 && aboutSeen.lean === 'Chaotic' &&
+      (await page.textContent('#ab-glances')).includes(xss) && !aboutSeen.img && !aboutSeen.xss,
+      'the About page can be amended in TRP terms, rows keep the order they were moved to, and markup stays text');
+    check(aboutSeen.heading === 'Smoke heading' && aboutSeen.text.includes('old copper') && aboutSeen.text.includes(xss) && aboutSeen.text.includes('bad link') && !aboutSeen.text.includes('{') &&
+      aboutSeen.links.join() === 'https://example.com/' && aboutSeen.colours.length === 2 && aboutSeen.colours.every((c) => c !== 'rgb(255, 255, 255)' && c !== 'rgb(255, 209, 0)'),
+      'TRP markup in the description becomes headings, colours darkened for parchment and http(s) links only');
+    await page.screenshot({ path: path.join(OUT, 'about.png') });
 
     // a plate of two images, the second mature: uploaded from the keeper's browser, shown, linked to, made the portrait, removed
     const requested = [];
@@ -552,7 +584,8 @@ async function browserChecks() {
     await page.screenshot({ path: path.join(OUT, 'mature-shown.png') });
     await page.click('.tab[data-book="art"]'); // back to the plates
     check(await page.$('#pl-open .spoiler') !== null && !(await page.$('#pl-open img')), 'back at the plates, the mature image is covered again');
-    await page.click('#pl-open');
+    await page.click('#plates .plate-btn');
+    await page.click('#pl-versions .ver-btn >> nth=1');
     check(await page.waitForFunction(() => document.getElementById('gate').hidden && !!document.querySelector('#pl-open img'), null, { timeout: 5000 }).then(() => true, () => false),
       'the answer holds for the visit: the cover opens on a click without asking again');
     await page.click('#pl-versions .ver-btn >> nth=0');
@@ -589,6 +622,8 @@ async function browserChecks() {
     await page.waitForSelector('#archive[open] #view-about:not([hidden])', { timeout: 10000 });
     check(await page.waitForFunction(() => { const i = document.querySelector('#frontis-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).then(() => true, () => false),
       'an address with #about opens the About page at once, with the plate as its portrait');
+    check((await page.$$('#ab-traits .trait')).length === 11 && (await page.textContent('#ab-sections')).includes('old copper') && (await page.textContent('#ab-title')) === 'Archivist',
+      'making a plate the portrait keeps the rest of the About page');
     await page.goto(s.url + plateHash);
     check(await page.waitForFunction(() => document.getElementById('pl-title').textContent === 'Smoke plate' && !document.getElementById('view-plate').hidden, null, { timeout: 10000 }).then(() => true, () => false),
       "a plate's own address opens it");
@@ -650,13 +685,15 @@ async function previewChecks() {
       const imgs = [...document.querySelectorAll('#plates img')];
       return imgs.length === 2 && imgs.every((i) => i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/jpeg')) && document.querySelectorAll('#plates .spoiler').length === 1;
     }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: the example plates load from the page itself, and the one flagged mature shows only its cover');
+    await page.click('#plates .plate-btn >> nth=0');
     await page.click('#pl-versions .ver-btn >> nth=2');
     await page.fill('#gate-age', '30');
     await page.click('#gate-go');
     check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false),
       'preview: the age check works without storage');
     await page.click('.tab[data-book="about"]');
-    check((await page.textContent('#ab-facts')).includes('Dracthyr') && await page.$('#frontis-open img') !== null, 'preview: the About page shows its examples');
+    check((await page.textContent('#ab-dir')).includes('Dracthyr') && await page.$('#frontis-open img') !== null && (await page.$$('#ab-traits .trait')).length > 0 &&
+      (await page.$$('#ab-sections h6')).length > 0, 'preview: the About page shows its example profile');
     await page.click('.tab[data-book="knowledge"]');
     await page.click('#clasp');
     check((await page.textContent('#seal-text')).includes('preview'), 'preview: the seal panel says it is the preview and gives the word');
@@ -666,6 +703,13 @@ async function previewChecks() {
     await page.fill('#seal-word', 'preview');
     await page.click('#seal-go');
     check(await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 5000 }).then(() => true, () => false), 'preview: a wrong word is refused, "preview" unseals');
+    await page.click('.tab[data-book="about"]');
+    await page.click('#btn-amend');
+    await page.fill('#abf-title', 'Preview title');
+    await page.click('#abf-submit');
+    check(await page.waitForFunction(() => document.getElementById('ab-title').textContent === 'Preview title' && !document.getElementById('view-about').hidden, null, { timeout: 5000 }).then(() => true, () => false) &&
+      (await page.$$('#ab-traits .trait')).length > 0, 'preview: the About page can be amended');
+    await page.click('.tab[data-book="knowledge"]');
     await page.click('#btn-inscribe');
     await page.fill('#f-title', 'Preview record');
     await page.click('#f-submit');
@@ -686,8 +730,8 @@ async function previewChecks() {
     await page.reload();
     await open();
     await page.waitForTimeout(500);
-    check(await page.$('#btn-inscribe[hidden]') !== null && !(await page.$$eval('#index .topic-title', (n) => n.some((x) => x.textContent === 'Preview record'))),
-      'preview: a reload forgets the record and seals the archive again');
+    check(await page.$('#btn-inscribe[hidden]') !== null && !(await page.$$eval('#index .topic-title', (n) => n.some((x) => x.textContent === 'Preview record'))) &&
+      (await page.textContent('#ab-title')) === 'Archivist', 'preview: a reload forgets the changes and seals the archive again');
     check(errors.length === 0, `preview: no console errors or CSP violations${errors.length ? ': ' + errors.join(' | ') : ''}`);
   } finally {
     await browser.close();
