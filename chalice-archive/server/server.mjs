@@ -268,17 +268,15 @@ function cleanArt(input, prev, check) {
   };
 }
 
-// The About page, laid out like a Total RP 3 profile: a plate's main image as its portrait, a short title, what he is
+// The About page, laid out like a Total RP 3 profile: a short title, what he is
 // doing now and an OOC note, the directory (race, class, age …), additional information (the particulars, label
 // and value), personality traits (two opposites and a value from 0, all left, to 20, all right), up to five things
 // seen at first glance, and the description in sections. Section text keeps TRP's markup; the page renders it.
-function cleanAbout(input, art) {
+function cleanAbout(input) {
   const a = input && typeof input === "object" ? input : {};
   const list = (v) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === "object");
   const color = (c) => (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : "");
-  const out = {
-    portrait: typeof a.portrait === "string" && art.some((x) => x.id === a.portrait && !x.versions[0].mature) ? a.portrait : "", // never a mature image
-  };
+  const out = {};
   for (const [key, max] of Object.entries(ABOUT_TEXT)) out[key] = str(a[key], max);
   out.eyeColor = color(a.eyeColor);
   out.facts = list(a.facts).map((f) => ({ label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }))
@@ -308,7 +306,7 @@ function cleanArchive(raw) {
     .map((r) => ({ ...cleanRecord(r, { id: r.id, added: Number(r.added) || 0 }), example: Boolean(r.example) }));
   const art = (Array.isArray(raw && raw.art) ? raw.art : []).filter((a) => a && validId(a.id)).slice(0, LIMIT.art)
     .map((a) => ({ ...cleanArt(a, { id: a.id, added: Number(a.added) || 0 }, false), example: Boolean(a.example) })).filter((a) => a.versions.length);
-  return { profile: cleanProfile(p), about: cleanAbout(raw && raw.about, art), art, records };
+  return { profile: cleanProfile(p), about: cleanAbout(raw && raw.about), art, records };
 }
 
 let archive = null;
@@ -657,14 +655,14 @@ async function handle(req, res) {
     const body = await readJson(req, LIMIT.aboutBody).catch((e) => {
       throw e.status === 413 ? new HttpError(413, `The About page is too long to keep: ${LIMIT.aboutBody / 1024} KB in all.`) : e;
     });
-    commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body, archive.art) });
+    commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body) });
     return sendJson(req, res, 200, { archive });
   }
   if (req.method === "POST" && pathname === "/api/uploads") return upload(req, res);
   if (req.method === "POST" && pathname === "/api/art") {
     if (archive.art.length >= LIMIT.art) throw new HttpError(413, "There is no room for more plates.");
     const plate = cleanArt(await readJson(req), null, true);
-    commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first; it cannot be the portrait yet
+    commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first
     return sendJson(req, res, 200, { archive, id: plate.id });
   }
   if (req.method === "POST" && pathname === "/api/art/order") {
@@ -683,13 +681,13 @@ async function handle(req, res) {
     if (req.method === "PUT") {
       const plate = cleanArt(await readJson(req), prev, true);
       const art = archive.art.map((a) => (a.id === prev.id ? plate : a));
-      commit({ ...archive, art, about: cleanAbout(archive.about, art) }); // a portrait whose main image became mature is cleared
+      commit({ ...archive, art });
       sweepArt();
       return sendJson(req, res, 200, { archive, id: plate.id });
     }
     if (req.method === "DELETE") {
       const art = archive.art.filter((a) => a.id !== prev.id);
-      commit({ ...archive, art, about: cleanAbout(archive.about, art) }); // a removed frontispiece is cleared
+      commit({ ...archive, art });
       sweepArt();
       return sendJson(req, res, 200, { archive });
     }

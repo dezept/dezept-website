@@ -177,7 +177,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .ribbon { position: absolute; z-index: 0; left: 84px; bottom: -30px; width: 14px; height: 80px; pointer-events: none; background: linear-gradient(90deg, #4a0805, #7e130b 50%, #5a0a06); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%); filter: drop-shadow(0 3px 3px rgb(0 0 0 / .5)); } /* hangs out below the page */
 
 /* The open book: one parchment page with a printed double rule, the page edges stacked below. It reads down one
-   centred column: the chapter's own leaf first (the About page's portrait and names, the plates, the recent
+   centred column: the chapter's own leaf first (the About page's names, the plates, the recent
    records), then the open view. A record, a plate or a form has the page to itself (data-solo). */
 .book { position: relative; z-index: 1; height: min(860px, calc(100vh - 116px)); height: min(860px, calc(100dvh - 116px)); border-radius: 3px;
   background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment);
@@ -270,24 +270,13 @@ button, input, textarea { font: inherit; color: inherit; }
 .det-facts dd { margin: 0; font-style: italic; color: var(--sepia-soft); }
 .owner-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 
-/* About, laid out like a Total RP 3 profile: the portrait and his names head the page; beneath them what he is doing
+/* About, laid out like a Total RP 3 profile: his names head the page; beneath them what he is doing
    now, the directory, additional information, personality traits, at first glance, and the description */
-.ab-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px clamp(22px, 4vw, 44px); }
-.frontis { display: grid; justify-items: center; gap: 8px; margin: 0; }
-.mount { display: block; box-sizing: border-box; padding: 6px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: linear-gradient(160deg, var(--parchment), var(--parchment-deep)); box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 2px 7px rgb(var(--sepia-rgb) / .35); }
-button.mount { cursor: zoom-in; color: inherit; font: inherit; }
-.mount img { display: block; background: var(--void); }
-.mount.is-missing img { visibility: hidden; }
-.mount.is-missing { background: repeating-linear-gradient(45deg, rgb(var(--sepia-rgb) / .08) 0 6px, transparent 6px 12px), var(--parchment-deep); }
-.frontis-open { padding: 11px; }
-.frontis-open img { width: clamp(132px, 21vw, 186px); height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 22%; border-radius: 50%; box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .6), 0 0 0 5px var(--parchment), 0 0 0 6px rgb(var(--sepia-rgb) / .45); }
-.frontis-empty { display: grid; place-items: center; box-sizing: border-box; width: clamp(120px, 19vw, 160px); aspect-ratio: 4 / 5; padding: 16px; border: 1.5px dashed rgb(var(--sepia-rgb) / .35); border-radius: 50%; font-size: 15px; font-style: italic; text-align: center; color: var(--sepia-faint); }
-.frontis-credit { max-width: 190px; margin: 0; font-size: 14px; font-style: italic; line-height: 1.3; text-align: center; color: var(--sepia-faint); }
-.ab-titles { display: grid; justify-items: start; gap: 4px; min-width: 0; }
+.ab-head { display: grid; justify-items: center; gap: 4px; text-align: center; }
 .ab-title { margin: 0; font-family: var(--font-book-sc); font-size: 18px; letter-spacing: .06em; color: var(--rubric); }
 .ab-name { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 4vw, 44px); line-height: 1.08; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
-.ab-name::after { content: ""; display: block; width: 120px; height: 9px; margin-top: 12px; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
-.ab-epithet { margin: 2px 0 0; max-width: 42ch; font-size: 19px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
+.ab-name::after { content: ""; display: block; width: 120px; height: 9px; margin: 12px auto 0; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
+.ab-epithet { margin: 2px auto 0; max-width: 42ch; font-size: 19px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
 #leaf-about .ar-tools { margin-top: 8px; }
 #view-about { display: grid; gap: 38px; }
 
@@ -349,6 +338,11 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .trp .dropcap::first-letter { float: left; margin: .05em .09em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.4em; line-height: .8; color: var(--rubric); }
 
 /* Art: a list of plates facing the plate itself; a click shows it full size */
+.mount { display: block; box-sizing: border-box; padding: 6px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: linear-gradient(160deg, var(--parchment), var(--parchment-deep)); box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 2px 7px rgb(var(--sepia-rgb) / .35); }
+button.mount { cursor: zoom-in; color: inherit; font: inherit; }
+.mount img { display: block; background: var(--void); }
+.mount.is-missing img { visibility: hidden; }
+.mount.is-missing { background: repeating-linear-gradient(45deg, rgb(var(--sepia-rgb) / .08) 0 6px, transparent 6px 12px), var(--parchment-deep); }
 .plates { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px 14px; margin: 0; padding: 0; list-style: none; }
 .plates .plates-empty { grid-column: 1 / -1; }
 .plate-btn { display: grid; gap: 7px; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
@@ -541,9 +535,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   .seal { right: 50%; translate: 50% -50%; }
 }
 @media (max-width: 560px) {
-  .ab-head { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
-  .ab-titles { justify-items: center; }
-  .ab-name::after { margin-inline: auto; }
   .page { padding-inline: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -635,18 +626,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
           <div class="leaf" id="leaf-about" hidden>
             <header class="ab-head">
-              <figure class="frontis">
-                <button class="mount frontis-open" id="frontis-open" type="button" aria-label="View the portrait full size" hidden></button>
-                <div class="frontis-empty" id="frontis-empty">No likeness yet</div>
-                <figcaption class="frontis-credit" id="frontis-credit" hidden></figcaption>
-              </figure>
-              <div class="ab-titles">
-                <p class="ab-title" id="ab-title" hidden></p>
-                <h3 class="ab-name" id="ab-name"></h3>
-                <p class="ab-epithet" id="ab-epithet"></p>
-                <div class="ar-tools">
-                  <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
-                </div>
+              <p class="ab-title" id="ab-title" hidden></p>
+              <h3 class="ab-name" id="ab-name"></h3>
+              <p class="ab-epithet" id="ab-epithet"></p>
+              <div class="ar-tools">
+                <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
               </div>
             </header>
           </div>
@@ -770,11 +754,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                 <label for="abf-epithet">Full title</label>
                 <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280" placeholder="A line or two beneath his name"></textarea>
               </div>
-              <div class="field">
-                <label for="abf-portrait">Portrait</label>
-                <select class="input" id="abf-portrait" name="portrait"></select>
-                <p class="help">One of the plates in the Art chapter, shown beside his name.</p>
-              </div>
               <div class="row-2">
                 <div class="field">
                   <label for="abf-currently">Currently</label>
@@ -857,7 +836,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
             </figure>
             <div class="owner-row" id="pl-tools" hidden>
               <button class="btn" id="pl-edit" type="button">Revise</button>
-              <button class="btn" id="pl-portrait" type="button">Make it the portrait</button>
               <button class="btn" id="pl-earlier" type="button">Move earlier</button>
               <button class="btn" id="pl-later" type="button">Move later</button>
               <button class="btn" id="pl-delete" type="button">Remove plate</button>
@@ -1012,7 +990,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       return (Array.isArray(v) ? v : []).filter(Boolean).map(function (x) { var o = {}; keys.forEach(function (k) { o[k] = String(x[k] || ""); }); return o; });
     }
     var about = {
-      portrait: art.some(function (a) { return a.id === ab.portrait && !a.versions[0].mature; }) ? ab.portrait : "", // never a mature image
       eyeColor: /^#[0-9a-f]{6}$/i.test(ab.eyeColor) ? ab.eyeColor : "",
       facts: list(ab.facts, ["label", "value"]),
       traits: list(ab.traits, ["left", "right"]).map(function (t, i) { t.value = traitValue(ab.traits[i].value); return t; }),
@@ -1228,7 +1205,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!shown) el.index.append(h("p", { class: "empty", text: "Records appear here, gathered into chapters by domain." }));
   }
 
-  // About: his portrait and names at the head of the page, then the profile as in Total RP 3
+  // About: his names at the head of the page, then the profile as in Total RP 3
   function trait(t) {
     var v = t.value / 20, lean = t.value < 10 ? t.left : t.value > 10 ? t.right : "", d = Math.abs(t.value - 10);
     var fill = h("i", { class: "t-fill" }), mark = h("i", { class: "t-mark" });
@@ -1250,17 +1227,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return head;
   }
   function renderAbout() {
-    var p = state.profile, ab = state.about, por = ab.portrait ? findArt(ab.portrait) : null;
+    var p = state.profile, ab = state.about;
     el.abTitle.textContent = ab.title;
     el.abTitle.hidden = !ab.title;
     el.abName.textContent = p.name || "Unnamed Dracthyr";
     el.abEpithet.textContent = p.epithet;
     el.abEpithet.hidden = !p.epithet;
-    el.frontisOpen.hidden = !por;
-    el.frontisEmpty.hidden = !!por;
-    el.frontisCredit.textContent = por && por.artist ? "After a likeness by " + por.artist : "";
-    el.frontisCredit.hidden = !el.frontisCredit.textContent;
-    fill(el.frontisOpen, por ? [verImg(por.versions[0], "thumb", por.title || "A likeness of " + el.abName.textContent)] : []);
     fill(el.abNow, [
       ab.currently ? h("div", null, h("h4", { class: "now-label", text: "Currently" }), h("p", { text: ab.currently })) : null,
       ab.ooc ? h("div", { class: "is-ooc" }, h("h4", { class: "now-label", text: "Out of character" }), h("p", { text: ab.ooc })) : null
@@ -1340,8 +1312,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.plNote.hidden = !a.note;
     el.plEarlier.disabled = i === 0;
     el.plLater.disabled = i === state.art.length - 1;
-    el.plPortrait.textContent = state.about.portrait === a.id ? "Stop using as portrait" : "Make it the portrait";
-    el.plPortrait.hidden = a.versions[0].mature; // a mature image is never the portrait
   }
 
   // The editing tools show only while the server says this browser holds the keeper's session
@@ -1505,7 +1475,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
 
-  // The About page: names, portrait, the Total RP 3 fields, and rows the keeper can add, move and remove: additional
+  // The About page: names, the Total RP 3 fields, and rows the keeper can add, move and remove: additional
   // information, personality traits, glances and the description's sections
   var FACT_HINTS = [["Motto", ""], ["Pronouns", ""], ["Voice", ""]];
   function rowTools() {
@@ -1652,10 +1622,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.abfEyeOn.checked = !!ab.eyeColor;
     el.abfEyeColor.value = ab.eyeColor || "#e3a13a";
     el.abfEyeColor.disabled = !ab.eyeColor;
-    fill(el.abfPortrait, [h("option", { value: "", text: "None" })].concat(state.art.map(function (a, i) {
-      return a.versions[0].mature ? null : h("option", { value: a.id, text: roman(i + 1) + ". " + (a.title || "Untitled") }); // never a mature image
-    }).filter(Boolean)));
-    el.abfPortrait.value = ab.portrait;
     fill(el.abfFacts, (ab.facts.length ? ab.facts : [{ label: "", value: "" }]).map(factRow));
     fill(el.abfTraits, ab.traits.map(traitRow));
     fill(el.abfGlances, ab.glances.map(glanceRow));
@@ -1668,7 +1634,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   function aboutFromForm() {
     var body = {
-      name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(), portrait: el.abfPortrait.value,
+      name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(),
       title: el.abfTitle.value.trim(), currently: el.abfCurrently.value.trim(), ooc: el.abfOoc.value.trim(),
       eyeColor: el.abfEyeOn.checked ? el.abfEyeColor.value : "",
       facts: rowsOf(el.abfFacts, ["label", "value"]),
@@ -1680,8 +1646,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return body;
   }
   function aboutChanged() { return currentView === "aboutForm" && JSON.stringify(aboutFromForm()) !== aboutWas; }
-  // the whole page as it is now, for a change made elsewhere (the portrait, from a plate)
-  function aboutNow() { return Object.assign({ name: state.profile.name, epithet: state.profile.epithet }, state.about); }
   el.aboutForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (busy || !canPost()) return;
@@ -1867,12 +1831,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   el.plEarlier.addEventListener("click", function () { movePlate(-1, el.plEarlier); });
   el.plLater.addEventListener("click", function () { movePlate(1, el.plLater); });
-  el.plPortrait.addEventListener("click", function () {
-    var a = findArt(plateId); if (!a || !canPost()) return;
-    var was = state.about.portrait === a.id, body = aboutNow();
-    body.portrait = was ? "" : a.id;
-    save("PUT", "api/about", body, function () { showPlate(a.id); }, el.plPortrait, "Saving…", was ? "It is no longer the portrait." : "It is now the portrait on the About page.");
-  });
 
   // ---------- Mature images and the age check ----------
   // A mature image is never loaded until the visitor chooses to see it, and it is covered again as soon as another
@@ -1984,7 +1942,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!v) return;
     if (v.mature && shown !== v.id) showMature(v); else openLightbox(a.id, v.id);
   });
-  el.frontisOpen.addEventListener("click", function () { openLightbox(state.about.portrait); });
   el.lbClose.addEventListener("click", closeLightbox);
   el.lbPrev.addEventListener("click", function () { stepLightbox(-1); });
   el.lbNext.addEventListener("click", function () { stepLightbox(1); });

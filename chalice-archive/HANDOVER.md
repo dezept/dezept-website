@@ -4,12 +4,12 @@ A one-page RP site for a Dracthyr character. The landing page is nothing but his
 
 Each choice opens its chapter of the archive: a single parchment page in a leather binding, in the style of the game's books and journals, with index tabs on its top edge to move between chapters. Each chapter reads down one centred column; there is no two-page spread.
 
-- **About:** laid out like a Total RP 3 profile. His portrait beside his title, name and full title; then Currently and OOC, the directory (race, class, age, eyes …), additional information, personality traits, at first glance, and the description in sections. The description keeps TRP3's markup, so a TRP profile can be pasted in.
+- **About:** laid out like a Total RP 3 profile. His title, name and full title head the page; then Currently and OOC, the directory (race, class, age, eyes …), additional information, personality traits, at first glance, and the description in sections. The description keeps TRP3's markup, so a TRP profile can be pasted in.
 - **Art:** the plates (pictures of him) as a list; a plate opens on its own page, and a full-size view shows it on a dark ground. A plate is one or more images: its main image and alternate versions. Any image can be flagged **mature**: it stays covered, and is not even loaded, until a visitor says they are 18 or older, and it is covered again once they move on.
 - **Character Knowledge:** his records: the most recent first, then a chaptered index of everything he has re-learned since waking.
 
 - **Self-hosted** on the owner's VPS: Cloudflare in front, then Caddy, then a small Node server (`server/server.mjs`, no dependencies) that serves the page and the model, stores the records, and checks the keeper's word. **`deploy/README.md` is the step-by-step setup.**
-- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check; version 16 is the single-page layout with the TRP-style About; version 17 sets section headings as pull quotes with a colour each; version 18 replaces the scan with the gem drawing the light in, and adds the flares.
+- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check; version 16 is the single-page layout with the TRP-style About; version 17 sets section headings as pull quotes with a colour each; version 18 replaces the scan with the gem drawing the light in, and adds the flares; version 19 takes the portrait off the About page.
   - Before the move, its data (no records, no word) matched `src/seed.json`, so nothing needed migrating.
 
 ## Status
@@ -18,8 +18,8 @@ Each choice opens its chapter of the archive: a single parchment page in a leath
 |---|---|
 | Landing (the construct alone, no text), the gem drawing the light in, archive (one page per chapter), record detail | Done |
 | **Hub** (About, Art, Character Knowledge beneath the construct once it has drawn the light in, no other text) and the tome's chapter tabs | Done |
-| **About** page, as a Total RP 3 profile: portrait, title, name, full title, currently and OOC, directory, additional information, personality traits, at first glance, description with TRP markup; amended by the keeper | Done, through the server's API |
-| **Art**: plates uploaded from the keeper's browser, ordered, captioned, shown full size, one chosen as the portrait | Done, through the server's API |
+| **About** page, as a Total RP 3 profile (no portrait): title, name, full title, currently and OOC, directory, additional information, personality traits, at first glance, description with TRP markup; amended by the keeper | Done, through the server's API |
+| **Art**: plates uploaded from the keeper's browser, ordered, captioned, shown full size | Done, through the server's API |
 | **Alternate versions** (up to 12 images per plate) and **mature** images behind an age check | Done |
 | Addresses: `#about`, `#art`, `#knowledge`, `#art/<plate>` and `#knowledge/<record>` open there at once | Done |
 | Inscribe / revise / remove record, remove examples | Done, through the server's API |
@@ -124,11 +124,11 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 | `PUT /api/records/:id` | keeper | revise → `{archive, id}` |
 | `DELETE /api/records/:id` | keeper | remove → `{archive}` |
 | `POST /api/records/clear-examples` | keeper | remove example records → `{archive}` |
-| `PUT /api/about` | keeper | the whole page: `{name, epithet, portrait, title, currently, ooc, race, class, age, eyes, eyeColor, height, build, birthplace, residence, facts, traits, glances, sections}` → `{archive}` |
+| `PUT /api/about` | keeper | the whole page: `{name, epithet, title, currently, ooc, race, class, age, eyes, eyeColor, height, build, birthplace, residence, facts, traits, glances, sections}` → `{archive}` |
 | `POST /api/uploads` | keeper | an image's raw bytes, sent with its type (PNG, JPEG or WebP, at most 8 MiB) → `{file, width, height}` |
 | `POST /api/art` | keeper | new plate `{title, artist, link, date, note, versions: [{file, thumb, label, mature}]}` → `{archive, id}`; it goes first |
 | `PUT /api/art/:id` | keeper | revise; `versions` (if sent) lists every image in its new order: `{id, label, mature}` keeps one of the plate's images, `{file, thumb, label, mature}` adds an uploaded one → `{archive, id}` |
-| `DELETE /api/art/:id` | keeper | remove; clears it as the portrait → `{archive}` |
+| `DELETE /api/art/:id` | keeper | remove → `{archive}` |
 | `POST /api/art/order` | keeper | `{ids}`, every plate once, in the new order → `{archive}` |
 
 - **Keeper-only routes** need the session cookie, an `X-CSRF-Token` header equal to the session's token and an `Origin` equal to `PUBLIC_ORIGIN`. Bodies must be a JSON object (`Content-Type: application/json`, at most 64 KiB; 256 KiB for the About page), except uploads.
@@ -136,9 +136,8 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
   - records: title 120, domain 60, note 4000, source 160. Unknown states become `fragment`, bad dates become today, an empty domain becomes "Unsorted".
   - About: name 60, epithet (the full title) 280, title 60, currently and OOC 1000 each, directory fields 60 (birthplace and residence 120). The eye colour must be `#rrggbb` or is dropped. Up to 24 lines of additional information (label 40, value 400), 24 traits (each pole 40; the value is rounded into 0–20, anything else becomes 10), 5 glances (title 80, text 1000) and 24 sections (heading 120, text 40 000, heading colour `#rrggbb` or dropped; the 256 KiB body is the real limit, about 250 000 characters in all, and a longer page is refused with a message that says so). Empty rows are dropped. Unknown fields are dropped. A portrait that names no plate is cleared. Section text keeps TRP markup as plain text; only the page reads it.
   - plates: title 120, artist 80, note 1000, at most 500 plates of 1 to 12 images each, image labels 60. Only `"mature": true` flags an image. A link must be `http(s)` (a bare `artstation.com/x` becomes `https://artstation.com/x`); anything else, `javascript:` included, is dropped. Width and height come from the image file, never from the request.
-  - the portrait: a plate whose main image is mature can't be the portrait, and flagging the portrait's main image as mature clears it.
 - **Uploads:** the type is read from the bytes and must match the `Content-Type` (PNG, JPEG or WebP; never SVG or HTML). At most 8 MiB and 10000 pixels on a side. The file is stored as `DATA_DIR/art/<first 32 hex digits of its SHA-256>.<png|jpg|webp>`, so the same image is stored once.
-- **The keeper's browser prepares each image:** it scales it to at most 2400 pixels on the long side and re-encodes it as WebP (JPEG on browsers that can't write WebP), which drops any metadata such as a photo's location. It also makes an 800-pixel thumbnail for the list and the portrait. Both are uploaded, then the plate is saved.
+- **The keeper's browser prepares each image:** it scales it to at most 2400 pixels on the long side and re-encodes it as WebP (JPEG on browsers that can't write WebP), which drops any metadata such as a photo's location. It also makes an 800-pixel thumbnail for the list. Both are uploaded, then the plate is saved.
 - **Serving art:** only files a plate uses right now, by exact name, with their type, `nosniff` and the CSP. Removing a plate stops serving its image at once; Cloudflare's copy expires within a day (`s-maxage=86400`).
 - **The sweep** (at start, every 6 hours and after a plate is revised or removed) deletes an image once neither the archive nor any of its 50 backups uses it and it is over a day old. So restoring a backup always finds its images, and an upload whose plate was never saved disappears after a day.
 - **Storage:** `DATA_DIR/archive.json`, written atomically (temp file, fsync, rename). The previous version goes to `DATA_DIR/backups/` first, keeping the last 50. `auth.json` holds the scrypt hash. `art/` holds the images. All are mode 0600 in 0700 directories.
@@ -152,7 +151,6 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 {
   "profile": { "name": "", "epithet": "", "construct": "", "constructNote": "" },
   "about": {
-    "portrait": "",           // a plate's id, or ""
     "title": "",              // shown above the name, e.g. "Archivist"
     "currently": "", "ooc": "",
     "race": "", "class": "", "age": "", "eyes": "", "eyeColor": "",   // "#rrggbb" or ""
@@ -164,7 +162,7 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
   },
   "art": [{                   // in the keeper's order; a new plate goes first
     "id": "a…",               // set by the server: "a" + 12 random base64url characters
-    "versions": [{            // 1 to 12 images; the first is the main one, shown in the list and as the portrait
+    "versions": [{            // 1 to 12 images; the first is the main one, shown in the list
       "id": "v…",             // set by the server
       "file": "<32 hex>.webp",  // up to 2400 px on the long side
       "thumb": "<32 hex>.webp", // up to 800 px
@@ -207,11 +205,11 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 - **Chapter tabs** (`#tabs`): leather index tabs on the tome's top edge; the open chapter's tab is a parchment leaf. While a form is open, they only say to finish or cancel it, so nothing written is lost. Escape leaves the About form only while nothing in it has changed; otherwise it says there are unsaved changes.
 - **Views:** each view belongs to a chapter and shows below that chapter's own leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`) in one column (`VIEWS` in `ca-app`). The DOM still has the two `#page-l` and `#page-r` sections, but they are stacked: `#page-l` holds the chapter's leaf, `#page-r` the view. `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`, which hides the chapter's leaf so the record, plate or form has the page to itself. In Art, the list of plates (`data-view="plates"`) shows alone, and a plate opens on its own with "← Return to the plates".
 - **About** (a Total RP 3 profile):
-  - **Header:** the portrait is the plate's thumbnail in an oval inside a parchment mount, the way old books print a frontispiece; a click shows it full size. Without one, a dashed oval says "No likeness yet". Beside it, the title in red small capitals, the name with the record title's rule and red dot beneath it, and the full title (the `epithet`) in italic. On phones they stack, centred.
+  - **Header**, centred: the title in red small capitals, the name with the record title's rule and red dot beneath it, and the full title (the `epithet`) in italic. There is no portrait; one was there before (a plate shown as a frontispiece) and was taken out, along with "Make it the portrait" on plates. An `about.portrait` left in an older `archive.json` is dropped when the server loads it.
   - **Below it**, each part only when it has something in it: Currently and Out of character in a note box; the **Directory** (two columns of label and value; the eyes get a colour swatch); **Additional information** (the old particulars, one column); **Personality traits** (each a bar between its two poles with a brass marker; the pole it leans toward is darker, and screen readers hear "fairly Lawful"); **At first glance** (up to five cards); then the **description**'s sections. Each section's heading is set like a pull quote: large italic IM Fell English in faded curly quotes, centred between two flourishes that fade out from a small diamond (`sectionHeading()`, `.ab-heading`). Quotes typed into the heading are dropped, so they never double. Its colour is the section's own `color` made readable by `ink()`; without one it is TRP's gold, `{col:ffd100}` darkened (`--ink-gold`, #705c00). The first plain paragraph of the description, if longer than 120 characters, opens with a red drop capital.
   - **TRP markup** (`trp()` in `ca-app`) is turned into elements, never parsed as HTML: `{h1}`…`{/h1}` to `{h3}` (as h5 and h6) with `:c`/`:r`, `{p:c}`/`{p:r}`, `{col:rrggbb}`…`{/col}`, the game's `|cAARRGGBB`…`|r`, and `{link*url*text}` (a link only for `http(s)://`, opened in a new tab with `noopener noreferrer`). `{icon:…}`, `{img:…}` and `|T…|t` are game files and are dropped. A blank line starts a paragraph; a single line break stays a line break. TRP colours are chosen for dark frames, so `ink()` keeps each colour's hue but darkens it until it has 4.5:1 contrast with the parchment; white and pale greys become the sepia ink. Colours are set through `el.style`, which the CSP allows.
-  - **The keeper's form:** title, name, full title, portrait, currently and OOC, the directory with an optional eye colour, then rows with ↑, ↓ and × buttons for additional information (with suggested labels), traits (two poles and a 0–20 slider; **Add TRP's standard traits** adds TRP3's eleven pairs at the middle), glances, and the description's sections, each with a colour picker for its heading (TRP's gold by default; a new section takes the colour of the last one; the heading field shows the colour as it will look) (**Add TRP's three sections**: Physical description, Personality, History). A collapsible note lists the markup. "Make it the portrait" on a plate sends the whole page back with the new portrait (`aboutNow()`), so nothing else changes.
-- **Art:** the plates are mounted thumbnails of their main image, cropped to 4 : 5 and numbered with roman numerals in the keeper's order; a plate of several images says how many. The chosen plate shows on its own page at its own shape, with its number (and the image's label), title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. Beneath the image, a strip of small thumbnails switches between the plate's images. The keeper can revise it, make it the portrait, move it earlier or later, or remove it.
+  - **The keeper's form:** title, name, full title, currently and OOC, the directory with an optional eye colour, then rows with ↑, ↓ and × buttons for additional information (with suggested labels), traits (two poles and a 0–20 slider; **Add TRP's standard traits** adds TRP3's eleven pairs at the middle), glances, and the description's sections, each with a colour picker for its heading (TRP's gold by default; a new section takes the colour of the last one; the heading field shows the colour as it will look) (**Add TRP's three sections**: Physical description, Personality, History). A collapsible note lists the markup.
+- **Art:** the plates are mounted thumbnails of their main image, cropped to 4 : 5 and numbered with roman numerals in the keeper's order; a plate of several images says how many. The chosen plate shows on its own page at its own shape, with its number (and the image's label), title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. Beneath the image, a strip of small thumbnails switches between the plate's images. The keeper can revise it, move it earlier or later, or remove it.
 - **The plate form** has a row per image, in order (the first is the main image): its thumbnail, a label, a **Mature (18+)** box, and ↑ ↓ × buttons. **+ Add an image** adds a row with a file input. To change an image, add the new one and remove the old.
 - **Mature images and the age check:**
   - A mature image shows only a cover (`.spoiler`: a dark hatched panel with a red **18+** seal and "Mature"), in the list, in the strip, on the plate's page and in the full-size view. The image itself is not loaded until it is shown, so its pixels never reach the browser before then.
@@ -315,7 +313,7 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - backups;
   - the About page's cleaning;
   - uploads: session, CSRF and Origin; SVG, HTML and JSON refused; bytes that don't match their type; size and dimension limits; storage under the content hash; a JPEG's size from its header;
-  - plates: links, sizes from the file, several images per plate (reordered, relabelled, flagged, added), order, the portrait (never a mature image), serving only the images in use, the sweep;
+  - plates: links, sizes from the file, several images per plate (reordered, relabelled, flagged, added), order, serving only the images in use, the sweep;
   - an archive saved before plates had several images (a separate server start);
   - changing the word, which signs older sessions out;
   - logout;
@@ -325,11 +323,10 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - inscribe a record containing markup, which must stay text;
   - reload, still unsealed, then revise and remove the record;
   - amend the About page in TRP terms: title, a directory field, lines of additional information (one moved up), TRP's standard traits with one slid, a glance with markup, and a description with TRP markup (a centred heading, a white and a gold colour, a `javascript:` and an https link, an icon) and an `<img>`; check that Escape keeps the unsaved form, that the colours are darkened, that only the https link is a link and that the HTML stays text;
-  - after making a plate the portrait, check the rest of the About page is still there;
   - upload a plate of two images, the second flagged mature (re-encoded to WebP in the browser, then served under the CSP), with a `javascript:` link that must be dropped;
   - check the mature image is covered and not loaded; answer the age check (0 is refused, 30 shows it); see it covered again back at the plates, and open without a second question; see it covered in the full-size view;
   - in a second browser, answer 15: the image stays covered for the visit and is never requested;
-  - make the plate the portrait, open `#about` and the plate's own address, and remove it;
+  - open `#about` (no portrait on it) and the plate's own address, and remove the plate;
   - change the word;
   - seal, reload, and unseal with the new word.
 - **Preview checks** load `dist/preview.html` inside the Artifact skeleton, under a CSP like the viewer's, with no network requests allowed. They check that:

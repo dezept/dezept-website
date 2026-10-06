@@ -1,7 +1,6 @@
 {
   "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The About page is a made-up example laid out like a Total RP 3 profile, with TRP markup in its description; the images are rendered from the game's model by tools/example_plates.js. None of them is mature; two are flagged so the preview shows how a mature image is covered.",
   "about": {
-    "portrait": "aexamplefacing",
     "title": "Archivist",
     "currently": "Cataloguing a shelf of the Valdrakken library he was not asked to catalogue. Ask him what year it is.",
     "ooc": "An example page, only in the preview. Unseal the archive with the word “preview” and choose Amend this page to see how it is written; a reload brings the example back.",

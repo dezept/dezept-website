@@ -21,7 +21,7 @@
       try { archive = JSON.parse(document.getElementById("ca-data").textContent); } catch (e) { archive = null; }
       archive = archive && Array.isArray(archive.records) ? archive : { profile: {}, records: [] };
       if (!Array.isArray(archive.art)) archive.art = [];
-      if (!archive.about) archive.about = { portrait: "", facts: [], sections: [] };
+      if (!archive.about) archive.about = { facts: [], sections: [] };
     }
     return archive;
   }
@@ -100,10 +100,10 @@
       added: prev ? prev.added : Date.now(), example: false
     };
   }
-  function cleanAbout(input, art) {
+  function cleanAbout(input) {
     var a = input && typeof input === "object" ? input : {};
     function list(v) { return (Array.isArray(v) ? v : []).filter(function (x) { return x && typeof x === "object"; }); }
-    var out = { portrait: typeof a.portrait === "string" && art.some(function (x) { return x.id === a.portrait && !x.versions[0].mature; }) ? a.portrait : "" };
+    var out = {};
     Object.keys(ABOUT_TEXT).forEach(function (k) { out[k] = str(a[k], ABOUT_TEXT[k]); });
     out.eyeColor = typeof a.eyeColor === "string" && /^#[0-9a-f]{6}$/i.test(a.eyeColor) ? a.eyeColor.toLowerCase() : "";
     out.facts = list(a.facts).map(function (f) { return { label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }; })
@@ -175,7 +175,7 @@
     if (method === "PUT" && path === "api/about") {
       if (JSON.stringify(body).length > LIMIT.aboutBody) return reply(413, { error: "The About page is too long to keep: " + LIMIT.aboutBody / 1024 + " KB in all." });
       var profile = Object.assign({}, a.profile, { name: str(body.name, 60) || "Unnamed Dracthyr", epithet: str(body.epithet, 280) });
-      return reply(200, { archive: change({ profile: profile, about: cleanAbout(body, a.art) }) });
+      return reply(200, { archive: change({ profile: profile, about: cleanAbout(body) }) });
     }
     if (method === "POST" && path === "api/art") {
       if (a.art.length >= LIMIT.art) return reply(413, { error: "There is no room for more plates." });
@@ -203,11 +203,11 @@
       if (!was) return reply(404, { error: "That plate is gone." });
       if (method === "PUT") {
         var revised = cleanArt(body, was), list = a.art.map(function (x) { return x.id === pid ? revised : x; });
-        return reply(200, { archive: change({ art: list, about: cleanAbout(a.about, list) }), id: pid });
+        return reply(200, { archive: change({ art: list }), id: pid });
       }
       if (method === "DELETE") {
         var art = a.art.filter(function (x) { return x.id !== pid; });
-        return reply(200, { archive: change({ art: art, about: cleanAbout(a.about, art) }) });
+        return reply(200, { archive: change({ art: art }) });
       }
     }
     var m = path.match(/^api\/records\/([^/]+)$/);

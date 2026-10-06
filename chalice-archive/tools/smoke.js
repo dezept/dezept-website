@@ -16,7 +16,7 @@ Checks:
      token, and non-JSON bodies; the session cookie's flags; field validation and size limits; stored markup
      cannot end the page's data block; backups; the About page's cleaning; image uploads (type sniffed from the
      bytes, size, dimensions), plates, their order and links, art served only while used, the sweep of unused
-     uploads; plates of several images, flagged mature one by one, never a mature portrait; plates saved before
+     uploads; plates of several images, flagged mature one by one; plates saved before
      they had several images; the password file; changing the word signs other sessions out; failed logins are
      throttled per IP.
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
@@ -24,7 +24,7 @@ Checks:
      tools; records can be inscribed, revised and removed, and markup in them stays text; the About page can be
      amended in Total RP 3's terms (directory, standard traits, glances, a description whose TRP markup becomes
      headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved writing, and
-     making a plate the portrait keeps the rest of the page; a plate of two images, one mature, can be uploaded, shown full size, made the portrait, linked to
+     the page has no portrait; a plate of two images, one mature, can be uploaded, shown full size, linked to
      and removed; a mature image stays covered and unloaded until a visitor says they are 18 or older, is covered
      again once they move on, and stays covered for someone under 18; the session survives a reload; the word can
      be changed from the page; sealing it again hides the tools.
@@ -249,11 +249,11 @@ async function apiChecks() {
       sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000), color: 'red; background: url(x)' }, 'junk', null, { heading: '', body: '' }],
     });
     const ab = about.json && about.json.archive;
-    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && ab.about.portrait === '' &&
+    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && !('portrait' in ab.about) &&
       ab.about.facts.length === 24 && ab.about.facts[0].label === 'Motto' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 40000 &&
       ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.sections[0].color === '' && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
       ab.about.currently === 'line one\nline two' && ab.about.traits.map((t) => t.value).join() === '20,0,10,8' && ab.about.glances.length === 5 && !('admin' in ab.about),
-      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and an unknown portrait cleared, TRP markup kept as text');
+      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and a portrait dropped, TRP markup kept as text');
     const aboutPage = await call('GET', '/');
     check(!aboutPage.text.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/)[1].includes('<') && archiveIn(aboutPage.text).profile.name.startsWith('Smoke </script>'),
       "markup in the About page is escaped in the page's data block");
@@ -311,7 +311,6 @@ async function apiChecks() {
       "a plate's image is served with its type, nosniff, the CSP and a long cache lifetime");
     check((await call('HEAD', '/art/' + upJ.json.file)).headers['content-type'] === 'image/jpeg' && (await call('GET', '/art/' + upA.json.file.replace('.png', '.webp'))).status === 404 &&
       (await call('GET', '/art/..%2fauth.json')).status === 404, 'only the exact names in use are served');
-    check((await write('PUT', '/api/about', { name: 'Smoke', portrait: pb.id })).json.archive.about.portrait === '', 'a plate whose main image is mature cannot be the portrait');
     const revisedPlate = await write('PUT', '/api/art/' + pa.id, { title: 'Revised plate', artist: 'An artist' });
     const rp = revisedPlate.json && revisedPlate.json.archive.art.find((a) => a.id === pa.id);
     check(revisedPlate.status === 200 && rp.title === 'Revised plate' && rp.versions.length === 1 && rp.versions[0].id === va.id && rp.versions[0].file === upA.json.file && rp.added === pa.added,
@@ -327,15 +326,10 @@ async function apiChecks() {
       'a new order must name every plate once');
     const ordered = await write('POST', '/api/art/order', { ids: [pa.id, pb.id] });
     check(ordered.status === 200 && ordered.json.archive.art.map((a) => a.id).join() === [pa.id, pb.id].join(), 'the plates can be put in a new order');
-    const withPortrait = await write('PUT', '/api/about', { name: 'Smoke', portrait: pa.id });
-    check(withPortrait.json.archive.about.portrait === pa.id, 'a plate can be made the portrait');
-    const flagged = await write('PUT', '/api/art/' + pa.id, { versions: [{ id: va.id, mature: true }] });
-    check(flagged.json.archive.about.portrait === '', "flagging the portrait's image as mature takes it off the About page");
-    await write('PUT', '/api/about', { name: 'Smoke', portrait: pb.id }); // its main image is no longer mature
     const removedPlate = await write('DELETE', '/api/art/' + pb.id);
-    check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pb.id) && removedPlate.json.archive.about.portrait === '' &&
+    check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pb.id) &&
       (await call('GET', '/art/' + upB.json.file)).status === 404 && (await call('GET', '/art/' + upC.json.file)).status === 404 && (await call('GET', '/art/' + upA.json.file)).status === 200,
-      'removing a plate clears it as the portrait and stops serving the images only it used');
+      'removing a plate stops serving the images only it used');
     const old = new Date(Date.now() - 2 * 24 * 3600e3);
     fs.utimesSync(path.join(s.dataDir, 'art', upD.json.file), old, old);
     fs.utimesSync(path.join(s.dataDir, 'art', upB.json.file), old, old);
@@ -383,15 +377,15 @@ async function legacyChecks() {
     fs.mkdirSync(path.join(dir, 'art'), { recursive: true, mode: 0o700 });
     fs.writeFileSync(path.join(dir, 'art', name), png);
     fs.writeFileSync(path.join(dir, 'archive.json'), JSON.stringify({
-      profile: { name: 'Old' }, records: [], about: { portrait: 'aold', facts: [], sections: [] },
+      profile: { name: 'Old' }, records: [], about: { portrait: 'aold', facts: [], sections: [] }, // portraits are no longer kept
       art: [{ id: 'aold', file: name, thumb: name, width: 20, height: 10, title: 'Old plate', date: '2026-01-01', added: 1 }],
     }));
   });
   try {
     const a = archiveIn((await request(s.port, 'GET', '/')).text);
     const v = a.art[0] && a.art[0].versions && a.art[0].versions[0];
-    check(v && v.file === name && v.width === 20 && v.mature === false && v.id === 'v' + name.slice(0, 12) && a.about.portrait === 'aold' &&
-      (await request(s.port, 'GET', '/art/' + name)).status === 200, 'a plate saved with one image becomes a plate of one image, still the portrait and still served');
+    check(v && v.file === name && v.width === 20 && v.mature === false && v.id === 'v' + name.slice(0, 12) && !('portrait' in a.about) &&
+      (await request(s.port, 'GET', '/art/' + name)).status === 200, 'a plate saved with one image becomes a plate of one image and is still served; an old portrait is dropped');
   } finally {
     s.stop();
   }
@@ -529,7 +523,7 @@ async function browserChecks() {
     await page.waitForSelector('#view-about:not([hidden])', { timeout: 10000 });
     const aboutSeen = await page.evaluate(() => {
       const out = document.getElementById('ab-sections');
-      return { heading: (out.querySelector('h6.al-c') || {}).textContent, text: out.textContent, img: !!document.querySelector('#view-about img, #leaf-about .ab-titles img'),
+      return { heading: (out.querySelector('h6.al-c') || {}).textContent, text: out.textContent, img: !!document.querySelector('#view-about img, #leaf-about img'),
         colours: [...out.querySelectorAll('.trp span')].map((n) => getComputedStyle(n).color), links: [...out.querySelectorAll('a')].map((a) => a.getAttribute('href')),
         xss: !!window.__xss, lean: (document.querySelector('#ab-traits .is-lean') || {}).textContent, traits: document.querySelectorAll('#ab-traits .trait').length,
         head: (() => { const n = out.querySelector('.ab-heading > span'), c = n && getComputedStyle(n); return n && [n.textContent, c.textAlign, c.color].join('|'); })() };
@@ -544,7 +538,7 @@ async function browserChecks() {
       "TRP markup in the description becomes headings, colours darkened for parchment and http(s) links only; a section's heading is centred in its chosen colour, without doubled quotes");
     await page.screenshot({ path: path.join(OUT, 'about.png') });
 
-    // a plate of two images, the second mature: uploaded from the keeper's browser, shown, linked to, made the portrait, removed
+    // a plate of two images, the second mature: uploaded from the keeper's browser, shown, linked to, removed
     const requested = [];
     page.on('request', (r) => requested.push(r.url()));
     await page.click('.tab[data-book="art"]');
@@ -617,24 +611,20 @@ async function browserChecks() {
     check(/18 or older/.test(refusedText) && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
       'under 18, the mature image stays covered for the visit and is never loaded');
     await minorCtx.close();
-    await page.click('#pl-portrait');
-    await page.waitForFunction(() => document.getElementById('pl-portrait').textContent.startsWith('Stop'), null, { timeout: 10000 }).catch(() => {});
     const plateHash = plate.hash;
     await page.goto(s.url + '#about');
     await page.reload();
     await page.waitForSelector('#archive[open] #view-about:not([hidden])', { timeout: 10000 });
-    check(await page.waitForFunction(() => { const i = document.querySelector('#frontis-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).then(() => true, () => false),
-      'an address with #about opens the About page at once, with the plate as its portrait');
-    check((await page.$$('#ab-traits .trait')).length === 11 && (await page.textContent('#ab-sections')).includes('old copper') && (await page.textContent('#ab-title')) === 'Archivist',
-      'making a plate the portrait keeps the rest of the About page');
+    check((await page.$$('#ab-traits .trait')).length === 11 && (await page.textContent('#ab-sections')).includes('old copper') && (await page.textContent('#ab-title')) === 'Archivist' &&
+      !(await page.$('#leaf-about img, #view-about img')), 'an address with #about opens the About page at once, with no portrait on it');
     await page.goto(s.url + plateHash);
     check(await page.waitForFunction(() => document.getElementById('pl-title').textContent === 'Smoke plate' && !document.getElementById('view-plate').hidden, null, { timeout: 10000 }).then(() => true, () => false),
       "a plate's own address opens it");
     await page.click('#pl-delete');
     await page.click('#pl-delete'); // confirm
     await page.waitForFunction(() => !document.getElementById('pl-empty').hidden, null, { timeout: 10000 }).catch(() => {});
-    await page.click('.tab[data-book="about"]');
-    check(await page.$('#frontis-open[hidden]') !== null && await page.$('#frontis-empty:not([hidden])') !== null, 'removing the plate clears the portrait');
+    check(await page.waitForFunction(() => !document.querySelector('#plates .plate-btn'), null, { timeout: 10000 }).then(() => true, () => false),
+      'the plate can be removed');
     await page.click('.tab[data-book="knowledge"]');
 
     // change the word from the page, then seal it again
@@ -695,7 +685,7 @@ async function previewChecks() {
     check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false),
       'preview: the age check works without storage');
     await page.click('.tab[data-book="about"]');
-    check((await page.textContent('#ab-dir')).includes('Dracthyr') && await page.$('#frontis-open img') !== null && (await page.$$('#ab-traits .trait')).length > 0 &&
+    check((await page.textContent('#ab-dir')).includes('Dracthyr') && !(await page.$('#leaf-about img')) && (await page.$$('#ab-traits .trait')).length > 0 &&
       (await page.$$('#ab-sections h6')).length > 0, 'preview: the About page shows its example profile');
     await page.click('.tab[data-book="knowledge"]');
     await page.click('#clasp');
