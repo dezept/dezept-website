@@ -56,7 +56,10 @@ Checks:
      covered and unloaded until a visitor says they are 18 or older, is covered again once they move on, and stays
      covered for someone under 18; the session survives a reload; the word can be changed from the page; sealing it
      again hides the tools; a session that ends elsewhere is noticed as soon as a tab is looked at: the private
-     section leaves it, and a form being written stays, with the seal panel open.
+     section leaves it, and a form being written stays, with the seal panel open. Just after unsealing, before the
+     keeper's archive is back, a record keeps its link to an encounter only for the keeper, such an encounter is revised
+     rather than saved a second time, and Escape keeps what was written in an encounter's form; the close button keeps
+     unsaved writing; the video's bar follows the video after a click on it; a moved art piece stays on its image.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model, the example forms and their plates, GIF and video load from the page, the
      stand-in server accepts only "preview", the About page can be amended and records and plates added, and a reload
@@ -945,6 +948,9 @@ async function browserChecks() {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
     check(await page.$('#view-form:not([hidden])') !== null && (await page.inputValue('#f-title')) === 'Smoke record', 'Escape does not throw away an unsaved record');
+    await page.click('#btn-close');
+    await page.waitForTimeout(300);
+    check(await page.$('#archive[open] #view-form:not([hidden])') !== null && (await page.inputValue('#f-title')) === 'Smoke record', "nor does the tome's close button");
     await page.click('#f-submit');
     await page.waitForSelector('#view-detail:not([hidden])', { timeout: 10000 });
     check((await page.textContent('#det-title')) === 'Smoke record' && (await page.textContent('#det-note')).includes(xss) &&
@@ -1081,6 +1087,71 @@ async function browserChecks() {
     await settle(page);
     check(await page.waitForFunction((t) => !document.getElementById('view-encounter').hidden && document.getElementById('enc-title').textContent === t, onlyMe, { timeout: 15000 })
       .then(() => true, () => false) && (await page.evaluate(() => location.hash)) === onlyHash, "the keeper's address of an encounter only for the keeper opens it after a reload");
+
+    // Just after unsealing, the keeper's archive is still on its way (held back here): the encounters only for the
+    // keeper, and records' links to them, are not in the page yet. A record revised then keeps its link; an encounter
+    // only for the keeper, revised as the session ends and saved just after unsealing again, is revised, not saved a
+    // second time as a new one; and Escape keeps what was written in an encounter's form while its private section came.
+    const keeperView = () => page.evaluate(async () => {
+      const s = await (await fetch('api/session')).json();
+      return (await (await fetch('api/private', { headers: { 'X-CSRF-Token': s.csrf } })).json()).archive;
+    });
+    let release;
+    const holdPrivate = () => { const held = new Promise((r) => { release = r; }); return page.route('**/api/private', async (route) => { await held; await route.continue().catch(() => {}); }); }; // one let go by unroute() is continued already
+    const kept = (await keeperView()).records.find((r) => r.title === 'Kept to himself');
+    await holdPrivate();
+    await page.goto('about:blank');
+    await page.goto(s.url + '#knowledge/' + kept.id);
+    await settle(page);
+    await page.waitForSelector('#det-tools:not([hidden])', { timeout: 15000 }).catch(() => {});
+    await page.click('#det-edit');
+    await page.fill('#f-note', "Revised before the keeper's archive came.");
+    release();
+    await page.waitForFunction((t) => (document.getElementById('f-encounter').selectedOptions[0] || {}).textContent === t + ', only for you', onlyMe, { timeout: 10000 }).catch(() => {});
+    await page.unroute('**/api/private');
+    await page.click('#f-submit');
+    await page.waitForSelector('#view-detail:not([hidden])', { timeout: 10000 }).catch(() => {});
+    const keptAfter = (await keeperView()).records.find((r) => r.id === kept.id);
+    check(!!kept.encounter && keptAfter.encounter === kept.encounter && keptAfter.note.startsWith('Revised before'),
+      "a record revised before the keeper's archive has arrived keeps its link to an encounter only for the keeper");
+    await page.click('#det-source .link-to');
+    await page.waitForFunction((t) => !document.getElementById('view-encounter').hidden && document.getElementById('enc-title').textContent === t, onlyMe, { timeout: 10000 }).catch(() => {});
+    await page.click('#enc-edit');
+    await page.fill('#ef-text', 'Revised as the seal came and went.');
+    await page.evaluate(async () => { // sealed from elsewhere; the tab notices as soon as it is looked at
+      const s = await (await fetch('api/session')).json();
+      await fetch('api/logout', { method: 'POST', headers: { 'X-CSRF-Token': s.csrf } });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.waitForSelector('#seal:not([hidden]) #seal-error:not([hidden])', { timeout: 10000 }).catch(() => {});
+    await holdPrivate();
+    await page.fill('#seal-word', WORD);
+    await page.click('#seal-go');
+    await page.waitForSelector('#seal[hidden]', { state: 'attached', timeout: 15000 }).catch(() => {});
+    await page.click('#ef-submit');
+    await page.waitForFunction(() => !document.getElementById('ef-submit').disabled, null, { timeout: 10000 }).catch(() => {});
+    release();
+    await page.unroute('**/api/private');
+    await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 10000 }).catch(() => {});
+    const mine = (await keeperView()).encounters.filter((e) => e.title === onlyMe);
+    check(mine.length === 1 && mine[0].text === 'Revised as the seal came and went.',
+      `an encounter only for the keeper, revised as the session ends and saved just after unsealing again, is revised, not saved a second time (${mine.length} now)`);
+    const druid = (await keeperView()).encounters.find((e) => e.title === 'An encounter with a druid');
+    await holdPrivate();
+    await page.goto('about:blank');
+    await page.goto(s.url + '#encounters/' + druid.id);
+    await settle(page);
+    await page.waitForSelector('#enc-tools:not([hidden])', { timeout: 15000 }).catch(() => {});
+    await page.click('#enc-edit');
+    await page.fill('#ef-title', 'An encounter with a druid, retitled');
+    release();
+    await page.waitForFunction((t) => document.getElementById('ef-private').value === t, secret, { timeout: 10000 }).catch(() => {});
+    await page.unroute('**/api/private');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    check(await page.$('#view-encounter-form:not([hidden])') !== null && (await page.inputValue('#ef-title')) === 'An encounter with a druid, retitled' &&
+      (await page.inputValue('#ef-private')) === secret, "Escape keeps what was written in an encounter's form while its private section was on its way");
+    await page.click('#ef-cancel');
     await page.click('.tab[data-book="knowledge"]');
 
     // The tab seals while a record is being sent, after the server took it: its answer, the keeper's archive, arrives
@@ -1277,6 +1348,11 @@ async function browserChecks() {
     await page.click('#pl-video .vid-big');
     check(await page.waitForFunction(() => { const v = document.querySelector('#pl-video video'); return v && !v.paused && v.currentTime > 0.2; }, null, { timeout: 10000 }).then(() => true, () => false) &&
       /^0:0\d \/ 0:01$/.test(await page.textContent('#pl-video .vid-time')), "the video plays in the archive's own player, served under the CSP");
+    const bar = await (await page.$('#pl-video .vid-seek')).boundingBox();
+    await page.mouse.click(bar.x + bar.width * 0.2, bar.y + bar.height / 2);
+    const clicked = await page.$eval('#pl-video .vid-seek', (n) => ({ at: Number(n.value), focused: document.activeElement === n }));
+    check(clicked.focused && await page.waitForFunction((at) => Math.abs(Number(document.querySelector('#pl-video .vid-seek').value) - at) > 0.05, clicked.at, { timeout: 3000 })
+      .then(() => true, () => false), 'a click on its bar seeks, and the bar goes on following the video though the click left the focus on it');
     await page.screenshot({ path: path.join(OUT, 'video.png') });
     await page.click('#pl-video .vid-btn >> nth=0');
     check(await page.$eval('#pl-video video', (v) => v.paused), 'its play button pauses it');
@@ -1286,6 +1362,10 @@ async function browserChecks() {
     await page.click('#pl-media > .play-btn');
     check(!!(await page.$('#pl-open .gif canvas')) && (await page.getAttribute('#pl-media > .play-btn', 'aria-label')) === 'Play the animation', 'the GIF can be paused on the frame it is on');
     await page.click('#pl-media > .play-btn');
+    await page.click('#pl-later');
+    check(await page.waitForFunction(() => document.getElementById('pl-no').textContent === 'Art piece II. · Version 2' && !!document.querySelector('#pl-open .gif') &&
+      document.querySelector('#pl-versions .ver-btn[aria-pressed="true"]') === document.querySelectorAll('#pl-versions .ver-btn')[1], null, { timeout: 10000 }).then(() => true, () => false),
+      'moved later, an art piece stays on the image that was on view');
     await page.click('#pl-open');
     await page.waitForSelector('#lightbox:not([hidden])', { timeout: 3000 });
     await page.keyboard.press('ArrowLeft');

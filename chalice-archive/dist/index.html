@@ -1367,7 +1367,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var full = document.fullscreenEnabled ? h("button", { class: "vid-btn", type: "button", "aria-label": "Full screen", title: "Full screen" }, icon("full")) : null;
     var note = h("p", { class: "vid-note", role: "status", hidden: true });
     var box = shape(h("div", { class: "player" }, h("div", { class: "vid-stage" }, video, big, note), h("div", { class: "vid-bar" }, play, seek, time, sound, full)), v);
-    var playing = null, muted = null;
+    var playing = null, muted = null, held = false;
     function sync() {
       var on = !video.paused && !video.ended, d = isFinite(video.duration) ? video.duration : 0;
       if (on !== playing) {
@@ -1384,7 +1384,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         fill(sound, [icon(muted ? "muted" : "sound")]);
       }
       seek.max = d || 1;
-      if (document.activeElement !== seek) seek.value = video.currentTime;
+      if (!held) seek.value = video.currentTime;
       time.textContent = clock(video.currentTime) + " / " + clock(d);
       seek.setAttribute("aria-valuetext", clock(video.currentTime) + " of " + clock(d));
     }
@@ -1395,6 +1395,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     [big, play].forEach(function (b) { b.addEventListener("click", toggle); });
     video.addEventListener("click", toggle);
     seek.addEventListener("input", function () { video.currentTime = Number(seek.value); });
+    // While the bar is held, it stays where the hand puts it; otherwise it follows the video. (It used to stop following
+    // while it had the focus, which a click gives it: after a click to seek, it stood still while the video played on.)
+    seek.addEventListener("pointerdown", function () {
+      held = true;
+      function letGo() { held = false; document.removeEventListener("pointerup", letGo, true); document.removeEventListener("pointercancel", letGo, true); sync(); }
+      document.addEventListener("pointerup", letGo, true);
+      document.addEventListener("pointercancel", letGo, true);
+    });
     seek.addEventListener("keydown", function (e) { // steps of a twentieth of the video, at least a second
       var by = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
       if (!by) return;
@@ -1867,14 +1875,30 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.fDate.value = r ? r.date : "";
     el.fNote.value = r ? r.note : "";
     el.fSource.value = r ? r.source : "";
-    fill(el.fEncounter, [h("option", { value: "", text: "None" })].concat(newest(state.encounters).map(function (e) {
-      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") + (e.sealed ? ", only for you" : "") });
-    })));
+    encounterChoices();
     el.fEncounter.value = r ? r.encounter : "";
     el.fError.hidden = true;
     showView("form");
     recWas = JSON.stringify(recFromForm());
     setTimeout(function () { if (!el.recForm.contains(document.activeElement) || document.activeElement === el.fBack) el.fTitle.focus(); }, 40);
+  }
+  function encounterChoices() {
+    fill(el.fEncounter, [h("option", { value: "", text: "None" })].concat(newest(state.encounters).map(function (e) {
+      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") + (e.sealed ? ", only for you" : "") });
+    })));
+  }
+  // The keeper's archive may arrive after the form has opened (just after unsealing), bringing the encounters only
+  // for the keeper and records' links to them. The list is drawn again then, and a record whose encounter was not
+  // chosen anew gets its link back: saved without it, the record used to lose the link.
+  function refreshRecordForm() {
+    var chosen = el.fEncounter.value, was = JSON.parse(recWas), r = editingId && find(editingId);
+    encounterChoices();
+    if (chosen === was.encounter && r) {
+      el.fEncounter.value = r.encounter;
+      was.encounter = el.fEncounter.value;
+      recWas = JSON.stringify(was);
+    } else el.fEncounter.value = chosen;
+    if (el.fEncounter.selectedIndex < 0) el.fEncounter.value = "";
   }
   function leaveForm() { if (editingId && find(editingId)) showDetail(editingId); else showView("overview"); }
 
@@ -1909,7 +1933,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.efPrivate.value = typeof priv === "string" ? priv : "";
     el.efPrivateHelp.textContent = priv === null ? "What was written here before can no longer be read: it was written under a word that was forgotten. Writing here replaces it." : PRIVATE_HELP;
     privWas = el.efPrivate.value;
-    encWas = JSON.stringify(encFromForm());
   }
   function openEncounterForm(id) {
     var e = id ? findEnc(id) : null;
@@ -1923,22 +1946,33 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     syncSealed();
     el.efError.hidden = true;
     fillPrivate(e);
+    encWas = JSON.stringify(encFromForm());
     showView("encounterForm");
-    if (e && !privatesLoaded) loadPrivate().then(function () { if (currentView === "encounterForm" && encEditing === e.id && el.efPrivate.value === privWas) fillPrivate(e); });
+    // the private text, once it arrives, is what the form opened with; what was written meanwhile still counts as a change
+    if (e && !privatesLoaded) loadPrivate().then(function () {
+      if (currentView !== "encounterForm" || encEditing !== e.id || el.efPrivate.value !== privWas) return;
+      fillPrivate(e);
+      var was = JSON.parse(encWas);
+      was.private = privWas;
+      encWas = JSON.stringify(was);
+    });
     setTimeout(function () { if (!el.encounterForm.contains(document.activeElement) || document.activeElement === el.efBack) el.efTitle.focus(); }, 40);
   }
   function encounterChanged() { return currentView === "encounterForm" && JSON.stringify(encFromForm()) !== encWas; }
   el.encounterForm.addEventListener("submit", function (ev) {
     ev.preventDefault();
     if (busy || !mayPost()) return;
-    var body = encFromForm(), prev = encEditing ? findEnc(encEditing) : null;
+    // A revision goes by the id it opened with. An encounter only for the keeper leaves the page when the session ends
+    // and comes back only with the keeper's archive, so looking it up here, just after unsealing again, found nothing
+    // and saved it a second time, as a new one.
+    var body = encFromForm(), id = encEditing;
     if (!body.title) { formError("encounterForm", "Give the encounter a title."); el.efTitle.focus(); return; }
-    if (prev && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
-    save(prev ? "PUT" : "POST", prev ? "api/encounters/" + encodeURIComponent(prev.id) : "api/encounters", body, function (data) {
+    if (id && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
+    save(id ? "PUT" : "POST", id ? "api/encounters/" + encodeURIComponent(id) : "api/encounters", body, function (data) {
       if (body.private !== undefined && owner) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
       if (findEnc(data.id)) showEncounter(data.id); else showView("encounters");
       loadPrivate();
-    }, el.efSubmit, prev ? "Saving…" : "Recording…", prev ? "The encounter is revised." : body.sealed ? "The encounter is recorded, for you alone." : "The encounter is recorded.");
+    }, el.efSubmit, id ? "Saving…" : "Recording…", id ? "The encounter is revised." : body.sealed ? "The encounter is recorded, for you alone." : "The encounter is recorded.");
   });
   el.efCancel.addEventListener("click", leaveCurrentForm);
   el.efBack.addEventListener("click", leaveCurrentForm);
@@ -2408,7 +2442,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!a || !other || !canPost()) return;
     var ids = state.art.map(function (x) { return x.id; }), i = ids.indexOf(a.id), j = ids.indexOf(other.id);
     ids[i] = other.id; ids[j] = a.id;
-    save("POST", "api/art/order", { ids: ids }, function () { showPlate(a.id); if (!btn.disabled) btn.focus(); }, btn, "Moving…", "");
+    var vid = versionId; // the image on view stays, rather than going back to the main one
+    save("POST", "api/art/order", { ids: ids }, function () { showPlate(a.id, vid); if (!btn.disabled) btn.focus(); }, btn, "Moving…", "");
   }
   function moveGallery(by, btn) {
     var ids = state.galleries.map(function (g) { return g.id; }), i = ids.indexOf(galleryId), j = i + by;
@@ -2596,6 +2631,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     state = normalize(raw);
     if (!owner) forgetSealed();
     renderAll();
+    if (owner && currentView === "form") refreshRecordForm();
   }
   function save(method, url, body, then, btn, label, done) {
     if (busy || !canPost()) return;
@@ -2675,7 +2711,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function refreshSession() {
     return call("GET", "api/session").then(function (s) {
       var on = !!s.owner, lost = owner && !on;
-      if (on === owner && (!on || s.csrf === csrf)) { watchSession(); return; }
+      if (on === owner && (!on || s.csrf === csrf)) {
+        if (on && !privatesLoaded) loadPrivate(); // it failed before: until it comes, the keeper's own encounters are missing
+        watchSession();
+        return;
+      }
       setOwner(on, s.csrf);
       if (lost && FORMS[currentView] && el.archive.open) sealedAgain(); // what is written in the open form waits to be sent once unsealed
     }, watchSession);
@@ -3556,7 +3596,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   });
   el.stage.addEventListener("pointermove", function (e) { if (!drawing) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
   el.stage.addEventListener("pointerleave", function () { setGemHover(false); });
-  el.btnClose.addEventListener("click", function () { el.archive.close(); });
+  // The close button keeps unsaved writing, as Escape, the backdrop and the chapter tabs do
+  el.btnClose.addEventListener("click", function () { if (formChanged()) toast(UNSAVED); else el.archive.close(); });
   el.archive.addEventListener("click", function (e) {
     if (e.target === el.archive && !FORMS[currentView] && el.lightbox.hidden && el.gate.hidden) el.archive.close();
   });
@@ -3564,12 +3605,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // unsaved writing); only then the tome. It is handled on keydown, because Chrome lets a page hold back the
   // dialog's own cancel only once per click or key press, and a second Escape would close the whole tome. The cancel
   // handler stays for other ways of closing, such as a phone's back gesture.
+  var UNSAVED = "There are unsaved changes. Save them, or press Cancel to let them go.";
+  function formChanged() { return aboutChanged() || encounterChanged() || recordChanged() || artChanged() || galleryChanged(); }
   function closeTop() {
     if (!el.gate.hidden) closeGate();
     else if (!el.lightbox.hidden) closeLightbox();
     else if (!el.seal.hidden) closeSeal(true);
     else if (FORMS[currentView]) {
-      if (aboutChanged() || encounterChanged() || recordChanged() || artChanged() || galleryChanged()) toast("There are unsaved changes. Save them, or press Cancel to let them go.");
+      if (formChanged()) toast(UNSAVED);
       else leaveCurrentForm();
     } else return false;
     return true;
