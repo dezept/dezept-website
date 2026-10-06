@@ -1,7 +1,14 @@
 {
   "name": "chalice-archive-tools",
   "private": true,
-  "description": "Smoke test for the built page (node smoke.js)",
-  "scripts": { "smoke": "node smoke.js" },
-  "devDependencies": { "playwright-core": "1.63.0" }
+  "description": "Smoke test for the built page (node smoke.js), and the bundling of three.js (node vendor_three.mjs)",
+  "scripts": {
+    "smoke": "node smoke.js",
+    "vendor-three": "node vendor_three.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright-core": "1.63.0",
+    "three": "0.186.1"
+  }
 }

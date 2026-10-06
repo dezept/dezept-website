@@ -75,7 +75,11 @@
   function hex(bytes) { return Array.prototype.map.call(new Uint8Array(bytes), function (b) { return b.toString(16).padStart(2, "0"); }).join(""); }
   function str(v, max) { return typeof v === "string" ? v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").trim().slice(0, max) : ""; }
   function today() { return new Date().toISOString().slice(0, 10); }
-  function validDate(d) { return typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(d)); }
+  function validDate(d) { // a day that exists, as on the server: not 2024-02-30
+    if (typeof d !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+    var t = Date.parse(d + "T00:00:00Z");
+    return !isNaN(t) && new Date(t).toISOString().slice(0, 10) === d;
+  }
   function clean(input, prev) {
     var title = str(input && input.title, LIMIT.title);
     if (!title) throw fail(400, "Give the record a title.");
