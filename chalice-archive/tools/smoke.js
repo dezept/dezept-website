@@ -30,8 +30,10 @@ Checks:
      Caddy keeps them; an MP4 whose ftyp box gives its size in 64 bits; dates that do not
      exist are dropped; backups never overwrite one another; changing the word signs other sessions out; failed
      logins are throttled per IP (an IPv6 address by its /64), and a burst of parallel guesses gets no more tries
-     than guesses one after another; guesses from many addresses pause every login, except from a browser with the
-     keeper's device cookie (not a forged one, nor one from before the word changed).
+     than guesses one after another; a login refused while the server is busy is no miss; guesses from many addresses
+     pause every login, except from a browser with the keeper's device cookie (not a forged one, nor one from before
+     the word changed); a write whose body arrives after its session was sealed is refused; a GET whose body trickles
+     in is let go within seconds; the page is isolated from other sites (COOP and COEP).
   1c. The private sections across server restarts: still readable with the word, carried over to a new word set from
      the command line (which needs the current word, and will not write over a key the first login made while it
      waited), unreadable when moved onto another encounter, and gone after set-password --forget-private.
@@ -45,7 +47,8 @@ Checks:
      removed, and markup in them stays text; an encounter with a private section can be recorded, a record can name
      it and link to it, and the private section shows only while unsealed, and leaves every tab when one tab seals; a
      record's link to an encounter only for the keeper follows the seal on the record's page, and that encounter's
-     address opens it for the keeper after a reload; a date in the year 35 shows as such;
+     address opens it for the keeper after a reload; an answer that arrives after the tab has sealed brings nothing
+     private back, and nothing private stays in the page out of sight; a date in the year 35 shows as such;
      the About page can be amended in Total RP 3's terms (directory, standard traits, glances, a description whose
      TRP markup becomes headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved
      writing, and the page has no portrait; a form can be added, and a plate of two images, one mature, uploaded into
@@ -212,6 +215,7 @@ async function apiChecks() {
   let ip = 0;
   const fresh = () => `198.51.100.${++ip}`; // a new client address for each login, so throttling stays out of the way
   const trickled = trickle(s.port, 'POST', '/api/uploads', { Origin: ORIGIN, 'Content-Type': 'video/mp4', 'Content-Length': 90 * 1024 * 1024 }, 13000);
+  const trickledGet = trickle(s.port, 'GET', '/api/archive', { 'Content-Length': 10 * 1024 * 1024 }, 13000); // a GET reads no body
   try {
     const auth = JSON.parse(fs.readFileSync(path.join(s.dataDir, 'auth.json'), 'utf8'));
     const authMode = fs.statSync(path.join(s.dataDir, 'auth.json')).mode & 0o777;
@@ -270,7 +274,8 @@ async function apiChecks() {
     const h = page.headers;
     check(h['strict-transport-security'] === 'max-age=31536000; includeSubDomains' && h['x-content-type-options'] === 'nosniff' &&
       h['x-frame-options'] === 'DENY' && h['referrer-policy'] === 'no-referrer' && h['cache-control'] === 'no-store' &&
-      h['cross-origin-opener-policy'] === 'same-origin' && !h['x-powered-by'], 'HSTS, nosniff, no framing, no referrer, no caching of the page');
+      h['cross-origin-opener-policy'] === 'same-origin' && h['cross-origin-embedder-policy'] === 'require-corp' && !h['x-powered-by'],
+      'HSTS, nosniff, no framing, no referrer, no caching of the page, and isolation from other sites (COOP and COEP)');
     const kept = await call('GET', '/api/session', { headers: { Connection: 'keep-alive' } });
     check(kept.headers['keep-alive'] === 'timeout=130',
       `the server keeps an idle connection open longer than Caddy does (2 minutes), so Caddy never sends a request down one the server is closing (${kept.headers['keep-alive']})`);
@@ -621,6 +626,27 @@ async function apiChecks() {
     const tr = await trickled;
     check(tr.status === 401 && tr.answeredAfter !== null && tr.answeredAfter < 2000 && tr.closedAfter !== null && tr.closedAfter < 12500,
       `an upload without a session, sent slowly, is refused at once, and the server lets go of it within seconds instead of reading it for minutes (answered after ${tr.answeredAfter} ms, closed after ${tr.closedAfter} ms)`);
+    const trg = await trickledGet;
+    check(trg.status === 200 && trg.answeredAfter !== null && trg.answeredAfter < 2000 && trg.closedAfter !== null && trg.closedAfter < 12500,
+      `a GET sent with a body that trickles in is answered at once, and the server lets go of it within seconds (answered after ${trg.answeredAfter} ms, closed after ${trg.closedAfter} ms)`);
+
+    // A write whose body is still arriving when its session ends (sealed, or every session signed out by a new word)
+    // must not land: the session is checked again once the body is in
+    const lateLogin = await login({ Origin: ORIGIN });
+    const lateBody = JSON.stringify({ title: 'Written after the seal ' + crypto.randomBytes(4).toString('hex') });
+    const lateSock = net.connect(s.port, '127.0.0.1');
+    let lateReply = '';
+    lateSock.on('data', (d) => { lateReply += d; });
+    lateSock.on('error', () => {});
+    lateSock.write(`POST /api/records HTTP/1.1\r\nHost: 127.0.0.1:${s.port}\r\nOrigin: ${ORIGIN}\r\nCookie: ${cookieOf(lateLogin)}\r\nX-CSRF-Token: ${lateLogin.json.csrf}\r\n` +
+      `Content-Type: application/json\r\nContent-Length: ${Buffer.byteLength(lateBody)}\r\n\r\n` + lateBody.slice(0, 5));
+    await new Promise((r) => setTimeout(r, 300));
+    const lateOut = await call('POST', '/api/logout', { headers: { Cookie: cookieOf(lateLogin), Origin: ORIGIN, 'X-CSRF-Token': lateLogin.json.csrf } });
+    lateSock.write(lateBody.slice(5));
+    for (let i = 0; i < 40 && !lateReply; i++) await new Promise((r) => setTimeout(r, 50));
+    lateSock.destroy();
+    check(lateOut.status === 200 && /^HTTP\/1\.1 401/.test(lateReply) && !(await call('GET', '/api/archive')).text.includes(JSON.parse(lateBody).title),
+      'a write whose body was still arriving when its session was sealed is refused, and nothing of it is kept');
 
     // changing the word signs every other session out
     const other = cookieOf(await login({ Origin: ORIGIN }));
@@ -665,10 +691,23 @@ async function apiChecks() {
     const v6Other = await call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': '2001:db8:5:7::1' }, body: { password: NEW_WORD } });
     check(v6Tries.slice(0, 3).every((r) => r.status === 401) && v6Tries[3].status === 429 && v6Other.status === 200,
       'IPv6 addresses are throttled by their /64: a new address in it still waits, and another /64 does not');
+    // A try refused because too many words wait to be checked (503) is no miss: its word was never checked. Otherwise
+    // whoever floods the logins would earn the keeper's own address a wait.
+    const flood = Array.from({ length: 8 }, (_, i) => call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': `198.18.0.${i + 1}` }, body: { password: 'a flood ' + i } }));
+    await new Promise((r) => setTimeout(r, 30));
+    const busyTries = await Promise.all([1, 2, 3].map((n) => call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': '203.0.113.30' }, body: { password: 'busy ' + n } })));
+    await Promise.all(flood);
+    const afterBusy = await call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': '203.0.113.30' }, body: { password: 'a guess once it is quiet' } });
+    check(busyTries.every((r) => r.status === 503 && r.headers['retry-after']) && afterBusy.status === 401 && !afterBusy.headers['retry-after'],
+      `a login refused while the server is busy is no miss: the address's next wrong word is its first (${busyTries.map((r) => r.status).join(', ')}, then ${afterBusy.status})`);
     // more than 50 misses in ten minutes, from anywhere, pause every login: but not for the keeper's own browsers,
-    // so that nobody can keep the keeper out by guessing from many addresses
-    const many = await Promise.all(Array.from({ length: 60 }, (_, i) =>
-      call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': `192.0.2.${i + 1}` }, body: { password: 'a guess from somewhere' } })));
+    // so that nobody can keep the keeper out by guessing from many addresses. They are sent a few at a time, as many
+    // as are checked at once, so each is checked and counts.
+    const many = [];
+    for (let i = 0; i < 64 && !many.some((r) => r.status === 429); i += 4) {
+      many.push(...await Promise.all([1, 2, 3, 4].map((k) =>
+        call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': `192.0.2.${i + k}` }, body: { password: 'a guess from somewhere' } }))));
+    }
     const fromAnywhere = await login({ Origin: ORIGIN }, { password: NEW_WORD });
     const asKeeper = (device) => call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': fresh(), Cookie: device }, body: { password: NEW_WORD } });
     const keeperIn = await asKeeper(deviceOf(changed)), forged = await asKeeper(`__Host-ca_device=${'A'.repeat(22)}.${'B'.repeat(43)}`), before = await asKeeper(deviceOf(ok));
@@ -837,6 +876,7 @@ async function browserChecks() {
     await page.goto(s.url);
     check(await page.waitForSelector('.core.is-3d', { timeout: 30000 }).then(() => true, () => false), '3D model replaces the cutout under the CSP');
     check(elsewhere.length === 0, `three.js, the model and the fonts come from the site itself: nothing is fetched from anywhere else${elsewhere.length ? ': ' + elsewhere.join(' ') : ''}`);
+    check(await page.evaluate(() => window.crossOriginIsolated === true), 'the page is isolated from every other site (COOP and COEP), and still loads everything it needs');
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(OUT, 'landing.png') });
 
@@ -1042,6 +1082,47 @@ async function browserChecks() {
     check(await page.waitForFunction((t) => !document.getElementById('view-encounter').hidden && document.getElementById('enc-title').textContent === t, onlyMe, { timeout: 15000 })
       .then(() => true, () => false) && (await page.evaluate(() => location.hash)) === onlyHash, "the keeper's address of an encounter only for the keeper opens it after a reload");
     await page.click('.tab[data-book="knowledge"]');
+
+    // The tab seals while a record is being sent, after the server took it: its answer, the keeper's archive, arrives
+    // once the tab is sealed and must bring nothing of the encounters only for the keeper back. Nor may anything
+    // private stay in the page out of sight: the private section of an encounter looked at before, or a record's link
+    // to the encounter only for the keeper, while the tab is elsewhere as it seals, or the encounters the record's
+    // form offered, once that form is left.
+    await page.click('#records .entry:has-text("Kept to himself")');
+    const sawLink = await page.waitForFunction((t) => (document.querySelector('#det-source .link-to') || {}).textContent === t, onlyMe, { timeout: 10000 })
+      .then(() => true, () => false);
+    await page.click('.tab[data-book="encounters"]');
+    await page.click('#encounters .entry:has-text("An encounter with a druid")');
+    const sawPrivate = await page.waitForSelector('#enc-private:not([hidden])', { timeout: 10000 }).then(() => true, () => false);
+    await page.click('.tab[data-book="knowledge"]');
+    await page.click('#btn-inscribe');
+    await page.fill('#f-title', 'Answered after the seal');
+    const offered = await page.$$eval('#f-encounter option', (o, t) => o.some((x) => x.textContent.includes(t)), onlyMe);
+    const keeperArchive = await page.evaluate(async () => {
+      const s = await (await fetch('api/session')).json();
+      return (await (await fetch('api/private', { headers: { 'X-CSRF-Token': s.csrf } })).json()).archive;
+    });
+    let answer;
+    const answered = new Promise((r) => { answer = r; });
+    await page.route('**/api/records', async (route) => { await answered; await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ archive: keeperArchive, id: 'r-none' }) }); });
+    await page.click('#f-submit');
+    await page.evaluate(async () => { // sealed from elsewhere; the tab notices as soon as it is looked at
+      const s = await (await fetch('api/session')).json();
+      await fetch('api/logout', { method: 'POST', headers: { 'X-CSRF-Token': s.csrf } });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    const sealedFirst = await page.waitForSelector('#clasp:not(.is-open)', { timeout: 10000 }).then(() => true, () => false);
+    answer();
+    const lateDone = await page.waitForSelector('#book[data-view="overview"]', { timeout: 10000 }).then(() => true, () => false);
+    await page.unroute('**/api/records');
+    const lateHtml = await page.content();
+    check(sawLink && sawPrivate && offered && sealedFirst && lateDone && !lateHtml.includes(onlyMe) && !lateHtml.includes(secret) &&
+      await page.evaluate((t) => ![...document.querySelectorAll('input, textarea, select, option')].some((x) => String(x.value).includes(t) || x.textContent.includes(t)), onlyMe),
+      'an answer that arrives after the tab has sealed brings nothing private back, and nothing private stays in the page out of sight');
+    if (await page.$('#seal[hidden]')) await page.click('#clasp');
+    await page.fill('#seal-word', WORD);
+    await page.click('#seal-go');
+    await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 15000 }).catch(() => {});
 
     // the About page
     await page.click('.tab[data-book="about"]');

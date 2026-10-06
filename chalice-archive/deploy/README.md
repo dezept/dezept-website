@@ -170,12 +170,14 @@ Then open the site:
   - Checked only on the server, one check at a time.
   - From the third wrong try from one address, each miss imposes a wait that doubles (2 s, 4 s, 8 s …), up to an hour. An IPv6 address counts with the rest of its /64, which one client usually holds whole.
   - Each try counts the moment it is made, so a burst of guesses sent all at once gets no more tries than guesses sent one after another.
+  - A try refused only because the server is busy checking other words is not counted: its word was never checked, so flooding the logins cannot earn your address a wait.
   - Over 50 failures in ten minutes from anywhere pauses all logins for a while, except from a browser that has spoken the right word before: it carries a signed device cookie, which a new word cancels. So guessing from many addresses at once gains nothing, and cannot keep you out either.
 - **The session**:
   - A random 256-bit token in a `__Host-` cookie: HttpOnly, Secure, SameSite=Strict.
   - Page scripts can't read it, and other sites can't make the browser send it.
   - The server keeps only its SHA-256.
   - Sessions end after 12 hours (`SESSION_HOURS`), on "Seal it again", or when the word changes.
+  - A write still on its way when its session ends (a large upload, say) is refused once it has arrived, so changing the word really does stop every other session at once.
   - Once a session has ended, an open tab lets go of the private sections within a minute, or as soon as it is looked at; one sealed in another tab of the same browser, at once.
 - **Writes**:
   - Each needs the session, a CSRF token in a header, a JSON body, and an `Origin` equal to `PUBLIC_ORIGIN`.
@@ -186,8 +188,9 @@ Then open the site:
 - **The page**:
   - The CSP allows only its own inline script and style, by hash, and three.js and the fonts from the site itself. Nothing comes from another host: no CDN can run code in the page, so none could reach the keeper's session or the private sections, and no font host learns who visits.
   - It also requires Trusted Types: browsers that support them (Chrome and Edge among them) refuse any attempt to write HTML into the page or turn text into script, so even a mistake in the page's code could not become cross-site scripting.
+  - It is isolated from every other site (COOP and COEP): it runs in a process of its own, even on browsers that do not otherwise keep sites apart, so no other site's page can read its memory.
   - Also sent: HSTS, `nosniff`, no framing, no referrer, and a Permissions-Policy that switches off the camera, microphone, location and other features the page never uses.
-- **Slow requests**: a JSON body has 60 seconds to arrive, so nobody can hold connections open by sending a login a byte at a time. A request refused before its body has arrived, such as an upload without a session, is answered at once and let go 10 seconds later. A download stopped half way closes its file at once.
+- **Slow requests**: a JSON body has 60 seconds to arrive, so nobody can hold connections open by sending a login a byte at a time. A request refused before its body has arrived, such as an upload without a session, is answered at once and let go 10 seconds later; so is a body sent with a GET. A download stopped half way closes its file at once.
 - **The machine**:
   - Node runs as an unprivileged user.
   - It can write only `/var/lib/chalice-archive` and talk only to loopback, where nothing else listens that could be told what to do: Caddy's admin API is switched off.
