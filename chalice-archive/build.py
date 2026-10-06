@@ -9,8 +9,9 @@ Writes dist/:
                              named by its SHA-256 so browsers and Cloudflare can cache it for good
   dist/preview.html          the preview published as the claude.ai Artifact (git-ignored). The Artifact viewer wraps
                              the page in its own <html>/<head> and allows no network requests, so this build is a
-                             page fragment with src/seed.json as its records, the model embedded as base64 and
-                             src/preview.js standing in for the server.
+                             page fragment with src/seed.json as its records, plus the example About page and plates
+                             from src/preview-examples.json (their images in #ca-files as data: URIs), the model
+                             embedded as base64 and src/preview.js standing in for the server.
 
 Placeholders in src/page.html:
   __FRONT__      front cutout (assets/front.webp) as a data URI, shown until the 3D model has drawn
@@ -34,6 +35,42 @@ def script_json(obj) -> str:
     return s
 
 
+def jpeg_size(b: bytes) -> tuple[int, int]:
+    """Width and height from a JPEG's frame header."""
+    i = 2
+    while i + 9 < len(b):
+        assert b[i] == 0xFF, "not a JPEG"
+        m = b[i + 1]
+        if m == 0xFF:
+            i += 1
+        elif m == 0x01 or 0xD0 <= m <= 0xD8:
+            i += 2
+        elif 0xC0 <= m <= 0xCF and m not in (0xC4, 0xC8, 0xCC):
+            return int.from_bytes(b[i + 7:i + 9], "big"), int.from_bytes(b[i + 5:i + 7], "big")
+        else:
+            i += 2 + int.from_bytes(b[i + 2:i + 4], "big")
+    raise ValueError("no frame header")
+
+
+def preview_archive() -> tuple[dict, dict]:
+    """src/seed.json with the preview's examples added, and the examples' images by name, as data: URIs."""
+    archive = json.loads((ROOT / "src/seed.json").read_text(encoding="utf-8"))
+    examples = json.loads((ROOT / "src/preview-examples.json").read_text(encoding="utf-8"))
+    files, art = {}, []
+    for n, ex in enumerate(examples["art"]):
+        versions = []
+        for v in ex["versions"]:
+            image = (ROOT / v["image"]).read_bytes()
+            name = hashlib.sha256(image).hexdigest()[:32] + ".jpg"  # named the way the server names uploads
+            width, height = jpeg_size(image)
+            files[name] = "data:image/jpeg;base64," + base64.b64encode(image).decode()
+            versions.append({"id": v["id"], "file": name, "thumb": name, "width": width, "height": height, "label": v["label"], "mature": v["mature"]})
+        art.append({**ex, "versions": versions, "added": n, "example": True})
+    archive["art"] = art
+    archive["about"] = examples["about"]
+    return archive, files
+
+
 def cut(text: str, part: str) -> str:
     assert text.count(part) == 1, f"expected exactly one {part[:60]!r}"
     return text.replace(part, "")
@@ -52,7 +89,8 @@ assert page.count("__ARCHIVE__") == 1, "src/page.html must contain __ARCHIVE__ e
 # the preview: a fragment for the Artifact skeleton, with the model inline and the server's stand-in before the app
 shim = (ROOT / "src/preview.js").read_text(encoding="utf-8")
 assert "</script" not in shim.lower()
-preview = page.replace("__ARCHIVE__", script_json(json.loads((ROOT / "src/seed.json").read_text(encoding="utf-8"))))
+archive, files = preview_archive()
+preview = page.replace("__ARCHIVE__", script_json(archive))
 preview = cut(preview, '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
                        '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n')
 preview = cut(preview, f'<link rel="preload" href="{model_name}" as="fetch" crossorigin>\n')
@@ -60,6 +98,7 @@ preview = cut(preview, "</head>\n<body>\n")
 preview = cut(preview, "</body>\n</html>\n")
 preview = preview.replace('<script id="ca-app">',
                           '<script type="application/octet-stream" id="ca-model">' + base64.b64encode(model).decode() + "</script>\n"
+                          '<script type="application/json" id="ca-files">' + script_json(files) + "</script>\n"
                           '<script id="ca-preview">\n' + shim + "</script>\n"
                           '<script id="ca-app">', 1)
 assert preview.startswith("<title>")

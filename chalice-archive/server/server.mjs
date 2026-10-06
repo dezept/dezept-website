@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-/* Chalice Archive server: serves the page and the model, keeps the records, and lets the keeper write after
-   logging in with the keeper's word. Node 20 or later; no dependencies beyond Node's own modules.
+/* Chalice Archive server: serves the page, the model and the art, keeps the records, the About page and the
+   plates, and lets the keeper write after logging in with the keeper's word. Node 20 or later; no dependencies
+   beyond Node's own modules.
 
      node server/server.mjs                 serve the archive
      node server/server.mjs set-password    set or replace the keeper's word (asks twice; or two lines on stdin)
 
    Environment:
      PORT=8080, HOST=127.0.0.1             where to listen. Keep it on loopback, behind Caddy.
-     DATA_DIR=./server/data                records (archive.json), the password hash (auth.json), backups/
+     DATA_DIR=./server/data                records (archive.json), the password hash (auth.json), backups/, art/
      SITE_DIR=./dist                       the built page and model (python3 build.py)
      PUBLIC_ORIGIN=https://archive.example.com
                                            the address visitors use. Logins and writes must come from it.
@@ -20,12 +21,14 @@
        so the web never offers a "choose a password" form an attacker could reach first.
      - A login gets a random 256-bit session token in an HttpOnly, SameSite=Strict, Secure cookie (__Host- prefix).
        The server keeps only the token's SHA-256. Changing the word signs every session out.
-     - Writes need that session, its CSRF token in a header, a JSON body and an Origin equal to PUBLIC_ORIGIN.
+     - Writes need that session, its CSRF token in a header, a JSON body (or, for art, a PNG, JPEG or WebP image
+       whose bytes match its type) and an Origin equal to PUBLIC_ORIGIN.
      - Failed logins are throttled per client IP (rising waits) and overall.
      - Every field is validated and capped here; the page renders all of it as text.
      - Every response carries a strict Content-Security-Policy built from hashes of the page's own inline
        script and style, so no other inline code can run.
-     - Only two files are served: the page and the model. There is no static directory to wander through.
+     - Only the page, the model and the art the archive names are served, art only under its content hash.
+       There is no static directory to wander through.
 */
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -52,12 +55,23 @@ const CONFIG = {
 
 const SCRYPT = { N: 2 ** 17, r: 8, p: 1, keylen: 64, maxmem: 256 * 1024 * 1024 };
 const WORD = { min: 12, max: 1024 };
-const LIMIT = { body: 64 * 1024, records: 5000, title: 120, domain: 60, note: 4000, source: 160, sessions: 50 };
+const LIMIT = {
+  body: 64 * 1024, aboutBody: 256 * 1024, upload: 8 * 1024 * 1024, records: 5000, sessions: 50,
+  title: 120, domain: 60, note: 4000, source: 160,
+  art: 500, versions: 12, files: 2000, side: 10000, artist: 80, link: 300, caption: 1000, label: 60,
+  facts: 16, factLabel: 40, factValue: 160, sections: 12, heading: 80, section: 6000,
+};
 const STATUSES = ["remembered", "superseded", "relearned", "fragment", "sought"];
+// Art is stored as uploaded, under the first 32 hex digits of its SHA-256, so its name changes with its content
+const IMAGE_TYPES = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
+const ART_TYPES = { webp: "image/webp", jpg: "image/jpeg", png: "image/png" };
+const ART_FILE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
+const ART_GRACE_MS = 24 * 3600e3; // an upload no plate uses is kept this long before the sweep removes it
 const FILES = {
   archive: path.join(CONFIG.dataDir, "archive.json"),
   auth: path.join(CONFIG.dataDir, "auth.json"),
   backups: path.join(CONFIG.dataDir, "backups"),
+  art: path.join(CONFIG.dataDir, "art"),
   seed: path.join(ROOT, "src", "seed.json"),
 };
 
@@ -69,10 +83,11 @@ class HttpError extends Error {
 function ensureDataDir() {
   fs.mkdirSync(CONFIG.dataDir, { recursive: true, mode: 0o700 });
   fs.mkdirSync(FILES.backups, { recursive: true, mode: 0o700 });
+  fs.mkdirSync(FILES.art, { recursive: true, mode: 0o700 });
 }
 
 // Write to a temporary file, flush it to disk, then rename over the target: a crash never leaves half a file.
-function writeAtomic(file, text) {
+function writeAtomic(file, text) { // text: a string or a Buffer
   const tmp = `${file}.${crypto.randomBytes(6).toString("hex")}.tmp`;
   const fd = fs.openSync(tmp, "w", 0o600);
   try { fs.writeSync(fd, text); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
@@ -151,14 +166,129 @@ function cleanRecord(input, prev) {
   };
 }
 
+// ---------- the art ----------
+// Width and height straight from the file's header, and which of the three types it really is
+function imageInfo(buf) {
+  if (buf.length >= 24 && buf.readUInt32BE(0) === 0x89504e47 && buf.readUInt32BE(4) === 0x0d0a1a0a && buf.toString("latin1", 12, 16) === "IHDR") {
+    return { ext: "png", width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+  }
+  if (buf.length >= 30 && buf.toString("latin1", 0, 4) === "RIFF" && buf.toString("latin1", 8, 12) === "WEBP") {
+    const chunk = buf.toString("latin1", 12, 16);
+    if (chunk === "VP8 " && buf[23] === 0x9d && buf[24] === 0x01 && buf[25] === 0x2a) return { ext: "webp", width: buf.readUInt16LE(26) & 0x3fff, height: buf.readUInt16LE(28) & 0x3fff };
+    if (chunk === "VP8L" && buf[20] === 0x2f) { const b = buf.readUInt32LE(21); return { ext: "webp", width: (b & 0x3fff) + 1, height: ((b >>> 14) & 0x3fff) + 1 }; }
+    if (chunk === "VP8X") return { ext: "webp", width: buf.readUIntLE(24, 3) + 1, height: buf.readUIntLE(27, 3) + 1 };
+    return null;
+  }
+  if (buf.length >= 4 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    for (let i = 2; i + 9 < buf.length;) { // walk the segments to the frame header
+      if (buf[i] !== 0xff) return null;
+      const m = buf[i + 1];
+      if (m === 0xff) { i += 1; continue; }
+      if (m === 0x01 || (m >= 0xd0 && m <= 0xd8)) { i += 2; continue; }
+      if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { ext: "jpg", width: buf.readUInt16BE(i + 7), height: buf.readUInt16BE(i + 5) };
+      i += 2 + buf.readUInt16BE(i + 2);
+    }
+  }
+  return null;
+}
+
+// An uploaded file a plate may use: a valid name, on disk, and an image
+function storedImage(name) {
+  if (typeof name !== "string" || !ART_FILE.test(name)) throw new HttpError(400, "Upload the image first.");
+  let info = null;
+  try { info = imageInfo(fs.readFileSync(path.join(FILES.art, name))); } catch {}
+  if (!info) throw new HttpError(400, "That image is gone. Upload it again.");
+  return info;
+}
+
+// Only http(s) addresses, so a link can never run script; "artstation.com/x" becomes "https://artstation.com/x"
+function cleanLink(v) {
+  const s = str(v, LIMIT.link);
+  if (!s) return "";
+  try {
+    const u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(s) ? s : "https://" + s);
+    return (u.protocol === "https:" || u.protocol === "http:") && u.hostname.includes(".") && u.href.length <= LIMIT.link ? u.href : "";
+  } catch { return ""; }
+}
+
+// One image of a plate: its files and size come from `base`; its label and mature flag from the request.
+// A mature image stays hidden behind the page's age check.
+const side = (n) => Math.min(LIMIT.side, Math.max(1, Math.round(Number(n)) || 1));
+function versionOf(v, base) {
+  return {
+    id: base.id || "v" + crypto.randomBytes(6).toString("base64url"),
+    file: base.file, thumb: base.thumb, width: side(base.width), height: side(base.height),
+    label: str(v.label, LIMIT.label), mature: v.mature === true,
+  };
+}
+
+// A plate's images as sent, in their new order; the first is the main image. One that names an image of the plate
+// keeps that image's files unless it brings new ones; any other must name uploaded files.
+function cleanVersions(input, prev) {
+  const old = new Map((prev || []).map((v) => [v.id, v]));
+  const used = new Set();
+  const out = (Array.isArray(input) ? input : []).filter((v) => v && typeof v === "object").slice(0, LIMIT.versions).map((v) => {
+    const was = typeof v.id === "string" && !used.has(v.id) ? old.get(v.id) : undefined;
+    if (was) used.add(was.id);
+    if (was && v.file === undefined) return versionOf(v, was);
+    const info = storedImage(v.file);
+    storedImage(v.thumb);
+    return versionOf(v, { id: was && was.id, file: v.file, thumb: v.thumb, width: info.width, height: info.height });
+  });
+  if (!out.length) throw new HttpError(400, "A plate needs an image.");
+  return out;
+}
+
+// A plate's images as stored. A plate saved before plates had several images kept its one image on itself.
+function storedVersions(a) {
+  return (Array.isArray(a.versions) ? a.versions : [{ ...a, id: undefined, label: "", mature: false }]).filter((v) => v && ART_FILE.test(v.file) && ART_FILE.test(v.thumb)).slice(0, LIMIT.versions)
+    .map((v) => versionOf(v, { ...v, id: validId(v.id) ? v.id : "v" + v.file.slice(0, 12) }));
+}
+
+// A plate. On a write (check) its images must have been uploaded, and their sizes are read from the files.
+function cleanArt(input, prev, check) {
+  if (!input || typeof input !== "object") throw new HttpError(400, "The plate is malformed.");
+  const versions = !check ? storedVersions(input) : input.versions === undefined && prev ? prev.versions : cleanVersions(input.versions, prev && prev.versions);
+  return {
+    id: prev ? prev.id : "a" + crypto.randomBytes(9).toString("base64url"),
+    versions,
+    title: str(input.title, LIMIT.title),
+    artist: str(input.artist, LIMIT.artist),
+    link: cleanLink(input.link),
+    date: validDate(input.date) ? input.date : today(),
+    note: str(input.note, LIMIT.caption),
+    added: prev ? prev.added : Date.now(),
+    example: false,
+  };
+}
+
+// The About page: particulars (label and value) and sections (heading and text), plus a plate's main image as its portrait
+function cleanAbout(input, art) {
+  const a = input && typeof input === "object" ? input : {};
+  const list = (v) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === "object");
+  return {
+    portrait: typeof a.portrait === "string" && art.some((x) => x.id === a.portrait && !x.versions[0].mature) ? a.portrait : "", // never a mature image
+    facts: list(a.facts).map((f) => ({ label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }))
+      .filter((f) => f.label || f.value).slice(0, LIMIT.facts),
+    sections: list(a.sections).map((x) => ({ heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }))
+      .filter((x) => x.heading || x.body).slice(0, LIMIT.sections),
+  };
+}
+
+function cleanProfile(p, prev = {}) {
+  return {
+    name: str(p.name, 60) || "Unnamed Dracthyr", epithet: str(p.epithet, 280),
+    construct: str(p.construct ?? prev.construct, 60), constructNote: str(p.constructNote ?? prev.constructNote, 400),
+  };
+}
+
 function cleanArchive(raw) {
   const p = (raw && raw.profile) || {};
   const records = (Array.isArray(raw && raw.records) ? raw.records : []).filter((r) => r && validId(r.id) && str(r.title, LIMIT.title)).slice(0, LIMIT.records)
     .map((r) => ({ ...cleanRecord(r, { id: r.id, added: Number(r.added) || 0 }), example: Boolean(r.example) }));
-  return {
-    profile: { name: str(p.name, 60) || "Unnamed Dracthyr", epithet: str(p.epithet, 280), construct: str(p.construct, 60), constructNote: str(p.constructNote, 400) },
-    records,
-  };
+  const art = (Array.isArray(raw && raw.art) ? raw.art : []).filter((a) => a && validId(a.id)).slice(0, LIMIT.art)
+    .map((a) => ({ ...cleanArt(a, { id: a.id, added: Number(a.added) || 0 }, false), example: Boolean(a.example) })).filter((a) => a.versions.length);
+  return { profile: cleanProfile(p), about: cleanAbout(raw && raw.about, art), art, records };
 }
 
 let archive = null;
@@ -178,6 +308,31 @@ function commit(next) {
   for (const f of old.slice(0, Math.max(0, old.length - 50))) fs.unlinkSync(path.join(FILES.backups, f));
   writeAtomic(FILES.archive, JSON.stringify(next, null, 2) + "\n");
   archive = next;
+  artFiles = filesOf(next);
+}
+
+// Art files are served only while a plate uses them. The sweep removes a file once neither the archive nor any
+// of its backups uses it and it has been left alone for a day, so restoring a backup always finds its images.
+let artFiles = new Set();
+function filesOf(a) {
+  const out = new Set();
+  for (const x of (a && Array.isArray(a.art) ? a.art : [])) {
+    for (const v of x && Array.isArray(x.versions) ? x.versions : [x]) if (v) { out.add(v.file); out.add(v.thumb); }
+  }
+  return out;
+}
+function sweepArt() {
+  const keep = filesOf(archive);
+  for (const f of fs.readdirSync(FILES.backups)) {
+    if (!/^archive-.*\.json$/.test(f)) continue;
+    try { for (const x of filesOf(JSON.parse(fs.readFileSync(path.join(FILES.backups, f), "utf8")))) keep.add(x); } catch {}
+  }
+  const cutoff = Date.now() - ART_GRACE_MS;
+  for (const f of fs.readdirSync(FILES.art)) {
+    if (keep.has(f)) continue;
+    const file = path.join(FILES.art, f);
+    try { if (fs.statSync(file).mtimeMs < cutoff) fs.unlinkSync(file); } catch {}
+  }
 }
 
 // ---------- sessions ----------
@@ -315,23 +470,29 @@ function sendJson(req, res, status, body, headers = {}) {
   res.end(req.method === "HEAD" ? undefined : text);
 }
 
-function readJson(req) {
+function readBody(req, limit, tooLarge = "That is too large.") {
   return new Promise((resolve, reject) => {
-    if (!/^application\/json\b/i.test(String(req.headers["content-type"] || ""))) return reject(new HttpError(415, "Send JSON."));
     const declared = Number(req.headers["content-length"] || 0);
-    if (declared > LIMIT.body) return reject(new HttpError(413, "That is too large."));
+    if (declared > limit) return reject(new HttpError(413, tooLarge));
     const chunks = [];
     let size = 0;
     req.on("data", (c) => {
       size += c.length;
-      if (size > LIMIT.body) { reject(new HttpError(413, "That is too large.")); req.destroy(); return; }
+      if (size > limit) { reject(new HttpError(413, tooLarge)); req.destroy(); return; }
       chunks.push(c);
     });
-    req.on("end", () => {
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}")); } catch { reject(new HttpError(400, "The request is not valid JSON.")); }
-    });
+    req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
+}
+
+async function readJson(req, limit = LIMIT.body) {
+  if (!/^application\/json\b/i.test(String(req.headers["content-type"] || ""))) throw new HttpError(415, "Send JSON.");
+  const body = await readBody(req, limit);
+  let value;
+  try { value = JSON.parse(body.toString("utf8") || "{}"); } catch { throw new HttpError(400, "The request is not valid JSON."); }
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new HttpError(400, "The request is malformed.");
+  return value;
 }
 
 // Writes must come from the archive's own address: the browser's Origin header, which pages cannot forge.
@@ -382,6 +543,46 @@ async function changeWord(req, res, session) {
   sendJson(req, res, 200, { owner: true, csrf: fresh.csrf }, { "Set-Cookie": sessionCookie(fresh.token, CONFIG.sessionMs) });
 }
 
+// An image for a plate: the raw bytes, sent with their own type. The page scales and re-encodes images before
+// sending them (which also drops their metadata); here the type, the size and the dimensions are checked.
+async function upload(req, res) {
+  const ext = IMAGE_TYPES[String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase()];
+  if (!ext) throw new HttpError(415, "Send a PNG, JPEG or WebP image.");
+  const body = await readBody(req, LIMIT.upload, `That image is too large. The limit is ${LIMIT.upload / 1024 / 1024} MB.`);
+  const info = imageInfo(body);
+  if (!info || info.ext !== ext) throw new HttpError(415, "That file is not the image it claims to be.");
+  if (!(info.width >= 1 && info.height >= 1 && info.width <= LIMIT.side && info.height <= LIMIT.side)) {
+    throw new HttpError(400, `An image can be at most ${LIMIT.side} pixels on a side.`);
+  }
+  const name = crypto.createHash("sha256").update(body).digest("hex").slice(0, 32) + "." + ext;
+  const file = path.join(FILES.art, name);
+  if (fs.existsSync(file)) {
+    const now = new Date();
+    fs.utimesSync(file, now, now); // a fresh upload: the sweep leaves it alone for another day
+  } else {
+    if (fs.readdirSync(FILES.art).length >= LIMIT.files) sweepArt();
+    if (fs.readdirSync(FILES.art).length >= LIMIT.files) throw new HttpError(507, "There is no room for more images.");
+    writeAtomic(file, body);
+  }
+  sendJson(req, res, 200, { file: name, width: info.width, height: info.height });
+}
+
+function sendArt(req, res, name) {
+  const file = path.join(FILES.art, name);
+  let st = null;
+  try { st = fs.statSync(file); } catch {}
+  if (!artFiles.has(name) || !st || !st.isFile()) return sendJson(req, res, 404, { error: "Not found." });
+  // Named by content, so browsers keep it for good; Cloudflare's copy expires within a day once a plate is removed
+  res.writeHead(200, { "Content-Type": ART_TYPES[name.split(".")[1]], "Content-Length": st.size, "Cache-Control": "public, max-age=31536000, s-maxage=86400, immutable" });
+  if (req.method === "HEAD") return res.end();
+  return new Promise((resolve) => {
+    const stream = fs.createReadStream(file);
+    stream.on("error", () => { res.destroy(); resolve(); });
+    res.on("close", resolve);
+    stream.pipe(res);
+  });
+}
+
 async function handle(req, res) {
   securityHeaders(res);
   let pathname;
@@ -402,6 +603,8 @@ async function handle(req, res) {
       return sendJson(req, res, 200, { owner: Boolean(s), csrf: s ? s.csrf : "" });
     }
     if (pathname === "/api/archive") return sendJson(req, res, 200, { archive });
+    const art = pathname.match(/^\/art\/([^/]+)$/);
+    if (art && ART_FILE.test(art[1])) return sendArt(req, res, art[1]);
     return sendJson(req, res, 404, { error: "Not found." });
   }
 
@@ -430,6 +633,45 @@ async function handle(req, res) {
     commit({ ...archive, records: archive.records.filter((r) => !r.example) });
     return sendJson(req, res, 200, { archive });
   }
+  if (req.method === "PUT" && pathname === "/api/about") {
+    const body = await readJson(req, LIMIT.aboutBody);
+    commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body, archive.art) });
+    return sendJson(req, res, 200, { archive });
+  }
+  if (req.method === "POST" && pathname === "/api/uploads") return upload(req, res);
+  if (req.method === "POST" && pathname === "/api/art") {
+    if (archive.art.length >= LIMIT.art) throw new HttpError(413, "There is no room for more plates.");
+    const plate = cleanArt(await readJson(req), null, true);
+    commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first; it cannot be the portrait yet
+    return sendJson(req, res, 200, { archive, id: plate.id });
+  }
+  if (req.method === "POST" && pathname === "/api/art/order") {
+    const ids = (await readJson(req)).ids;
+    const byId = new Map(archive.art.map((a) => [a.id, a]));
+    if (!Array.isArray(ids) || ids.length !== byId.size || new Set(ids).size !== ids.length || !ids.every((id) => byId.has(id))) {
+      throw new HttpError(409, "The plates have changed. Reload and try again.");
+    }
+    commit({ ...archive, art: ids.map((id) => byId.get(id)) });
+    return sendJson(req, res, 200, { archive });
+  }
+  const pm = pathname.match(/^\/api\/art\/([^/]+)$/);
+  if (pm && validId(pm[1])) {
+    const prev = archive.art.find((a) => a.id === pm[1]);
+    if (!prev) throw new HttpError(404, "That plate is gone.");
+    if (req.method === "PUT") {
+      const plate = cleanArt(await readJson(req), prev, true);
+      const art = archive.art.map((a) => (a.id === prev.id ? plate : a));
+      commit({ ...archive, art, about: cleanAbout(archive.about, art) }); // a portrait whose main image became mature is cleared
+      sweepArt();
+      return sendJson(req, res, 200, { archive, id: plate.id });
+    }
+    if (req.method === "DELETE") {
+      const art = archive.art.filter((a) => a.id !== prev.id);
+      commit({ ...archive, art, about: cleanAbout(archive.about, art) }); // a removed frontispiece is cleared
+      sweepArt();
+      return sendJson(req, res, 200, { archive });
+    }
+  }
   const m = pathname.match(/^\/api\/records\/([^/]+)$/);
   if (m && validId(m[1])) {
     const prev = archive.records.find((r) => r.id === m[1]);
@@ -450,6 +692,9 @@ async function handle(req, res) {
 function serve() {
   ensureDataDir();
   loadArchive();
+  artFiles = filesOf(archive);
+  sweepArt();
+  setInterval(sweepArt, 6 * 3600e3).unref();
   SITE = loadSite();
   if (!readAuth()) console.warn("No keeper's word yet: nobody can log in until you run `node server/server.mjs set-password`.");
   if (CONFIG.secureCookie && !CONFIG.origin) console.warn("PUBLIC_ORIGIN is not set; writes will be checked against the Host header instead.");
@@ -463,7 +708,7 @@ function serve() {
     });
   });
   server.headersTimeout = 15e3;
-  server.requestTimeout = 20e3;
+  server.requestTimeout = 120e3; // an image upload over a slow connection takes a while
   server.keepAliveTimeout = 5e3;
   server.listen(CONFIG.port, CONFIG.host, () => {
     const { address, port } = server.address();

@@ -26,8 +26,15 @@ https://archive.example.com {
 		}
 	}
 
-	request_body {
-		max_size 128KB
+	# Request bodies: an image for a plate up to 10 MB (the server takes 8 MiB), everything else up to 320 KB
+	# (the server takes 256 KiB for the About page and 64 KiB for the rest).
+	@upload path /api/uploads
+	request_body @upload {
+		max_size 10MB
+	}
+	@other not path /api/uploads
+	request_body @other {
+		max_size 320KB
 	}
 
 	encode zstd gzip

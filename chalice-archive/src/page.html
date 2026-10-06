@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
 <style id="ca-style">
-/* Layout: one dark stage where the construct is the only bright object; scanning its gem opens the archive, an old leather-bound tome of parchment leaves */
+/* Layout: one dark stage where the construct is the only bright object. Scanning its gem projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, an old leather-bound tome of parchment leaves. */
 :root {
   --void: #0a0e1a;
   --void-2: #10172a;
@@ -130,6 +130,34 @@ button, input, textarea { font: inherit; color: inherit; }
 .is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); } /* both follow the model's hover */
 .is-3d .pool { animation: none; opacity: calc(.9 - .45 * var(--lift)); scale: calc(1 - .2 * var(--lift)); }
 
+/* ---------- The hub: three choices the scan projects beneath the construct ---------- */
+.core { transition: translate .9s cubic-bezier(.2, .8, .2, 1); }
+.stage.has-hub .core { translate: 0 -56px; } /* the construct rises to make room */
+.hub { position: absolute; z-index: 2; top: calc(100% + 30px); left: 50%; translate: -50% 0; display: flex; justify-content: center; gap: clamp(8px, 1.8vw, 18px); width: max-content; max-width: calc(100vw - 32px); }
+.hub-opt { position: relative; display: grid; justify-items: center; align-content: center; gap: 7px; box-sizing: border-box; width: clamp(100px, 29vw, 172px); padding: 15px 8px 14px; border: 1px solid rgb(var(--teal-rgb) / .16); border-radius: 2px; cursor: pointer; text-align: center; color: var(--ink);
+  background: radial-gradient(ellipse 90% 80% at 50% 0%, rgb(var(--teal-rgb) / .1), transparent 72%), rgb(var(--shade-rgb) / .45); transition: border-color .3s, box-shadow .3s; -webkit-tap-highlight-color: transparent; }
+.hub-opt::before, .hub-opt::after { content: ""; position: absolute; width: 10px; height: 10px; border: 0 solid var(--teal); opacity: .6; filter: drop-shadow(0 0 4px rgb(var(--teal-rgb) / .6)); transition: width .3s, height .3s, opacity .3s; }
+.hub-opt::before { top: -2px; left: -2px; border-top-width: 2px; border-left-width: 2px; }
+.hub-opt::after { bottom: -2px; right: -2px; border-bottom-width: 2px; border-right-width: 2px; }
+.hub-opt:hover, .hub-opt:focus-visible { outline: none; border-color: rgb(var(--teal-rgb) / .42); box-shadow: 0 0 26px rgb(var(--teal-rgb) / .15), inset 0 0 20px rgb(var(--teal-rgb) / .08); }
+.hub-opt:hover::before, .hub-opt:hover::after, .hub-opt:focus-visible::before, .hub-opt:focus-visible::after { width: 18px; height: 18px; opacity: 1; }
+.hub-glyph { width: 28px; height: 28px; fill: none; stroke: var(--teal); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgb(var(--teal-rgb) / .7)); }
+.hub-label { font-family: var(--font-title); font-size: 15px; font-weight: 700; line-height: 1.3; letter-spacing: .16em; text-indent: .16em; text-transform: uppercase; text-wrap: balance; }
+.hub.show .hub-opt { animation: hub-in .8s cubic-bezier(.2, .8, .2, 1) both; }
+.hub.show .hub-opt:nth-child(2) { animation-delay: .12s; }
+.hub.show .hub-opt:nth-child(3) { animation-delay: .24s; }
+@keyframes hub-in { 0% { opacity: 0; translate: 0 12px; filter: blur(6px) brightness(2.2); } 35% { opacity: .6; } 45% { opacity: .25; } 60% { opacity: 1; filter: blur(0) brightness(1.5); } 100% { opacity: 1; translate: 0 0; filter: none; } }
+@media (max-width: 520px) {
+  .hub-opt { padding: 13px 6px 12px; }
+  .hub-label { font-size: 13px; letter-spacing: .1em; text-indent: .1em; }
+}
+@media (max-height: 560px) and (min-aspect-ratio: 5/4) { /* short landscape screens: the choices stand beside the construct */
+  .stage.has-hub .core { translate: -96px 0; }
+  .hub { top: 50%; left: calc(100% + 24px); translate: 0 -50%; flex-direction: column; }
+  .hub-opt { width: 200px; padding: 10px 12px; grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 12px; text-align: left; }
+  .hub-label { text-indent: 0; }
+}
+
 /* ---------- Scan overlay ---------- */
 .scan { position: fixed; inset: 0; z-index: 50; overflow: hidden; pointer-events: none; }
 .scan::before { content: ""; position: absolute; inset: 0; background: rgb(var(--teal-rgb) / .05); opacity: 0; }
@@ -148,8 +176,15 @@ button, input, textarea { font: inherit; color: inherit; }
 .archive { width: min(1180px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--sepia); overflow: visible; font-family: var(--font-book); }
 .archive::backdrop { background: radial-gradient(ellipse at 50% 45%, rgb(var(--umber-rgb) / .74), rgb(var(--umber-rgb) / .9)); backdrop-filter: blur(2px); }
 .archive :focus-visible { outline-color: var(--rubric); }
-.archive[open] .tome { animation: tome-in .5s cubic-bezier(.2, .8, .2, 1); }
+.archive[open] .tome, .archive[open] .tabs { animation: tome-in .5s cubic-bezier(.2, .8, .2, 1); }
 @keyframes tome-in { from { opacity: 0; transform: translateY(16px) scale(.97); } }
+
+/* the chapters: leather index tabs on the top edge; the open chapter's tab is a parchment leaf */
+.tabs { position: relative; display: flex; gap: 4px; margin-bottom: -7px; padding-left: clamp(26px, 5vw, 70px); }
+.tab { padding: 8px clamp(12px, 2vw, 20px) 14px; border: 1px solid var(--leather-dark); border-bottom: 0; border-radius: 7px 7px 0 0; cursor: pointer; font-family: var(--font-title); font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgb(var(--brass-rgb) / .9);
+  background: var(--hide), linear-gradient(180deg, #4e2817, var(--leather) 70%); box-shadow: inset 0 1px 0 rgb(255 220 160 / .14), 0 -3px 8px rgb(0 0 0 / .35); transition: color .2s, translate .2s; }
+.tab:hover { color: var(--brass-light); translate: 0 -2px; }
+.tab[aria-current="true"] { color: var(--rubric); border-color: var(--parchment-edge); background: var(--grain), linear-gradient(180deg, var(--parchment), var(--parchment-deep)); translate: 0 -4px; }
 
 /* binding: tooled leather with brass corners */
 .tome { position: relative; padding: 16px; border-radius: 10px; background: var(--hide), linear-gradient(160deg, color-mix(in srgb, var(--leather) 82%, #fff 4%), var(--leather) 40%, var(--leather-dark)); box-shadow: 0 0 0 1px var(--leather-dark), inset 0 0 36px rgb(0 0 0 / .55), 0 34px 90px rgb(0 0 0 / .75); }
@@ -162,7 +197,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .ribbon { position: absolute; z-index: 1; top: 0; left: calc(50% + 7px); width: 10px; height: calc(100% + 30px); pointer-events: none; background: linear-gradient(90deg, #4a0805, #7e130b 50%, #5a0a06); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 8px), 0 100%); opacity: .92; }
 
 /* the open book: two parchment leaves either side of the spine, the page edges stacked below */
-.book { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: min(800px, calc(100vh - 80px)); height: min(800px, calc(100dvh - 80px)); border-radius: 3px; background: var(--parchment);
+.book { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: min(780px, calc(100vh - 116px)); height: min(780px, calc(100dvh - 116px)); border-radius: 3px; background: var(--parchment);
   box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .7), 0 3px 0 0 var(--parchment-edge), 0 5px 0 0 var(--parchment), 0 7px 0 0 var(--parchment-deep), 0 8px 0 1px rgb(var(--sepia-rgb) / .6); }
 .book::after { content: ""; position: absolute; z-index: 2; top: 0; bottom: 0; left: 50%; width: 56px; translate: -50% 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .18) 35%, rgb(var(--sepia-rgb) / .42) 50%, rgb(var(--sepia-rgb) / .18) 65%, transparent); }
 .page { position: relative; min-width: 0; overflow: auto; overscroll-behavior: contain; box-sizing: border-box; padding: clamp(26px, 3.4vw, 48px) clamp(22px, 3.6vw, 54px); background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment); scrollbar-width: thin; scrollbar-color: var(--parchment-edge) transparent; font-size: 18px; line-height: 1.5; }
@@ -189,8 +224,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .rubric span { order: 2; font-family: var(--font-book); font-size: 15px; font-weight: 400; font-style: italic; letter-spacing: 0; text-transform: none; color: var(--sepia-faint); }
 .empty { margin: 0; padding: 10px 0; font-style: italic; color: var(--sepia-faint); }
 
-/* left leaf: the owner's tools and the recent accessions */
-.page-l { display: flex; flex-direction: column; gap: 22px; }
+/* left leaf: each chapter's own; the owner's tools sit at its head */
+.leaf { display: flex; flex-direction: column; gap: 22px; }
 .ar-tools { display: flex; flex-wrap: wrap; gap: 10px; }
 .ar-tools:not(:has(.btn:not([hidden]))) { display: none; }
 
@@ -246,6 +281,107 @@ button, input, textarea { font: inherit; color: inherit; }
 .det-facts dd { margin: 0; font-style: italic; color: var(--sepia-soft); }
 .owner-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 
+/* About: a frontispiece portrait facing the particulars and sections */
+#leaf-about { align-items: center; text-align: center; }
+.frontis { display: grid; justify-items: center; gap: 10px; margin: 4px 0 0; }
+.mount { display: block; box-sizing: border-box; padding: 6px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: linear-gradient(160deg, var(--parchment), var(--parchment-deep)); box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 2px 7px rgb(var(--sepia-rgb) / .35); }
+button.mount { cursor: zoom-in; color: inherit; font: inherit; }
+.mount img { display: block; background: var(--void); }
+.mount.is-missing img { visibility: hidden; }
+.mount.is-missing { background: repeating-linear-gradient(45deg, rgb(var(--sepia-rgb) / .08) 0 6px, transparent 6px 12px), var(--parchment-deep); }
+.frontis-open { padding: 14px; }
+.frontis-open img { width: min(270px, 58vw); height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 22%; border-radius: 50%; box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .6), 0 0 0 5px var(--parchment), 0 0 0 6px rgb(var(--sepia-rgb) / .45); }
+.frontis-empty { display: grid; place-items: center; box-sizing: border-box; width: min(230px, 54vw); aspect-ratio: 4 / 5; padding: 24px; border: 1.5px dashed rgb(var(--sepia-rgb) / .35); border-radius: 50%; font-style: italic; color: var(--sepia-faint); }
+.frontis-credit { margin: 0; font-size: 15px; font-style: italic; color: var(--sepia-faint); }
+.ab-name { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 3.2vw, 40px); line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
+.ab-name::after { content: ""; display: block; width: 120px; height: 9px; margin: 12px auto 0; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
+.ab-epithet { margin: -8px 0 0; max-width: 34ch; font-size: 19px; font-style: italic; line-height: 1.45; color: var(--sepia-soft); }
+#leaf-about .ar-tools { justify-content: center; }
+#view-about { display: grid; gap: 32px; }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px 20px; margin: 0; font-size: 18px; line-height: 1.35; }
+.facts dt { font-family: var(--font-book-sc); color: var(--rubric); overflow-wrap: anywhere; }
+.facts dd { margin: 0; font-style: italic; color: var(--sepia-soft); overflow-wrap: anywhere; }
+.ab-sections { display: grid; gap: 30px; }
+.ab-sections:empty { display: none; }
+.ab-body { margin: 0; max-width: 60ch; font-size: 19px; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; color: var(--sepia); }
+.ab-section:first-child .ab-body::first-letter { float: left; margin: .06em .1em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.3em; line-height: .82; color: var(--rubric); }
+
+/* Art: a list of plates facing the plate itself; a click shows it full size */
+.plates { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 20px 14px; margin: 0; padding: 0; list-style: none; }
+.plates .plates-empty { grid-column: 1 / -1; }
+.plate-btn { display: grid; gap: 7px; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
+.plate-btn .mount { padding: 5px; transition: box-shadow .2s; }
+.plate-btn img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 20%; }
+.plate-btn:hover .mount { box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 4px 12px rgb(var(--sepia-rgb) / .45); }
+.plate-btn[aria-current="true"] .mount { outline: 2px solid var(--rubric); outline-offset: 2px; }
+.plate-cap { font-family: var(--font-book-sc); font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; color: var(--sepia-soft); }
+.plate-cap b { font-weight: 400; color: var(--rubric); }
+.plate-btn:hover .plate-cap { color: var(--rubric); }
+.plate-view { display: grid; gap: 14px; }
+.plate { display: grid; justify-items: center; gap: 14px; margin: 0; text-align: center; }
+.plate-no { margin: 0; font-family: var(--font-book-sc); font-size: 17px; letter-spacing: .06em; color: var(--rubric); }
+.plate-open { padding: 9px; }
+.plate-open img { max-width: 100%; max-height: min(54vh, 470px); width: auto; height: auto; }
+.plate figcaption { display: grid; gap: 4px; justify-items: center; }
+.plate-title { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.15; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
+.plate-credit { margin: 0; font-size: 17px; font-style: italic; color: var(--sepia-soft); overflow-wrap: anywhere; }
+.plate-credit a { color: var(--rubric); text-underline-offset: 3px; }
+.plate-note { margin: 8px 0 0; max-width: 46ch; font-size: 18px; line-height: 1.5; white-space: pre-line; text-align: left; overflow-wrap: anywhere; color: var(--sepia); }
+.plate-view .owner-row { justify-content: center; margin-top: 10px; }
+.narrow-only { display: none; }
+
+/* A mature image's cover. Nothing of the image is loaded until the visitor chooses to see it. */
+.spoiler { position: relative; display: grid; place-items: center; align-content: center; gap: 7px; box-sizing: border-box; width: 100%; aspect-ratio: 4 / 5; padding: 10px; overflow: hidden; text-align: center; color: var(--brass-light);
+  background: repeating-linear-gradient(135deg, rgb(255 230 190 / .035) 0 10px, transparent 10px 20px), radial-gradient(ellipse at 50% 40%, #2c1310, #120706 75%); }
+.spoiler-seal { display: grid; place-items: center; width: 2.7em; height: 2.7em; border-radius: 50%; font-family: var(--font-title); font-size: 14px; font-weight: 700; color: var(--wow-gold); text-shadow: 0 1px 1px #000;
+  background: radial-gradient(circle at 40% 32%, #c8301f, var(--wow-red) 55%, var(--wow-red-dark)); box-shadow: 0 0 0 2px var(--brass), 0 0 0 3px var(--leather-dark), 0 3px 8px rgb(0 0 0 / .6); }
+.spoiler-label { font-family: var(--font-title); font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-indent: .14em; text-transform: uppercase; }
+.spoiler-hint { font-size: 16px; font-style: italic; color: rgb(241 212 138 / .75); }
+.spoiler-big { width: calc(min(54vh, 470px) * var(--r, .8)); max-width: 100%; gap: 10px; } /* the image's own shape, at the size the image would have */
+.spoiler-big .spoiler-seal { font-size: 19px; }
+.spoiler-big .spoiler-label { font-size: 15px; }
+.plate-open.is-covered { cursor: pointer; }
+.plate-open.is-covered:hover .spoiler-seal { filter: brightness(1.15); }
+.plate-more { display: block; font-family: var(--font-book); font-size: 14px; font-style: italic; color: var(--sepia-faint); }
+
+/* the plate's other images, beneath the one shown */
+.versions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 10px; }
+.ver-btn { display: grid; justify-items: center; align-content: start; gap: 5px; width: 76px; padding: 0; border: 0; background: none; cursor: pointer; color: inherit; }
+.ver-btn .mount { padding: 3px; }
+.ver-btn img, .ver-btn .spoiler { width: 62px; height: 62px; aspect-ratio: auto; object-fit: cover; object-position: 50% 20%; }
+.ver-btn .spoiler { padding: 0; }
+.ver-btn .spoiler-seal { font-size: 10.5px; }
+.ver-btn .spoiler-label { display: none; }
+.ver-btn[aria-pressed="true"] .mount { outline: 2px solid var(--rubric); outline-offset: 2px; }
+.ver-name { max-width: 100%; font-family: var(--font-book-sc); font-size: 13.5px; line-height: 1.2; overflow-wrap: anywhere; color: var(--sepia-soft); }
+.ver-btn:hover .ver-name, .ver-btn[aria-pressed="true"] .ver-name { color: var(--rubric); }
+
+/* the age check, over the tome or the full-size view */
+.gate { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; box-sizing: border-box; margin: 0; padding: 16px; background: rgb(var(--umber-rgb) / .74); }
+.gate-card { display: grid; gap: 12px; box-sizing: border-box; width: min(360px, 100%); padding: 30px 22px 20px; border: 1px solid rgb(var(--sepia-rgb) / .6); border-radius: 3px; text-align: center; color: var(--sepia);
+  background: var(--grain), var(--parchment); box-shadow: 0 0 0 3px var(--brass), 0 0 0 4px var(--leather-dark), 0 18px 40px rgb(0 0 0 / .55); }
+.gate-card .spoiler-seal { justify-self: center; margin-top: -58px; font-size: 18px; }
+.gate-card .field { text-align: left; }
+.gate-card .input { font-size: 20px; appearance: textfield; -moz-appearance: textfield; }
+.gate-card .input::-webkit-inner-spin-button, .gate-card .input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.gate-card .form-actions { justify-content: center; }
+
+/* the full-size plate, on dark ground over the tome */
+.lightbox { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; box-sizing: border-box; padding: 58px 76px 22px; background: radial-gradient(ellipse at 50% 45%, rgb(14 18 30 / .95), rgb(4 6 11 / .97)); animation: lb-in .25s ease-out; }
+@keyframes lb-in { from { opacity: 0; } }
+.lightbox :focus-visible { outline-color: var(--wow-gold); }
+.lb-figure { display: grid; justify-items: center; gap: 14px; min-width: 0; margin: 0; }
+.lb-frame img { display: block; max-width: calc(100vw - 152px); max-height: calc(100vh - 150px); max-height: calc(100dvh - 150px); width: auto; height: auto; box-shadow: 0 0 0 1px rgb(var(--brass-rgb) / .5), 0 24px 70px rgb(0 0 0 / .8); }
+.lb-cap { font-family: var(--font-title); font-size: 15px; letter-spacing: .04em; text-align: center; color: var(--wow-gold); text-shadow: 0 1px 1px #000; }
+.lb-credit { display: block; margin-top: 2px; font-family: var(--font-book); font-size: 16px; font-style: italic; letter-spacing: 0; color: var(--ink-dim); }
+.lb-btn { position: absolute; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 2px solid var(--brass); border-radius: 50%; cursor: pointer; color: var(--brass-light); background: radial-gradient(circle at 40% 32%, #c8301f, var(--wow-red) 55%, var(--wow-red-dark)); box-shadow: 0 0 0 1px var(--leather-dark), 0 3px 8px rgb(0 0 0 / .6), inset 0 1px 1px rgb(255 220 160 / .45); }
+.lb-btn:hover { color: #fff; filter: brightness(1.15); }
+.lb-prev { left: 16px; }
+.lb-next { right: 16px; }
+.lightbox .btn-close { top: 14px; right: 14px; }
+.lb-cover { padding: 0; border: 0; background: none; cursor: pointer; color: inherit; }
+.lb-cover .spoiler { width: min(calc(100vw - 152px), calc((100vh - 150px) * var(--r, .8))); width: min(calc(100vw - 152px), calc((100dvh - 150px) * var(--r, .8))); box-shadow: 0 0 0 1px rgb(var(--brass-rgb) / .5), 0 24px 70px rgb(0 0 0 / .8); }
+
 /* the game's red-and-gold buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 18px; border: 1px solid #2a0302; border-radius: 4px; cursor: pointer; font-family: var(--font-title); font-size: 13.5px; font-weight: 700; letter-spacing: .04em; color: var(--wow-gold); text-shadow: 0 1px 1px #000, 0 0 2px #000;
   background: linear-gradient(180deg, #b3241a 0%, var(--wow-red) 48%, var(--wow-red-dark) 100%); box-shadow: inset 0 0 0 1px rgb(var(--brass-rgb) / .95), inset 0 2px 0 rgb(255 200 120 / .3), 0 1px 3px rgb(var(--sepia-rgb) / .6); transition: filter .15s; }
@@ -275,6 +411,32 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
 .status-opt:has(input:focus-visible) { outline: 2px solid var(--rubric); outline-offset: 2px; }
 .form-error { margin: 0; font-size: 16px; font-style: italic; color: var(--rubric); }
 .form-actions { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 4px; }
+textarea.input.short { min-height: 90px; }
+select.input { appearance: none; padding-right: 26px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--sepia-soft) 50%), linear-gradient(135deg, var(--sepia-soft) 50%, transparent 50%); background-position: calc(100% - 13px) 55%, calc(100% - 8px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+.input[type="file"] { min-height: 0; padding: 6px 0; border: 0; font-size: 16px; cursor: pointer; }
+.input[type="file"]::file-selector-button { margin-right: 12px; min-height: 32px; padding: 0 14px; border: 1px solid #2a0302; border-radius: 4px; cursor: pointer; font-family: var(--font-title); font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--wow-gold); text-shadow: 0 1px 1px #000; background: linear-gradient(180deg, #b3241a 0%, var(--wow-red) 48%, var(--wow-red-dark) 100%); box-shadow: inset 0 0 0 1px rgb(var(--brass-rgb) / .95); }
+.rows { display: grid; gap: 12px; }
+.row { display: grid; gap: 2px 12px; align-items: end; }
+.row-fact { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; }
+.row-section { grid-template-columns: minmax(0, 1fr) auto; padding-bottom: 8px; border-bottom: 1px dotted rgb(var(--sepia-rgb) / .3); }
+.row-section textarea { grid-column: 1 / -1; min-height: 120px; }
+.row-tools { display: flex; gap: 3px; padding-bottom: 6px; }
+.icon-btn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid rgb(var(--sepia-rgb) / .35); border-radius: 2px; background: rgb(255 248 225 / .35); cursor: pointer; font-family: var(--font-book); font-size: 17px; line-height: 1; color: var(--sepia-soft); }
+.icon-btn:hover { border-color: var(--rubric); color: var(--rubric); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+.back.add { margin-top: 4px; font-style: normal; }
+.row-version { grid-template-columns: 76px minmax(0, 1fr) auto; align-items: start; padding-bottom: 10px; border-bottom: 1px dotted rgb(var(--sepia-rgb) / .3); }
+.ver-preview { display: grid; place-items: center; box-sizing: border-box; width: 76px; aspect-ratio: 1; padding: 4px; }
+.ver-preview:empty { border-style: dashed; background: none; box-shadow: none; }
+.ver-preview img, .ver-preview canvas { display: block; max-width: 100%; max-height: 66px; width: auto; height: auto; }
+.ver-fields { display: grid; gap: 6px; min-width: 0; }
+.ver-fields .input { min-height: 34px; font-size: 17px; }
+.ver-fields .help { font-size: 14px; }
+.ver-fields .help:empty { display: none; }
+.check { display: inline-flex; align-items: center; gap: 9px; justify-self: start; cursor: pointer; font-family: var(--font-book-sc); font-size: 16px; color: var(--sepia-soft); }
+.check input { width: 17px; height: 17px; margin: 0; cursor: pointer; accent-color: var(--rubric); }
+.row-version .row-tools { padding-bottom: 0; }
+.back:disabled { opacity: .45; cursor: default; text-decoration: none; }
 
 /* notices look like the game's tooltips */
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 100; translate: -50% 0; box-sizing: border-box; max-width: calc(100% - 32px); padding: 9px 14px; border: 1px solid #9097a6; border-radius: 5px; background: rgb(6 8 16 / .93); color: var(--wow-gold); font-family: var(--font-title); font-size: 14px; line-height: 1.45; letter-spacing: .02em; text-shadow: 0 1px 1px #000; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .8), 0 6px 20px rgb(0 0 0 / .6); }
@@ -288,18 +450,34 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   .tome::before { inset: 4px; }
   .corner { width: 30px; height: 30px; }
   .ribbon, .book::after { display: none; }
-  .book { grid-template-columns: minmax(0, 1fr); height: auto; max-height: calc(100vh - 56px); max-height: calc(100dvh - 56px); overflow: auto; overscroll-behavior: contain; background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment); }
+  .book { grid-template-columns: minmax(0, 1fr); height: auto; max-height: calc(100vh - 92px); max-height: calc(100dvh - 92px); overflow: auto; overscroll-behavior: contain; background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment); }
   .page { overflow: visible; background: none; box-shadow: none; padding: 26px 20px; }
   .page-r { border-top: 1px solid rgb(var(--sepia-rgb) / .25); }
-  .book:not([data-view="overview"]) .page-l { display: none; } /* a record or form comes first */
-  .book:not([data-view="overview"]) .page-r { border-top: 0; }
+  .book[data-solo] .page-l { display: none; } /* a record, a plate or a form comes first */
+  .book[data-solo] .page-r { border-top: 0; }
+  .book[data-view="plates"] .page-r { display: none; } /* the list of plates alone; a plate opens on its own */
+  .narrow-only { display: block; }
+  .tabs { gap: 3px; padding: 0 30px 0 14px; margin-bottom: -6px; } /* clear of the close button */
+  .tab { padding: 7px clamp(7px, 2.4vw, 12px) 12px; font-size: clamp(10px, 2.9vw, 12px); letter-spacing: .05em; }
+  .row-fact { grid-template-columns: minmax(0, 1fr) auto; }
+  .row-fact [data-k="value"] { grid-column: 1 / -1; grid-row: 2; }
+  .row-version { grid-template-columns: 64px minmax(0, 1fr); }
+  .row-version .ver-preview { width: 64px; }
+  .row-version .row-tools { grid-column: 2; }
+  .lightbox { padding: 56px 10px 80px; }
+  .lb-frame img { max-width: calc(100vw - 20px); max-height: calc(100vh - 200px); max-height: calc(100dvh - 200px); }
+  .lb-btn { top: auto; bottom: 16px; translate: none; }
+  .lb-cover .spoiler { width: min(calc(100vw - 20px), calc((100vh - 200px) * var(--r, .8))); width: min(calc(100vw - 20px), calc((100dvh - 200px) * var(--r, .8))); }
+  .lb-prev { left: calc(50% - 62px); }
+  .lb-next { right: calc(50% - 62px); }
   .btn-close { top: -8px; right: -6px; width: 34px; height: 34px; }
   .clasp { right: -8px; width: 18px; height: 44px; }
   .seal { right: 50%; translate: 50% -50%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool, .nebula i { animation: none !important; }
-  .archive[open] .tome { animation: none; }
+  .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool, .nebula i, .hub-opt, .lightbox { animation: none !important; }
+  .archive[open] .tome, .archive[open] .tabs { animation: none; }
+  .core { transition: none; }
 }
 </style>
 </head>
@@ -319,6 +497,20 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     </button>
     <span class="pool" aria-hidden="true"></span>
+    <nav class="hub" id="hub" aria-label="The archive" hidden>
+      <button class="hub-opt" type="button" data-book="about" aria-haspopup="dialog">
+        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><path d="M2.5 14C6 8.2 9.8 5.5 14 5.5S22 8.2 25.5 14C22 19.8 18.2 22.5 14 22.5S6 19.8 2.5 14z"></path><path d="M14 8.6c-1.5 1.8-1.5 9 0 10.8 1.5-1.8 1.5-9 0-10.8z"></path></svg>
+        <span class="hub-label">About</span>
+      </button>
+      <button class="hub-opt" type="button" data-book="art" aria-haspopup="dialog">
+        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><rect x="4" y="4" width="20" height="20" rx="1"></rect><path d="M4 19.5l6-6.5 5 5.2 3-3 6 5.8"></path><circle cx="18.6" cy="9.4" r="1.9"></circle></svg>
+        <span class="hub-label">Art</span>
+      </button>
+      <button class="hub-opt" type="button" data-book="knowledge" aria-haspopup="dialog">
+        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 8.5C11.2 6.4 7.4 5.6 3 6v15c4.4-.4 8.2.4 11 2.5 2.8-2.1 6.6-2.9 11-2.5V6c-4.4-.4-8.2.4-11 2.5z"></path><path d="M14 8.5v15"></path></svg>
+        <span class="hub-label">Character Knowledge</span>
+      </button>
+    </nav>
   </div>
 </main>
 <div class="scan" id="scan" hidden aria-hidden="true">
@@ -326,7 +518,12 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   <div class="scan-beam"></div>
 </div>
 <dialog class="archive" id="archive" aria-labelledby="ar-title">
-  <div class="tome">
+  <nav class="tabs" id="tabs" aria-label="Chapters">
+    <button class="tab" type="button" data-book="about">About</button>
+    <button class="tab" type="button" data-book="art">Art</button>
+    <button class="tab" type="button" data-book="knowledge">Character Knowledge</button>
+  </nav>
+  <div class="tome" id="tome">
     <i class="corner tl" aria-hidden="true"></i><i class="corner tr" aria-hidden="true"></i><i class="corner bl" aria-hidden="true"></i><i class="corner br" aria-hidden="true"></i>
     <button class="clasp" id="clasp" type="button" aria-label="The keeper's lock" aria-expanded="false" aria-controls="seal"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="5" cy="5" r="3.3" fill="currentColor"></circle><path d="M3.5 7.4 2.4 15.2h5.2L6.5 7.4z" fill="currentColor"></path></svg></button>
     <form class="seal" id="seal" hidden novalidate aria-labelledby="seal-title">
@@ -353,18 +550,43 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       </div>
     </form>
     <button class="btn-close" id="btn-close" type="button" aria-label="Close the archive" autofocus><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
-    <div class="book" id="plate" data-view="overview">
+    <div class="book" id="book" data-book="knowledge" data-view="overview">
       <span class="ribbon" aria-hidden="true"></span>
       <section class="page page-l" id="page-l">
-        <h2 class="sr-only" id="ar-title">The archive of <span id="ar-name">Unnamed Dracthyr</span></h2>
-        <div class="ar-tools">
-          <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
-          <button class="btn" id="btn-clear-examples" type="button" hidden>Remove examples</button>
+        <h2 class="sr-only" id="ar-title"><span id="ar-chapter">Character Knowledge</span>, from the archive of <span id="ar-name">Unnamed Dracthyr</span></h2>
+        <div class="leaf" id="leaf-knowledge">
+          <div class="ar-tools">
+            <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
+            <button class="btn" id="btn-clear-examples" type="button" hidden>Remove examples</button>
+          </div>
+          <section aria-labelledby="recent-title">
+            <h3 class="rubric" id="recent-title">Recent accessions <span id="recent-count"></span></h3>
+            <ol class="recent" id="recent"></ol>
+          </section>
         </div>
-        <section aria-labelledby="recent-title">
-          <h3 class="rubric" id="recent-title">Recent accessions <span id="recent-count"></span></h3>
-          <ol class="recent" id="recent"></ol>
-        </section>
+
+        <div class="leaf" id="leaf-about" hidden>
+          <figure class="frontis">
+            <button class="mount frontis-open" id="frontis-open" type="button" aria-label="View the portrait full size" hidden></button>
+            <div class="frontis-empty" id="frontis-empty">No likeness yet</div>
+            <figcaption class="frontis-credit" id="frontis-credit" hidden></figcaption>
+          </figure>
+          <h3 class="ab-name" id="ab-name"></h3>
+          <p class="ab-epithet" id="ab-epithet"></p>
+          <div class="ar-tools">
+            <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
+          </div>
+        </div>
+
+        <div class="leaf" id="leaf-art" hidden>
+          <div class="ar-tools">
+            <button class="btn" id="btn-add-art" type="button" hidden>Add a plate</button>
+          </div>
+          <section aria-labelledby="plates-title">
+            <h3 class="rubric" id="plates-title">Plates <span id="plates-count"></span></h3>
+            <ol class="plates" id="plates"></ol>
+          </section>
+        </div>
       </section>
 
       <section class="page page-r" id="page-r">
@@ -434,8 +656,139 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
           </form>
         </section>
 
+        <section id="view-about" hidden>
+          <section id="ab-facts-wrap" aria-labelledby="facts-title">
+            <h3 class="rubric" id="facts-title">Particulars</h3>
+            <dl class="facts" id="ab-facts"></dl>
+          </section>
+          <div class="ab-sections" id="ab-sections"></div>
+          <p class="empty" id="ab-empty" hidden></p>
+        </section>
+
+        <section id="view-about-form" hidden>
+          <form class="form" id="about-form" novalidate>
+            <button class="back" id="abf-back" type="button">← Return without amending</button>
+            <h3>Amend this page</h3>
+            <div class="field">
+              <label for="abf-name">Name</label>
+              <input class="input" id="abf-name" name="name" maxlength="60" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="abf-epithet">Epithet</label>
+              <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280" placeholder="A line or two beneath his name"></textarea>
+            </div>
+            <div class="field">
+              <label for="abf-portrait">Portrait</label>
+              <select class="input" id="abf-portrait" name="portrait"></select>
+              <p class="help">One of the plates in the Art chapter, shown above his name.</p>
+            </div>
+            <fieldset class="field">
+              <legend>Particulars</legend>
+              <div class="rows" id="abf-facts"></div>
+              <button class="back add" id="abf-add-fact" type="button">+ Add a particular</button>
+            </fieldset>
+            <fieldset class="field">
+              <legend>Sections</legend>
+              <div class="rows" id="abf-sections"></div>
+              <button class="back add" id="abf-add-section" type="button">+ Add a section</button>
+            </fieldset>
+            <p class="form-error" id="abf-error" role="alert" hidden></p>
+            <div class="form-actions">
+              <button class="btn" id="abf-submit" type="submit">Save the page</button>
+              <button class="btn" id="abf-cancel" type="button">Cancel</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="plate-view" id="view-plate" hidden>
+          <button class="back narrow-only" id="pl-back" type="button">← Return to the plates</button>
+          <p class="empty" id="pl-empty" hidden>The plates will be shown here.</p>
+          <figure class="plate" id="pl-figure">
+            <p class="plate-no" id="pl-no"></p>
+            <button class="mount plate-open" id="pl-open" type="button" aria-label="View the plate full size"></button>
+            <div class="versions" id="pl-versions" role="group" aria-label="This plate's images" hidden></div>
+            <figcaption>
+              <h3 class="plate-title" id="pl-title"></h3>
+              <p class="plate-credit" id="pl-credit"></p>
+              <p class="plate-note" id="pl-note"></p>
+            </figcaption>
+          </figure>
+          <div class="owner-row" id="pl-tools" hidden>
+            <button class="btn" id="pl-edit" type="button">Revise</button>
+            <button class="btn" id="pl-portrait" type="button">Make it the portrait</button>
+            <button class="btn" id="pl-earlier" type="button">Move earlier</button>
+            <button class="btn" id="pl-later" type="button">Move later</button>
+            <button class="btn" id="pl-delete" type="button">Remove plate</button>
+          </div>
+        </section>
+
+        <section id="view-art-form" hidden>
+          <form class="form" id="art-form" novalidate>
+            <button class="back" id="af-back" type="button">← Return without adding</button>
+            <h3 id="af-heading">Add a plate</h3>
+            <div class="field">
+              <label for="af-title">Title</label>
+              <input class="input" id="af-title" name="title" maxlength="120" autocomplete="off" placeholder="At the edge of the Reach">
+            </div>
+            <div class="row-2">
+              <div class="field">
+                <label for="af-artist">Artist</label>
+                <input class="input" id="af-artist" name="artist" maxlength="80" autocomplete="off" placeholder="Who made it">
+              </div>
+              <div class="field">
+                <label for="af-date">Date</label>
+                <input class="input" id="af-date" name="date" type="date">
+              </div>
+            </div>
+            <div class="field">
+              <label for="af-link">The artist's page</label>
+              <input class="input" id="af-link" name="link" type="url" maxlength="300" autocomplete="off" placeholder="https://">
+            </div>
+            <div class="field">
+              <label for="af-note">Note</label>
+              <textarea class="input short" id="af-note" name="note" maxlength="1000" placeholder="A commission, a gift, a scene from a story"></textarea>
+            </div>
+            <fieldset class="field">
+              <legend>Images</legend>
+              <p class="help">The first is the main image, shown in the list of plates; the others are its alternate versions. Tick <i>Mature</i> on any that is for adults only: it stays covered until a visitor says they are 18 or older. PNG, JPEG or WebP; big images are scaled to 2400 pixels on the long side, and nothing but the picture is kept.</p>
+              <div class="rows" id="af-versions"></div>
+              <button class="back add" id="af-add" type="button">+ Add an image</button>
+            </fieldset>
+            <p class="form-error" id="af-error" role="alert" hidden></p>
+            <div class="form-actions">
+              <button class="btn" id="af-submit" type="submit">Add the plate</button>
+              <button class="btn" id="af-cancel" type="button">Cancel</button>
+            </div>
+          </form>
+        </section>
+
       </section>
     </div>
+  </div>
+  <form class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" novalidate hidden>
+    <div class="gate-card">
+      <span class="spoiler-seal" aria-hidden="true">18+</span>
+      <h3 class="seal-title" id="gate-title">Mature art</h3>
+      <p class="seal-text" id="gate-text"></p>
+      <div class="field" id="gate-field">
+        <label for="gate-age">Your age</label>
+        <input class="input" id="gate-age" name="age" type="number" inputmode="numeric" min="1" max="130" step="1" autocomplete="off">
+      </div>
+      <p class="form-error" id="gate-error" role="alert" hidden></p>
+      <div class="form-actions">
+        <button class="btn" id="gate-go" type="submit">Continue</button>
+        <button class="btn" id="gate-back" type="button">Go back</button>
+      </div>
+    </div>
+  </form>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-labelledby="lb-title" hidden>
+    <figure class="lb-figure">
+      <div class="lb-frame" id="lb-frame"></div>
+      <figcaption class="lb-cap"><span id="lb-title"></span><span class="lb-credit" id="lb-credit"></span></figcaption>
+    </figure>
+    <button class="lb-btn lb-prev" id="lb-prev" type="button" aria-label="Previous plate"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5L5 8l5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></button>
+    <button class="lb-btn lb-next" id="lb-next" type="button" aria-label="Next plate"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 2.5L11 8l-5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></button>
+    <button class="btn-close" id="lb-close" type="button" aria-label="Close the plate"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
   </div>
 </dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
@@ -452,11 +805,17 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   };
   var ORDER = Object.keys(STATUS);
   var SUGGESTED_DOMAINS = ["Dragonkind & the Aspects", "Peoples & factions", "Wars & catastrophes", "Places", "Cosmology & the beyond"];
+  var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge" };
+  var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
+  var MAX = { facts: 16, sections: 12, versions: 12, upload: 8 * 1024 * 1024 };
+  var IMAGE_SIDE = 2400, THUMB_SIDE = 800; // longest side of the stored image and of its thumbnail, in pixels
   var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   // The preview build (dist/preview.html, published as the claude.ai Artifact) answers requests in the page itself,
   // because the Artifact viewer allows no network requests. The real page has no such script, so it uses fetch.
   var PREVIEW = window.CA_PREVIEW || null;
   var request = PREVIEW ? PREVIEW.fetch : function (url, opts) { return fetch(url, opts); };
+  // Art is served at art/<name>; the preview keeps its images in the page, as data: URIs
+  function artUrl(name) { return PREVIEW ? PREVIEW.src(name) : "art/" + name; }
 
   function byId(id) { return document.getElementById(id); }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -467,6 +826,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     var d = new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
     return isNaN(d) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   }
+  function isDate(v) { return /^\d{4}-\d{2}-\d{2}$/.test(v); }
 
   // The server puts the archive into #ca-data, and answers every accepted change with the whole archive again
   function normalize(raw) {
@@ -476,10 +836,30 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       return {
         id: String(r.id), title: String(r.title), domain: String(r.domain || "Unsorted"),
         status: STATUS[r.status] ? r.status : "fragment", note: String(r.note || ""), source: String(r.source || ""),
-        date: /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : today(), added: Number(r.added) || 0, example: !!r.example
+        date: isDate(r.date) ? r.date : today(), added: Number(r.added) || 0, example: !!r.example
       };
     });
-    return { profile: profile, records: records };
+    // a plate is one or more images (versions): the first is its main image, the others its alternates
+    var art = (Array.isArray(raw.art) ? raw.art : []).filter(function (a) { return a && a.id; }).map(function (a) {
+      var versions = (Array.isArray(a.versions) ? a.versions : [{ file: a.file, thumb: a.thumb, width: a.width, height: a.height }]).filter(function (v) { return v && FILE_RE.test(v.file) && FILE_RE.test(v.thumb); }).map(function (v, i) {
+        return {
+          id: String(v.id || "v" + i), file: v.file, thumb: v.thumb, width: Math.max(1, Number(v.width) || 1), height: Math.max(1, Number(v.height) || 1),
+          label: String(v.label || ""), mature: v.mature === true
+        };
+      });
+      return {
+        id: String(a.id), versions: versions,
+        title: String(a.title || ""), artist: String(a.artist || ""), link: /^https?:\/\//i.test(a.link) ? String(a.link) : "",
+        date: isDate(a.date) ? a.date : today(), note: String(a.note || ""), added: Number(a.added) || 0, example: !!a.example
+      };
+    }).filter(function (a) { return a.versions.length; });
+    var ab = raw.about || {};
+    var about = {
+      portrait: art.some(function (a) { return a.id === ab.portrait && !a.versions[0].mature; }) ? ab.portrait : "", // never a mature image
+      facts: (Array.isArray(ab.facts) ? ab.facts : []).filter(Boolean).map(function (f) { return { label: String(f.label || ""), value: String(f.value || "") }; }),
+      sections: (Array.isArray(ab.sections) ? ab.sections : []).filter(Boolean).map(function (x) { return { heading: String(x.heading || ""), body: String(x.body || "") }; })
+    };
+    return { profile: profile, about: about, art: art, records: records };
   }
   function loadState() {
     try { return normalize(JSON.parse(byId("ca-data").textContent || "{}")); } catch (e) { return normalize({}); }
@@ -487,15 +867,9 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   var state = loadState();
 
   var root = document.body;
-  var el = {};
-  ["stage", "motes", "core", "construct-gl", "pf-name", "construct",
-   "scan", "archive", "btn-close", "plate", "page-l", "page-r", "ar-name", "btn-inscribe", "clasp", "seal", "seal-title", "seal-text", "seal-f0", "seal-f1", "seal-f2",
-   "seal-current", "seal-word-label", "seal-word", "seal-again", "seal-error", "seal-go", "seal-lock", "seal-change",
-   "view-overview", "view-detail", "view-form", "btn-clear-examples",
-   "recent", "recent-count", "index", "index-count", "det-back", "det-status", "det-glyph", "det-status-label", "det-domain", "det-date",
-   "det-title", "det-note", "det-source", "det-state", "det-tools", "det-edit", "det-delete", "rec-form", "f-back", "form-heading", "f-title", "f-domain",
-   "domain-list", "f-date", "status-pick", "f-status-desc", "f-note", "f-source", "f-error", "f-submit", "f-cancel", "toast"].forEach(function (id) {
-    el[id.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); })] = byId(id);
+  var el = {}; // every element with an id, by its id in camelCase: "det-title" is el.detTitle
+  Array.prototype.forEach.call(document.querySelectorAll("[id]"), function (n) {
+    el[n.id.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); })] = n;
   });
 
   function h(tag, props) {
@@ -516,13 +890,16 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     }
     return n;
   }
+  function fill(node, children) { node.replaceChildren.apply(node, children); }
   function roman(n) {
     var out = "";
-    [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]].forEach(function (p) { while (n >= p[0]) { out += p[1]; n -= p[0]; } });
+    [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]]
+      .forEach(function (p) { while (n >= p[0]) { out += p[1]; n -= p[0]; } });
     return out;
   }
   function glyph(s) { return h("span", { class: "glyph", "data-s": s, "aria-hidden": "true" }); }
   function find(id) { return state.records.find(function (r) { return r.id === id; }); }
+  function findArt(id) { return state.art.find(function (a) { return a.id === id; }); }
   function sorted() {
     return state.records.slice().sort(function (a, b) {
       return b.date.localeCompare(a.date) || (b.added - a.added) || a.title.localeCompare(b.title);
@@ -538,6 +915,25 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       return ia - ib || a.localeCompare(b);
     });
   }
+  function plateNo(a) { return "Plate " + roman(state.art.indexOf(a) + 1) + "."; }
+  // One image of a plate. width and height only give the browser its shape before it loads.
+  function verImg(v, which, alt) {
+    var img = h("img", { src: artUrl(which === "thumb" ? v.thumb : v.file), alt: alt, width: v.width, height: v.height, decoding: "async", loading: which === "thumb" ? "lazy" : null });
+    img.addEventListener("error", function () { var m = img.closest(".mount"); if (m) m.classList.add("is-missing"); });
+    return img;
+  }
+  function versionIn(a, id) { return a.versions.find(function (v) { return v.id === id; }) || a.versions[0]; }
+  function verName(a, v) { var i = a.versions.indexOf(v); return v.label || (i ? "Version " + (i + 1) : "Main"); }
+  function altOf(a, v) { return (a.title || "Untitled plate") + (a.versions.length > 1 ? ", " + verName(a, v) : ""); }
+  // The cover over a mature image, in its place: nothing of the image itself is loaded
+  function spoiler(v, big) {
+    var box = h("span", { class: "spoiler" + (big ? " spoiler-big" : "") },
+      h("span", { class: "spoiler-seal", text: "18+" }), h("span", { class: "spoiler-label", text: "Mature" }),
+      big ? h("span", { class: "spoiler-hint", text: "Select to view" }) : null);
+    if (big) { box.style.aspectRatio = v.width + " / " + v.height; box.style.setProperty("--r", (v.width / v.height).toFixed(4)); }
+    return box;
+  }
+  function hostOf(link) { try { return new URL(link).hostname.replace(/^www\./, ""); } catch (e) { return link; } }
 
   // ---------- Landing: the construct alone; the name is there for screen readers ----------
   function renderLanding() {
@@ -546,12 +942,14 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     el.construct.setAttribute("aria-label", "Scan the archive of " + name);
   }
 
-  // ---------- Archive ----------
-  var currentView = "overview";
-  var detailId = null;
-  var editingId = null;
+  // ---------- The archive: one tome, three chapters ----------
+  var currentView = "overview", currentBook = "knowledge";
+  var detailId = null, editingId = null, plateId = null, versionId = null, artEditing = null;
   var busy = false;
 
+  function renderAll() { renderLanding(); renderArchive(); renderAbout(); renderArt(); renderOwnerUI(); }
+
+  // Knowledge: recent accessions on the left, the index on the right
   function renderArchive() {
     var p = state.profile, total = state.records.length;
     el.arName.textContent = p.name || "Unnamed Dracthyr";
@@ -598,38 +996,142 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     });
     el.indexCount.textContent = total ? "in " + domains().length + (domains().length === 1 ? " chapter" : " chapters") : "";
     if (!shown) el.index.append(h("p", { class: "empty", text: "Records appear here, gathered into chapters by domain." }));
+  }
 
-    renderOwnerUI();
+  // About: his portrait, name and epithet on the left; particulars and sections on the right
+  function renderAbout() {
+    var p = state.profile, ab = state.about, por = ab.portrait ? findArt(ab.portrait) : null;
+    el.abName.textContent = p.name || "Unnamed Dracthyr";
+    el.abEpithet.textContent = p.epithet;
+    el.abEpithet.hidden = !p.epithet;
+    el.frontisOpen.hidden = !por;
+    el.frontisEmpty.hidden = !!por;
+    el.frontisCredit.textContent = por && por.artist ? "After a likeness by " + por.artist : "";
+    el.frontisCredit.hidden = !el.frontisCredit.textContent;
+    fill(el.frontisOpen, por ? [verImg(por.versions[0], "thumb", por.title || "A likeness of " + el.abName.textContent)] : []);
+    var facts = [];
+    ab.facts.forEach(function (f) { facts.push(h("dt", { text: f.label }), h("dd", { text: f.value })); });
+    fill(el.abFacts, facts);
+    el.abFactsWrap.hidden = !ab.facts.length;
+    fill(el.abSections, ab.sections.map(function (x) {
+      return h("section", { class: "ab-section" }, x.heading ? h("h4", { class: "rubric", text: x.heading }) : null, x.body ? h("p", { class: "ab-body", text: x.body }) : null);
+    }));
+    el.abEmpty.hidden = !!(ab.facts.length || ab.sections.length);
+    el.abEmpty.textContent = canPost() ? "Nothing is written here yet. Amend this page to say who he is." : "Nothing is written here yet.";
+  }
+
+  // Art: the plates in the keeper's order on the left, the chosen one on the right. A plate whose main image is
+  // mature shows only its cover in the list.
+  function renderArt() {
+    var n = state.art.length;
+    el.platesCount.textContent = n ? n + (n === 1 ? " plate" : " plates") : "";
+    if (!findArt(plateId)) { plateId = n ? state.art[0].id : null; versionId = null; }
+    fill(el.plates, n ? state.art.map(function (a, i) {
+      var main = a.versions[0], count = a.versions.length;
+      return h("li", null, h("button", { class: "plate-btn", type: "button", "data-id": a.id, onclick: function () { openPlate(a.id); } },
+        h("span", { class: "mount" }, main.mature ? spoiler(main) : verImg(main, "thumb", "")),
+        h("span", { class: "plate-cap" }, h("b", { text: roman(i + 1) + "." }), " " + (a.title || "Untitled"),
+          count > 1 ? h("span", { class: "plate-more", text: count + " images" }) : null)));
+    }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: canPost() ? "No plates yet. Add the first likeness of him." : "No plates yet." }))]);
+    renderPlate();
+  }
+  function renderPlate() {
+    var a = findArt(plateId);
+    Array.prototype.forEach.call(el.plates.querySelectorAll(".plate-btn"), function (b) {
+      if (a && b.dataset.id === a.id) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+    });
+    el.plEmpty.hidden = !!a;
+    el.plFigure.hidden = !a;
+    el.plTools.hidden = !(a && canPost());
+    disarm(el.plDelete);
+    if (!a) { fill(el.plOpen, []); fill(el.plVersions, []); return; }
+    var i = state.art.indexOf(a), v = versionIn(a, versionId), covered = v.mature && shown !== v.id;
+    el.plNo.textContent = plateNo(a) + (a.versions.length > 1 ? " · " + verName(a, v) : "");
+    fill(el.plOpen, [covered ? spoiler(v, true) : verImg(v, "file", altOf(a, v))]);
+    el.plOpen.classList.toggle("is-covered", covered);
+    el.plOpen.setAttribute("aria-label", covered ? "A mature image: select to view it (18 or older)" : "View the image full size");
+    // the plate's images, to switch between; the focus stays on the one it was on
+    var focused = el.plVersions.contains(document.activeElement) ? document.activeElement.dataset.vid : null;
+    el.plVersions.hidden = a.versions.length < 2;
+    fill(el.plVersions, a.versions.length < 2 ? [] : a.versions.map(function (x) {
+      return h("button", { class: "ver-btn", type: "button", "data-vid": x.id, "aria-pressed": x === v ? "true" : "false", onclick: function () { pickVersion(a, x); } },
+        h("span", { class: "mount" }, x.mature ? spoiler(x) : verImg(x, "thumb", "")),
+        h("span", { class: "ver-name", text: verName(a, x) + (x.mature ? " (18+)" : "") }));
+    }));
+    var back = focused && el.plVersions.querySelector('[data-vid="' + focused + '"]');
+    if (back) back.focus();
+    el.plTitle.textContent = a.title || "Untitled";
+    var credit = [];
+    if (a.artist || a.link) credit.push("by ", a.link ? h("a", { href: a.link, target: "_blank", rel: "noopener noreferrer nofollow", text: a.artist || hostOf(a.link) }) : a.artist, " · ");
+    credit.push(h("time", { datetime: a.date, text: fmtDate(a.date) }));
+    fill(el.plCredit, credit);
+    el.plNote.textContent = a.note;
+    el.plNote.hidden = !a.note;
+    el.plEarlier.disabled = i === 0;
+    el.plLater.disabled = i === state.art.length - 1;
+    el.plPortrait.textContent = state.about.portrait === a.id ? "Stop using as portrait" : "Make it the portrait";
+    el.plPortrait.hidden = a.versions[0].mature; // a mature image is never the portrait
   }
 
   // The editing tools show only while the server says this browser holds the keeper's session
   function renderOwnerUI() {
-    el.btnInscribe.hidden = !canPost();
-    el.detTools.hidden = !canPost();
-    el.clasp.classList.toggle("is-open", canPost());
+    var on = canPost();
+    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = !on;
+    el.plTools.hidden = !(on && findArt(plateId));
+    el.clasp.classList.toggle("is-open", on);
     var ex = state.records.some(function (r) { return r.example; });
-    el.btnClearExamples.hidden = !(ex && canPost());
+    el.btnClearExamples.hidden = !(ex && on);
   }
 
-  var VIEWS = { overview: "viewOverview", detail: "viewDetail", form: "viewForm" };
+  // Each view lives on the right leaf and belongs to a chapter, whose own left leaf shows beside it. On narrow
+  // screens a "solo" view (a record, a plate, a form) replaces the left leaf instead.
+  var VIEWS = {
+    overview: ["viewOverview", "knowledge"], detail: ["viewDetail", "knowledge", 1], form: ["viewForm", "knowledge", 1],
+    about: ["viewAbout", "about"], aboutForm: ["viewAboutForm", "about", 1],
+    plates: ["viewPlate", "art"], plate: ["viewPlate", "art", 1], artForm: ["viewArtForm", "art", 1]
+  };
+  var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError" };
   function showView(name) {
-    Object.keys(VIEWS).forEach(function (v) { el[VIEWS[v]].hidden = v !== name; });
+    var v = VIEWS[name], book = v[1];
+    Object.keys(VIEWS).forEach(function (k) { el[VIEWS[k][0]].hidden = VIEWS[k][0] !== v[0]; });
+    Object.keys(BOOKS).forEach(function (b) { el["leaf" + b[0].toUpperCase() + b.slice(1)].hidden = b !== book; });
+    if (book !== currentBook) el.pageL.scrollTop = 0;
+    if (name !== "plate" && name !== "plates") shown = null; // a mature image is covered again once the visitor moves on
     currentView = name;
-    el.plate.dataset.view = name;
-    el.plate.scrollTop = 0;
+    currentBook = book;
+    el.book.dataset.view = name;
+    el.book.dataset.book = book;
+    el.book.toggleAttribute("data-solo", !!v[2]);
+    el.arChapter.textContent = BOOKS[book];
+    Array.prototype.forEach.call(el.tabs.children, function (t) { if (t.dataset.book === book) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current"); });
+    el.book.scrollTop = 0;
     el.pageR.scrollTop = 0;
+    setHash();
+  }
+
+  // The address names the open chapter, and the open record or plate, so it can be shared: #art/a1b2c3
+  function setHash() {
+    var id = currentView === "detail" ? detailId : currentView === "plate" ? plateId : "";
+    var want = el.archive.open ? "#" + currentBook + (id ? "/" + id : "") : "";
+    if (want === location.hash) return;
+    try { history.replaceState(null, "", want || location.pathname + location.search); } catch (e) {}
   }
 
   function openArchive(opts) {
     opts = opts || {};
-    renderArchive();
+    renderAll();
     if (!el.archive.open) {
       try { el.archive.showModal(); } catch (e) { el.archive.setAttribute("open", ""); }
     }
     motes.pause();
     model3d.pause();
     el.stage.classList.add("is-paused");
-    if (opts.view === "detail" && find(opts.id)) showDetail(opts.id);
+    openBook(opts.book || "knowledge", opts.id);
+  }
+  function openBook(book, id) {
+    if (book === "about") showView("about");
+    else if (book === "art") { if (id && findArt(id)) showPlate(id); else showPlates(); }
+    else if (id && find(id)) showDetail(id);
     else showView("overview");
   }
 
@@ -652,8 +1154,41 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     renderOwnerUI();
     showView("detail");
   }
+  // Back to the list of plates: every mature image is covered again
+  function showPlates() { shown = null; renderArt(); showView("plates"); }
+  // A plate, at one of its images (the main one by default). A mature image stays shown only while it is the one
+  // on view.
+  function showPlate(id, vid) {
+    var a = findArt(id);
+    if (!a) { showPlates(); return; }
+    var v = versionIn(a, vid);
+    if (shown !== v.id) shown = null;
+    plateId = id;
+    versionId = v.id;
+    renderPlate();
+    renderOwnerUI();
+    showView("plate");
+  }
+  // From the list: a plate whose main image is mature asks at once, as a click on its cover would
+  function openPlate(id) {
+    showPlate(id);
+    var a = findArt(id);
+    if (a && a.versions[0].mature) showMature(a.versions[0]);
+  }
+  function pickVersion(a, v) {
+    showPlate(a.id, v.id);
+    if (v.mature && shown !== v.id) showMature(v);
+  }
 
   // ---------- Forms ----------
+  function formError(view, msg) { var e = el[FORMS[view]]; e.textContent = msg; e.hidden = false; }
+  function leaveCurrentForm() {
+    if (currentView === "form") leaveForm();
+    else if (currentView === "aboutForm") showView("about");
+    else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing); else showPlates(); }
+  }
+
+  // A record
   ORDER.forEach(function (s) {
     el.statusPick.append(h("label", { class: "status-opt", "data-s": s },
       h("input", { type: "radio", name: "f-status", id: "f-s-" + s, value: s }), glyph(s), STATUS[s].label));
@@ -678,7 +1213,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     el.fError.hidden = true;
     var ds = domains();
     SUGGESTED_DOMAINS.forEach(function (d) { if (ds.indexOf(d) < 0) ds.push(d); });
-    el.domainList.replaceChildren.apply(el.domainList, ds.map(function (d) { return h("option", { value: d }); }));
+    fill(el.domainList, ds.map(function (d) { return h("option", { value: d }); }));
     showView("form");
     setTimeout(function () { if (!el.recForm.contains(document.activeElement) || document.activeElement === el.fBack) el.fTitle.focus(); }, 40);
   }
@@ -688,18 +1223,253 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     e.preventDefault();
     if (busy || !canPost()) return;
     var title = el.fTitle.value.trim();
-    if (!title) { el.fError.textContent = "Give the record a title."; el.fError.hidden = false; el.fTitle.focus(); return; }
+    if (!title) { formError("form", "Give the record a title."); el.fTitle.focus(); return; }
     var prev = editingId ? find(editingId) : null;
     var rec = {
       title: title, domain: el.fDomain.value.trim(), status: selectedStatus(), note: el.fNote.value.trim(), source: el.fSource.value.trim(),
-      date: /^\d{4}-\d{2}-\d{2}$/.test(el.fDate.value) ? el.fDate.value : today()
+      date: isDate(el.fDate.value) ? el.fDate.value : today()
     };
     save(prev ? "PUT" : "POST", prev ? "api/records/" + encodeURIComponent(prev.id) : "api/records", rec,
-      { view: "detail", toast: prev ? "Record revised." : "Record inscribed." }, el.fSubmit, prev ? "Saving…" : "Inscribing…");
+      function (data) { if (find(data.id)) showDetail(data.id); else showView("overview"); }, el.fSubmit, prev ? "Saving…" : "Inscribing…",
+      prev ? "Record revised." : "Record inscribed.");
   });
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
 
+  // The About page: name, epithet, portrait, and rows of particulars and sections the keeper can add, move and remove
+  var FACT_HINTS = [["Race", "Dracthyr"], ["Age", ""], ["Height", ""], ["Eyes", ""], ["Home", ""]];
+  function rowTools() {
+    return h("span", { class: "row-tools" },
+      h("button", { class: "icon-btn", type: "button", "data-act": "up", "aria-label": "Move up", title: "Move up", text: "↑" }),
+      h("button", { class: "icon-btn", type: "button", "data-act": "down", "aria-label": "Move down", title: "Move down", text: "↓" }),
+      h("button", { class: "icon-btn", type: "button", "data-act": "remove", "aria-label": "Remove", title: "Remove", text: "×" }));
+  }
+  function factRow(f, i) {
+    var hint = FACT_HINTS[i] || ["", ""];
+    return h("div", { class: "row row-fact" },
+      h("input", { class: "input", "data-k": "label", "aria-label": "Particular", maxlength: 40, autocomplete: "off", placeholder: hint[0] || "Particular", value: f.label }),
+      h("input", { class: "input", "data-k": "value", "aria-label": "Its value", maxlength: 160, autocomplete: "off", placeholder: hint[1], value: f.value }),
+      rowTools());
+  }
+  function sectionRow(x, i) {
+    return h("div", { class: "row row-section" },
+      h("input", { class: "input", "data-k": "heading", "aria-label": "Heading", maxlength: 80, autocomplete: "off", placeholder: ["Appearance", "Manner", "History"][i] || "Heading", value: x.heading }),
+      rowTools(),
+      h("textarea", { class: "input", "data-k": "body", "aria-label": "Text", maxlength: 6000, placeholder: i ? "" : "What others see and hear of him." }, x.body));
+  }
+  function rowsOf(box, keys) {
+    return Array.prototype.map.call(box.children, function (row) {
+      var o = {};
+      keys.forEach(function (k) { o[k] = row.querySelector('[data-k="' + k + '"]').value.trim(); });
+      return o;
+    }).filter(function (o) { return keys.some(function (k) { return o[k]; }); });
+  }
+  // The ↑ ↓ × buttons of a list of rows; at least `min` rows stay
+  function rowButtons(box, min) {
+    Array.prototype.forEach.call(box.children, function (row, i, all) {
+      row.querySelector('[data-act="up"]').disabled = i === 0;
+      row.querySelector('[data-act="down"]').disabled = i === all.length - 1;
+      row.querySelector('[data-act="remove"]').disabled = all.length <= min;
+    });
+  }
+  function rowAction(e, update, addButton) {
+    var b = e.target.closest("[data-act]");
+    if (!b || b.disabled) return;
+    var row = b.closest(".row"), box = row.parentNode;
+    if (b.dataset.act === "up" && row.previousElementSibling) box.insertBefore(row, row.previousElementSibling);
+    else if (b.dataset.act === "down" && row.nextElementSibling) box.insertBefore(row.nextElementSibling, row);
+    else if (b.dataset.act === "remove") {
+      var next = row.nextElementSibling || row.previousElementSibling;
+      row.remove();
+      (next ? next.querySelector("input") : addButton(box)).focus();
+    }
+    update();
+    if (b.isConnected && !b.disabled) b.focus();
+  }
+  function updateRows() {
+    el.abfAddFact.disabled = el.abfFacts.children.length >= MAX.facts;
+    el.abfAddSection.disabled = el.abfSections.children.length >= MAX.sections;
+    rowButtons(el.abfFacts, 0);
+    rowButtons(el.abfSections, 0);
+  }
+  function openAboutForm() {
+    var p = state.profile, ab = state.about;
+    el.abfName.value = p.name;
+    el.abfEpithet.value = p.epithet;
+    fill(el.abfPortrait, [h("option", { value: "", text: "None" })].concat(state.art.map(function (a, i) {
+      return a.versions[0].mature ? null : h("option", { value: a.id, text: roman(i + 1) + ". " + (a.title || "Untitled") }); // never a mature image
+    }).filter(Boolean)));
+    el.abfPortrait.value = ab.portrait;
+    fill(el.abfFacts, (ab.facts.length ? ab.facts : [{ label: "", value: "" }]).map(factRow));
+    fill(el.abfSections, (ab.sections.length ? ab.sections : [{ heading: "", body: "" }]).map(sectionRow));
+    updateRows();
+    el.abfError.hidden = true;
+    showView("aboutForm");
+    setTimeout(function () { el.abfName.focus(); }, 40);
+  }
+  el.aboutForm.addEventListener("click", function (e) {
+    rowAction(e, updateRows, function (box) { return box === el.abfFacts ? el.abfAddFact : el.abfAddSection; });
+  });
+  el.abfAddFact.addEventListener("click", function () {
+    var row = factRow({ label: "", value: "" }, el.abfFacts.children.length);
+    el.abfFacts.append(row); updateRows(); row.querySelector("input").focus();
+  });
+  el.abfAddSection.addEventListener("click", function () {
+    var row = sectionRow({ heading: "", body: "" }, el.abfSections.children.length);
+    el.abfSections.append(row); updateRows(); row.querySelector("input").focus();
+  });
+  function aboutNow() {
+    var p = state.profile, ab = state.about;
+    return { name: p.name, epithet: p.epithet, portrait: ab.portrait, facts: ab.facts, sections: ab.sections };
+  }
+  el.aboutForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (busy || !canPost()) return;
+    save("PUT", "api/about", {
+      name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(), portrait: el.abfPortrait.value,
+      facts: rowsOf(el.abfFacts, ["label", "value"]), sections: rowsOf(el.abfSections, ["heading", "body"])
+    }, function () { showView("about"); }, el.abfSubmit, "Saving…", "The page is amended.");
+  });
+  el.abfCancel.addEventListener("click", leaveCurrentForm);
+  el.abfBack.addEventListener("click", leaveCurrentForm);
+
+  // A plate and its images. The keeper's browser scales each new image and re-encodes it (which drops everything
+  // but the picture, such as a photo's location), makes a thumbnail, and uploads both before saving the plate.
+  function toBlob(canvas, type, q) { return new Promise(function (r) { canvas.toBlob(r, type, q); }); }
+  function scaled(src, max) {
+    var k = Math.min(1, max / Math.max(src.width, src.height));
+    var c = h("canvas", { width: Math.max(1, Math.round(src.width * k)), height: Math.max(1, Math.round(src.height * k)) });
+    var g = c.getContext("2d");
+    g.imageSmoothingQuality = "high";
+    g.drawImage(src, 0, 0, c.width, c.height);
+    return c;
+  }
+  function encode(c, q) {
+    return toBlob(c, "image/webp", q).then(function (b) {
+      if (b && b.type === "image/webp") return b;
+      // a browser that cannot write WebP: JPEG, which has no transparency, so on the stage's dark ground
+      var j = h("canvas", { width: c.width, height: c.height }), g = j.getContext("2d");
+      g.fillStyle = "#0a0e1a"; g.fillRect(0, 0, j.width, j.height); g.drawImage(c, 0, 0);
+      return toBlob(j, "image/jpeg", q);
+    }).then(function (b) { if (!b) throw new Error("This browser could not prepare the image."); return b; });
+  }
+  function prepareImage(file) {
+    if (!/^image\//.test(file.type)) return Promise.reject(new Error("Choose an image: PNG, JPEG or WebP."));
+    if (file.size > 80 * 1024 * 1024) return Promise.reject(new Error("That file is too large to prepare here."));
+    if (!window.createImageBitmap) return Promise.reject(new Error("This browser cannot prepare images. Try another one."));
+    return createImageBitmap(file).catch(function () { throw new Error("That file could not be read as an image."); }).then(function (bmp) {
+      var full = scaled(bmp, IMAGE_SIDE), thumb = scaled(full, THUMB_SIDE);
+      if (bmp.close) bmp.close();
+      return encode(full, .9).then(function (b) { return b.size > MAX.upload ? encode(full, .72) : b; }).then(function (fullBlob) {
+        if (fullBlob.size > MAX.upload) throw new Error("Even scaled down, that image is too large.");
+        return encode(thumb, .85).then(function (thumbBlob) {
+          return { full: fullBlob, thumb: thumbBlob, preview: thumb, width: full.width, height: full.height };
+        });
+      });
+    });
+  }
+  function size(n) { return n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1024 / 1024).toFixed(1) + " MB"; }
+
+  // One row per image, in order; the first is the main image. A row for an image already saved carries its id;
+  // a new row has a file input, and the image it prepares waits on the row (row._draft) until the plate is saved.
+  function versionRow(v, i) {
+    return h("div", { class: "row row-version", "data-id": v ? v.id : null },
+      h("div", { class: "mount ver-preview" }, v ? verImg(v, "thumb", "") : null),
+      h("div", { class: "ver-fields" },
+        v ? null : h("input", { class: "input", type: "file", "data-k": "file", "aria-label": "Image", accept: "image/png,image/jpeg,image/webp,image/gif" }),
+        v ? null : h("p", { class: "help", "data-k": "status" }),
+        h("input", { class: "input", "data-k": "label", "aria-label": "Label", maxlength: 60, autocomplete: "off", placeholder: i ? "Label, such as Without armour" : "Label (optional)", value: v ? v.label : "" }),
+        h("label", { class: "check" }, h("input", { type: "checkbox", "data-k": "mature", checked: !!(v && v.mature) }), "Mature (18+)")),
+      rowTools());
+  }
+  function updateVersionRows() {
+    el.afAdd.disabled = el.afVersions.children.length >= MAX.versions;
+    rowButtons(el.afVersions, 1);
+  }
+  function openArtForm(id) {
+    var a = id ? findArt(id) : null;
+    artEditing = a ? a.id : null;
+    el.afHeading.textContent = a ? "Revise the plate" : "Add a plate";
+    el.afSubmit.textContent = a ? "Save changes" : "Add the plate";
+    el.afBack.textContent = a ? "← Return without revising" : "← Return without adding";
+    fill(el.afVersions, a ? a.versions.map(versionRow) : [versionRow(null, 0)]);
+    updateVersionRows();
+    el.afTitle.value = a ? a.title : "";
+    el.afArtist.value = a ? a.artist : "";
+    el.afLink.value = a ? a.link : "";
+    el.afDate.value = a ? a.date : today();
+    el.afNote.value = a ? a.note : "";
+    el.afError.hidden = true;
+    showView("artForm");
+    setTimeout(function () { (a ? el.afTitle : el.afVersions.querySelector('[data-k="file"]')).focus(); }, 40);
+  }
+  el.artForm.addEventListener("click", function (e) { rowAction(e, updateVersionRows, function () { return el.afAdd; }); });
+  el.afAdd.addEventListener("click", function () {
+    var row = versionRow(null, el.afVersions.children.length);
+    el.afVersions.append(row); updateVersionRows(); row.querySelector('[data-k="file"]').focus();
+  });
+  el.artForm.addEventListener("change", function (e) {
+    var input = e.target;
+    if (input.dataset.k !== "file") return;
+    var row = input.closest(".row"), status = row.querySelector('[data-k="status"]'), preview = row.querySelector(".ver-preview");
+    var f = input.files && input.files[0], seq = (row._seq || 0) + 1;
+    row._seq = seq;
+    row._draft = null;
+    el.afError.hidden = true;
+    fill(preview, []);
+    status.textContent = "";
+    if (!f) return;
+    status.textContent = "Preparing the image…";
+    row._draft = prepareImage(f).then(function (d) {
+      if (row._seq === seq) {
+        fill(preview, [d.preview]);
+        status.textContent = d.width + " × " + d.height + " pixels, " + size(d.full.size + d.thumb.size) + " to upload.";
+      }
+      return d;
+    }, function (err) {
+      if (row._seq === seq) { input.value = ""; status.textContent = ""; formError("artForm", err.message); }
+      throw err;
+    });
+    row._draft.catch(function () {});
+  });
+  el.artForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (busy || !canPost()) return;
+    var prev = artEditing ? findArt(artEditing) : null, rows = Array.prototype.slice.call(el.afVersions.children);
+    if (!rows.length) { formError("artForm", "Add an image first."); el.afAdd.focus(); return; }
+    var empty = rows.filter(function (r) { return !r.dataset.id && !r._draft; })[0];
+    if (empty) { formError("artForm", "Choose an image for each new row, or remove the row."); empty.querySelector('[data-k="file"]').focus(); return; }
+    var meta = { title: el.afTitle.value.trim(), artist: el.afArtist.value.trim(), link: el.afLink.value.trim(), date: isDate(el.afDate.value) ? el.afDate.value : today(), note: el.afNote.value.trim() };
+    el.afError.hidden = true;
+    setBusy(el.afSubmit, true, "Preparing…");
+    // the new images go up one after another; then the plate is saved with all its images in the rows' order
+    rows.reduce(function (chain, row) {
+      return chain.then(function (list) {
+        var v = { label: row.querySelector('[data-k="label"]').value.trim(), mature: row.querySelector('[data-k="mature"]').checked };
+        if (row.dataset.id) { v.id = row.dataset.id; return list.concat([v]); }
+        return row._draft.then(function (d) {
+          el.afSubmit.textContent = "Uploading…";
+          return call("POST", "api/uploads", d.full).then(function (full) {
+            return call("POST", "api/uploads", d.thumb).then(function (thumb) { v.file = full.file; v.thumb = thumb.file; return list.concat([v]); });
+          });
+        });
+      });
+    }, Promise.resolve([])).then(function (versions) {
+      meta.versions = versions;
+      el.afSubmit.textContent = "Saving…";
+      return call(prev ? "PUT" : "POST", prev ? "api/art/" + encodeURIComponent(prev.id) : "api/art", meta);
+    }).then(function (data) {
+      setBusy(el.afSubmit, false);
+      applyArchive(data.archive);
+      showPlate(data.id);
+      toast(prev ? "The plate is revised." : "The plate is added.");
+    }, function (err) {
+      setBusy(el.afSubmit, false);
+      failed(err);
+    });
+  });
+  el.afCancel.addEventListener("click", leaveCurrentForm);
+  el.afBack.addEventListener("click", leaveCurrentForm);
 
   // two-step confirmation, quieter than a confirm() box
   function arm(btn, label, action) {
@@ -721,23 +1491,159 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   }
   arm(el.detDelete, function () { return "Confirm removal"; }, function () {
     var r = find(detailId); if (!r || !canPost()) return;
-    save("DELETE", "api/records/" + encodeURIComponent(r.id), undefined, { view: "overview", toast: "Removed “" + r.title + "”." }, el.detDelete, "Removing…");
+    save("DELETE", "api/records/" + encodeURIComponent(r.id), undefined, function () { showView("overview"); }, el.detDelete, "Removing…", "Removed “" + r.title + "”.");
   });
   arm(el.btnClearExamples, function () { return "Confirm: remove examples"; }, function () {
     if (!canPost()) return;
-    save("POST", "api/records/clear-examples", undefined, { view: "overview", toast: "Examples removed." }, el.btnClearExamples, "Removing…");
+    save("POST", "api/records/clear-examples", undefined, function () { showView("overview"); }, el.btnClearExamples, "Removing…", "Examples removed.");
+  });
+  arm(el.plDelete, function () { return "Confirm removal"; }, function () {
+    var a = findArt(plateId); if (!a || !canPost()) return;
+    save("DELETE", "api/art/" + encodeURIComponent(a.id), undefined, function () { showPlates(); }, el.plDelete, "Removing…", "The plate is removed.");
+  });
+  function movePlate(by, btn) {
+    var ids = state.art.map(function (a) { return a.id; }), i = ids.indexOf(plateId), j = i + by;
+    if (i < 0 || j < 0 || j >= ids.length || !canPost()) return;
+    ids.splice(j, 0, ids.splice(i, 1)[0]);
+    var id = plateId;
+    save("POST", "api/art/order", { ids: ids }, function () { showPlate(id); if (!btn.disabled) btn.focus(); }, btn, "Moving…", "");
+  }
+  el.plEarlier.addEventListener("click", function () { movePlate(-1, el.plEarlier); });
+  el.plLater.addEventListener("click", function () { movePlate(1, el.plLater); });
+  el.plPortrait.addEventListener("click", function () {
+    var a = findArt(plateId); if (!a || !canPost()) return;
+    var was = state.about.portrait === a.id, body = aboutNow();
+    body.portrait = was ? "" : a.id;
+    save("PUT", "api/about", body, function () { showPlate(a.id); }, el.plPortrait, "Saving…", was ? "It is no longer the portrait." : "It is now the portrait on the About page.");
   });
 
+  // ---------- Mature images and the age check ----------
+  // A mature image is never loaded until the visitor chooses to see it, and it is covered again as soon as another
+  // image takes its place or the visitor moves on. The first time, they are asked their age; the answer holds for
+  // this tab until it is closed. Under 18, mature images stay covered.
+  var shown = null; // the id of the one mature image on view, uncovered
+  var ageMemo = "", gateThen = null, gateFrom = null;
+  function ageAnswer() { try { return sessionStorage.getItem("ca-age") || ageMemo; } catch (e) { return ageMemo; } }
+  function setAge(answer) { ageMemo = answer; try { sessionStorage.setItem("ca-age", answer); } catch (e) {} }
+  function showMature(v) {
+    askAge(function () {
+      shown = v.id;
+      if (!el.lightbox.hidden) renderLightbox(); else renderPlate();
+    });
+  }
+  function askAge(then) {
+    var answer = ageAnswer();
+    if (answer === "adult") { then(); return; }
+    gateFrom = document.activeElement;
+    gateThen = then;
+    renderGate(answer === "minor" ? "denied" : "ask");
+    el.gate.hidden = false;
+    el.tome.inert = el.tabs.inert = el.lightbox.inert = true;
+    setTimeout(function () { (answer === "minor" ? el.gateBack : el.gateAge).focus(); }, 30);
+  }
+  function renderGate(mode) {
+    el.gateText.textContent = mode === "ask" ? "This image is marked as mature. How old are you?" : "Mature images are only for those 18 or older.";
+    el.gateField.hidden = el.gateGo.hidden = mode !== "ask";
+    el.gateAge.value = "";
+    el.gateError.hidden = true;
+  }
+  function closeGate() {
+    if (el.gate.hidden) return;
+    el.gate.hidden = true;
+    el.lightbox.inert = false;
+    el.tome.inert = el.tabs.inert = !el.lightbox.hidden;
+    gateThen = null;
+    if (gateFrom && gateFrom.isConnected) gateFrom.focus();
+  }
+  el.gate.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var text = el.gateAge.value.trim(), age = Number(text);
+    if (!/^\d{1,3}$/.test(text) || age < 1 || age > 130) { el.gateError.textContent = "Enter your age in years."; el.gateError.hidden = false; el.gateAge.focus(); return; }
+    if (age < 18) { setAge("minor"); renderGate("denied"); el.gateBack.focus(); return; }
+    setAge("adult");
+    var then = gateThen;
+    closeGate();
+    if (then) then();
+  });
+  el.gateBack.addEventListener("click", closeGate);
+
+  // ---------- The full-size view ----------
+  // It steps through every image of every plate in order. A mature one arrives covered, as in the book.
+  var lb = null, lbFrom = null; // the plate and image on view
+  function sequence() {
+    var out = [];
+    state.art.forEach(function (a) { a.versions.forEach(function (v) { out.push({ plate: a.id, version: v.id }); }); });
+    return out;
+  }
+  function openLightbox(id, vid) {
+    var a = findArt(id);
+    if (!a) return;
+    lbFrom = document.activeElement;
+    lb = { plate: a.id, version: versionIn(a, vid).id };
+    el.lightbox.hidden = false;
+    el.tome.inert = el.tabs.inert = true;
+    renderLightbox();
+    el.lbClose.focus();
+  }
+  function renderLightbox() {
+    var a = lb && findArt(lb.plate), v = a && versionIn(a, lb.version);
+    if (!v) { closeLightbox(); return; }
+    if (v.mature && shown !== v.id) {
+      fill(el.lbFrame, [h("button", { class: "lb-cover", type: "button", "aria-label": "A mature image: select to view it (18 or older)", onclick: function () { showMature(v); } }, spoiler(v, true))]);
+    } else {
+      var img = verImg(v, "thumb", altOf(a, v)); // the thumbnail at once, then the full image once it has loaded
+      img.removeAttribute("loading");
+      fill(el.lbFrame, [img]);
+      if (v.file !== v.thumb) {
+        var full = new Image();
+        full.addEventListener("load", function () { if (lb && lb.version === v.id) img.src = full.src; });
+        full.src = artUrl(v.file);
+      }
+    }
+    el.lbTitle.textContent = plateNo(a) + " " + (a.title || "Untitled") + (a.versions.length > 1 ? " · " + verName(a, v) : "");
+    el.lbCredit.textContent = a.artist ? "by " + a.artist : "";
+    el.lbPrev.hidden = el.lbNext.hidden = sequence().length < 2;
+  }
+  function stepLightbox(by) {
+    var seq = sequence(), n = seq.length, i = -1;
+    seq.forEach(function (x, k) { if (lb && x.plate === lb.plate && x.version === lb.version) i = k; });
+    if (n < 2 || i < 0) return;
+    lb = seq[(i + by + n) % n];
+    shown = null;
+    renderLightbox();
+  }
+  function closeLightbox() {
+    if (el.lightbox.hidden) return;
+    var at = lb;
+    el.lightbox.hidden = true;
+    el.tome.inert = el.tabs.inert = false;
+    lb = null;
+    fill(el.lbFrame, []);
+    if ((currentView === "plate" || currentView === "plates") && at && findArt(at.plate)) { showPlate(at.plate, at.version); el.plOpen.focus(); } // the book follows the view
+    else if (lbFrom && lbFrom.isConnected) lbFrom.focus();
+  }
+  el.plOpen.addEventListener("click", function () {
+    var a = findArt(plateId), v = a && versionIn(a, versionId);
+    if (!v) return;
+    if (v.mature && shown !== v.id) showMature(v); else openLightbox(a.id, v.id);
+  });
+  el.frontisOpen.addEventListener("click", function () { openLightbox(state.about.portrait); });
+  el.lbClose.addEventListener("click", closeLightbox);
+  el.lbPrev.addEventListener("click", function () { stepLightbox(-1); });
+  el.lbNext.addEventListener("click", function () { stepLightbox(1); });
+  el.lightbox.addEventListener("click", function (e) { if (e.target === el.lightbox) closeLightbox(); });
+
   // ---------- Saving: each change goes to the server, which answers with the whole archive ----------
+  // body: an object, sent as JSON, or a Blob (an image), sent as it is with its own type
   function call(method, url, body) {
-    var headers = { Accept: "application/json" };
+    var headers = { Accept: "application/json" }, blob = typeof Blob !== "undefined" && body instanceof Blob;
     if (method !== "GET") headers["X-CSRF-Token"] = csrf;
-    if (body !== undefined) headers["Content-Type"] = "application/json";
-    return request(url, { method: method, headers: headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: "same-origin", cache: "no-store" })
+    if (body !== undefined) headers["Content-Type"] = blob ? body.type : "application/json";
+    return request(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store" })
       .then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (data) {
           if (res.ok) return data;
-          var err = new Error(data.error || "The archive could not be reached. Try again in a moment.");
+          var err = new Error(data.error || (res.status === 413 ? "That is too large." : "The archive could not be reached. Try again in a moment."));
           err.status = res.status;
           err.retry = Number(res.headers.get("Retry-After")) || 0;
           throw err;
@@ -764,20 +1670,23 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       else { openSeal(); sealError("The archive has sealed itself again. Speak the word, then try once more."); }
     });
   }
-  function save(method, url, body, after, btn, label) {
+  function failed(err) {
+    if (err.status === 401 || err.status === 403) refused(err);
+    else if (FORMS[currentView]) formError(currentView, err.message);
+    else toast(err.message);
+  }
+  function applyArchive(raw) { state = normalize(raw); renderAll(); }
+  function save(method, url, body, then, btn, label, done) {
     if (busy || !canPost()) return;
     setBusy(btn, true, label);
     call(method, url, body).then(function (data) {
       setBusy(btn, false);
-      state = normalize(data.archive);
-      renderLanding(); renderArchive();
-      if (after.view === "detail" && find(data.id)) showDetail(data.id); else showView("overview");
-      toast(after.toast);
+      applyArchive(data.archive);
+      then(data);
+      toast(done);
     }, function (err) {
       setBusy(btn, false);
-      if (err.status === 401 || err.status === 403) refused(err);
-      else if (err.status === 400 && currentView === "form") { el.fError.textContent = err.message; el.fError.hidden = false; }
-      else toast(err.message);
+      failed(err);
     });
   }
 
@@ -791,7 +1700,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
   function setOwner(on, token) {
     owner = on;
     csrf = on ? token || "" : "";
-    if (el.archive.open && currentView === "overview") renderArchive(); else renderOwnerUI();
+    renderAll();
   }
   function refreshSession() {
     return call("GET", "api/session").then(function (s) { setOwner(!!s.owner, s.csrf); }, function () {});
@@ -841,7 +1750,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     if (sealBusy) return;
     function sealed() {
       setOwner(false, "");
-      if (currentView === "form") showView("overview");
+      if (FORMS[currentView]) leaveCurrentForm();
       closeSeal(true);
       toast("Sealed. The editing tools are hidden again.");
     }
@@ -907,7 +1816,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
 
   // ---------- Ambient: light shafts, motes at three depths, and anima wisps the construct draws in ----------
   var motes = (function () {
-    var noop = { pause: function () {}, resume: function () {}, gather: function () {} };
+    var noop = { pause: function () {}, resume: function () {}, gather: function () {}, recenter: function () {} };
     var c = el.motes, ctx = c.getContext && c.getContext("2d");
     if (!ctx) return noop;
     var cs = getComputedStyle(document.documentElement);
@@ -931,25 +1840,27 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       rays.push({ a: i / 9 * 6.283 + Math.random() * .5, w: .06 + Math.random() * .1, v: (i % 2 ? -1 : 1) * (.012 + Math.random() * .02),
                   c: Math.random() < .3 ? COPPER : TEAL, o: .03 + Math.random() * .035, ph: Math.random() * 6.283 });
     }
-    var shade = {}; // one radial falloff per colour, rebuilt on resize; each shaft's strength is set with globalAlpha
+    var shade = {}; // one radial falloff per colour around the origin, rebuilt on resize; each shaft's strength is set with globalAlpha
     function shadeFor(rgb) {
-      var g = ctx.createRadialGradient(cx, cy, unit * .1, cx, cy, unit * 1.3);
+      var g = ctx.createRadialGradient(0, 0, unit * .1, 0, 0, unit * 1.3);
       g.addColorStop(0, "rgb(" + rgb + " / 1)");
       g.addColorStop(1, "rgb(" + rgb + " / 0)");
       return g;
     }
     function drawShafts() {
       var lift = model3d ? model3d.lift() : .5, L = unit * 1.3;
+      ctx.save();
+      ctx.translate(cx, cy);
       rays.forEach(function (r) {
         var a = r.a + clock * r.v;
         ctx.globalAlpha = r.o / 3 * (.55 + .45 * lift) * (.7 + .3 * Math.sin(clock * .45 + r.ph));
         ctx.fillStyle = shade[r.c];
         for (var k = 1; k <= 3; k++) { // three nested wedges give each shaft a soft edge
           var half = r.w * k / 6;
-          ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, L, a - half, a + half); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, L, a - half, a + half); ctx.closePath(); ctx.fill();
         }
       });
-      ctx.globalAlpha = 1;
+      ctx.restore();
     }
 
     function spawn(anywhere) {
@@ -1029,6 +1940,7 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       var dt = last ? Math.min(.1, (now - last) / 1000) : 0;
       last = now;
       clock += dt;
+      center(); // the construct moves when the hub appears
       aim.x += (aim.tx - aim.x) * Math.min(1, dt * 2.5);
       aim.y += (aim.ty - aim.y) * Math.min(1, dt * 2.5);
       for (var i = 0; i < parts.length; i++) {
@@ -1044,10 +1956,14 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
       draw();
       raf = requestAnimationFrame(step);
     }
-    function resize() {
-      var dpr = Math.min(2, window.devicePixelRatio || 1), sr = c.getBoundingClientRect(), cr = el.core.getBoundingClientRect();
-      w = c.clientWidth; hgt = c.clientHeight;
+    function center() {
+      var sr = c.getBoundingClientRect(), cr = el.core.getBoundingClientRect();
       cx = cr.left + cr.width / 2 - sr.left; cy = cr.top + cr.height / 2 - sr.top; unit = cr.width || 300;
+    }
+    function resize() {
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = c.clientWidth; hgt = c.clientHeight;
+      center();
       c.width = Math.round(w * dpr); c.height = Math.round(hgt * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       shade[TEAL] = shadeFor(TEAL);
@@ -1065,7 +1981,9 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     document.addEventListener("visibilitychange", function () { if (document.hidden) pause(); else resume(); });
     document.addEventListener("pointermove", function (e) { aim.tx = e.clientX / innerWidth * 2 - 1; aim.ty = e.clientY / innerHeight * 2 - 1; }, { passive: true });
     document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) aim.tx = aim.ty = 0; });
-    return { pause: pause, resume: resume, gather: gather };
+    // After the construct has moved: redraw the still frame (reduced motion), or let the running loop follow it
+    function recenter() { center(); if (!running) draw(); }
+    return { pause: pause, resume: resume, gather: gather, recenter: recenter };
   })();
 
   // ---------- Construct: the in-game model, drawn with three.js ----------
@@ -1506,30 +2424,43 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     return api;
   })();
 
-  // ---------- Scan ----------
-  var scanning = false;
-  function scan(opts) {
+  // ---------- Scan, and the hub it reveals ----------
+  // The scan sweeps the construct; as the beam reaches the bottom, the three choices appear beneath it. A scan
+  // started from the keyboard moves the focus to the first of them.
+  var scanning = false, hubShown = false;
+  function scan(keyboard) {
     if (scanning || el.archive.open) return;
     scanning = true;
     el.stage.classList.add("is-scanning");
-    var done;
+    var reveal, done;
     if (reduced) {
-      done = wait(250);
+      reveal = done = wait(250);
     } else {
       el.scan.hidden = false;
       void el.scan.offsetWidth;
       el.scan.classList.add("run");
       model3d.scan();
       motes.gather();
+      reveal = wait(1350);
       done = wait(1950);
     }
+    reveal.then(function () { showHub(keyboard); });
     done.then(function () {
-      openArchive(opts);
       el.scan.classList.remove("run");
       el.scan.hidden = true;
       el.stage.classList.remove("is-scanning");
       scanning = false;
     });
+  }
+  function showHub(focus) {
+    if (!hubShown) {
+      hubShown = true;
+      el.hub.hidden = false;
+      el.hub.classList.add("show");
+      el.stage.classList.add("has-hub");
+      motes.recenter();
+    }
+    if (focus) el.hub.querySelector(".hub-opt").focus({ preventScroll: true });
   }
 
   // ---------- Events ----------
@@ -1543,34 +2474,67 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
     var dx = x - (g.left + g.width / 2), dy = y - (g.top + g.height / 2);
     return dx * dx + dy * dy < Math.pow(g.width * .25, 2);
   }
-  el.construct.addEventListener("click", function (e) { if (e.detail === 0) scan({ view: "overview" }); });
-  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && onGem(e.clientX, e.clientY)) scan({ view: "overview" }); });
+  el.construct.addEventListener("click", function (e) { if (e.detail === 0) scan(true); });
+  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && !e.target.closest(".hub") && onGem(e.clientX, e.clientY)) scan(false); });
+  el.hub.addEventListener("click", function (e) { var b = e.target.closest(".hub-opt"); if (b) openArchive({ book: b.dataset.book }); });
+  el.tabs.addEventListener("click", function (e) {
+    var t = e.target.closest(".tab");
+    if (!t) return;
+    if (FORMS[currentView]) { toast("Finish or cancel the form first."); return; } // a tab would throw away what is written
+    openBook(t.dataset.book); // the open chapter's own tab goes back to its start
+  });
   el.stage.addEventListener("pointermove", function (e) { if (!scanning) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
   el.stage.addEventListener("pointerleave", function () { setGemHover(false); });
   el.btnClose.addEventListener("click", function () { el.archive.close(); });
   el.archive.addEventListener("click", function (e) {
-    if (e.target === el.archive && (currentView === "overview" || currentView === "detail")) el.archive.close();
+    if (e.target === el.archive && !FORMS[currentView] && el.lightbox.hidden && el.gate.hidden) el.archive.close();
   });
   el.archive.addEventListener("cancel", function (e) {
-    if (!el.seal.hidden) { e.preventDefault(); closeSeal(true); }
-    else if (currentView === "form") { e.preventDefault(); leaveForm(); }
+    if (!el.gate.hidden) { e.preventDefault(); closeGate(); }
+    else if (!el.lightbox.hidden) { e.preventDefault(); closeLightbox(); }
+    else if (!el.seal.hidden) { e.preventDefault(); closeSeal(true); }
+    else if (FORMS[currentView]) { e.preventDefault(); leaveCurrentForm(); }
+  });
+  el.archive.addEventListener("keydown", function (e) {
+    if (el.lightbox.hidden || !el.gate.hidden) return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); stepLightbox(-1); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); stepLightbox(1); }
   });
   el.archive.addEventListener("close", function () {
+    closeGate();
+    closeLightbox();
+    shown = null;
     closeSeal(false);
     root.append(el.toast);
-    disarm(el.detDelete); disarm(el.btnClearExamples);
+    disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete);
     el.stage.classList.remove("is-paused");
     motes.resume();
     model3d.resume();
-    el.construct.focus({ preventScroll: true });
+    setHash();
+    var back = hubShown && el.hub.querySelector('[data-book="' + currentBook + '"]'); // back to the choice that opened it
+    (back || el.construct).focus({ preventScroll: true });
   });
   el.detBack.addEventListener("click", function () { showView("overview"); });
   el.detEdit.addEventListener("click", function () { openForm(detailId); });
   el.btnInscribe.addEventListener("click", function () { openForm(null); });
+  el.btnAmend.addEventListener("click", openAboutForm);
+  el.btnAddArt.addEventListener("click", function () { openArtForm(null); });
+  el.plEdit.addEventListener("click", function () { openArtForm(plateId); });
+  el.plBack.addEventListener("click", showPlates);
+
+  // A shared address opens its chapter at once, without the scan: #about, #art, #knowledge, #art/<plate>, #knowledge/<record>
+  function route() {
+    var m = /^#(about|art|knowledge)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
+    if (!m || (el.archive.open && FORMS[currentView])) return;
+    showHub(false);
+    openArchive({ book: m[1], id: m[2] });
+  }
+  window.addEventListener("hashchange", route);
 
   // ---------- Boot ----------
   renderLanding();
   motes.resume();
+  route();
 
   refreshSession();
 })();
