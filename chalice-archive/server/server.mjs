@@ -36,6 +36,8 @@
      - Every response carries a strict Content-Security-Policy built from hashes of the page's own inline
        script and style, so no other inline code can run; scripts and fonts come only from this server (three.js
        and the fonts are served here, not from a CDN or Google), and Trusted Types forbid writing HTML into the page.
+       COOP and COEP keep the page apart from every other site.
+     - A write is checked against the session again once its body has arrived, so none lands after its session ended.
      - Only the page, the model, three.js, the fonts and the art the archive names are served, art only under its
        content hash. There is no static directory to wander through.
 */
@@ -150,12 +152,13 @@ function writeAtomic(file, text) { // text: a string or a Buffer
 }
 
 // ---------- the keeper's word ----------
-// Each scrypt call takes 128 MiB for a fraction of a second. They run one at a time, and a long queue is
-// refused, so a burst of logins cannot exhaust a small VPS's memory.
+// Each scrypt call takes 128 MiB for a fraction of a second. They run one at a time, so a burst of logins cannot
+// exhaust a small VPS's memory, and a word to be checked is refused while a long queue waits (beginTry), so a burst
+// cannot hold the server up either. Work for a word already proved right is never refused.
+const KDF_QUEUE = 4;
 let kdfChain = Promise.resolve();
 let kdfWaiting = 0;
 function oneAtATime(fn) {
-  if (kdfWaiting >= 4) return Promise.reject(new HttpError(503, "The archive is busy. Try again in a moment.", { "Retry-After": "5" }));
   kdfWaiting += 1;
   const run = kdfChain.then(fn, fn);
   kdfChain = run.catch(() => {});
@@ -793,9 +796,12 @@ function refuseWhileWaiting(ip, known) {
 }
 // A try at the word counts as a failure from the moment it is made, and is forgiven once the word proves right.
 // The wait is checked and the try counted together, with nothing awaited in between, so a burst of parallel tries
-// cannot all slip past the wait before the first of them has failed.
+// cannot all slip past the wait before the first of them has failed. The caller checks the word at once (checkWord
+// joins the queue before it awaits anything). A try refused because too many words wait to be checked is no miss:
+// its word was never checked, and otherwise whoever floods the logins would earn the keeper's address a wait.
 function beginTry(ip, known) {
   refuseWhileWaiting(ip, known);
+  if (kdfWaiting >= KDF_QUEUE) throw new HttpError(503, "The archive is busy. Try again in a moment.", { "Retry-After": "5" });
   const at = Date.now();
   return { ip, at, secs: noteFailure(ip, at) };
 }
@@ -894,7 +900,11 @@ function securityHeaders(res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
+  // With COOP, COEP isolates the page from every other site: it gets a process of its own even where the browser does
+  // not otherwise keep sites apart (Chrome on Android), out of reach of Spectre-style reads from another site's page.
+  // The page loads nothing from any other origin, so it costs nothing.
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader("Permissions-Policy", PERMISSIONS);
   if (CONFIG.secureCookie) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
@@ -943,6 +953,18 @@ async function readJson(req, limit = LIMIT.body) {
   return value;
 }
 
+// The keeper's session must still hold once a body has arrived. A body may take a minute (a video, a quarter of an
+// hour), and a write must not land after its session has ended meanwhile: sealed, run out, or every session signed
+// out by a new word, as the keeper does when a session may have been stolen.
+function stillKeeper(req) {
+  if (!sessionOf(req)) throw new HttpError(401, "Unlock the archive first.");
+}
+async function keeperJson(req, limit) {
+  const body = await readJson(req, limit);
+  stillKeeper(req);
+  return body;
+}
+
 // Writes must come from the archive's own address: the browser's Origin header, which pages cannot forge.
 // PUBLIC_ORIGIN is required with Secure cookies (serve()); only plain http on this machine falls back to the Host header.
 function sameOrigin(req) {
@@ -964,17 +986,20 @@ async function login(req, res) {
   const word = typeof body.password === "string" ? body.password.slice(0, WORD.max) : "";
   const auth = readAuth();
   const attempt = beginTry(ip, known);
+  if (!word || !(await checkWord(word, auth))) {
+    throw new HttpError(401, "The seal does not yield.", attempt.secs ? { "Retry-After": String(attempt.secs) } : undefined);
+  }
+  forgive(attempt); // the word is right: nothing that happens next makes this try a miss
   // a word that was the word when it was checked, but was changed before the session began, is refused like any other
-  const session = word && (await checkWord(word, auth)) ? await unseal(word, auth) : null;
-  if (!session) throw new HttpError(401, "The seal does not yield.", attempt.secs ? { "Retry-After": String(attempt.secs) } : undefined);
-  forgive(attempt);
+  const session = await unseal(word, auth);
+  if (!session) throw new HttpError(401, "The seal does not yield.");
   sendJson(req, res, 200, { owner: true, csrf: session.csrf }, { "Set-Cookie": [sessionCookie(session.token, CONFIG.sessionMs), deviceCookie(auth)] });
 }
 
 async function changeWord(req, res, session) {
   const ip = throttleKey(clientIp(req));
   refuseWhileWaiting(ip, true); // it needs the session already: only its own address's misses hold it back
-  const body = await readJson(req);
+  const body = await keeperJson(req);
   const auth = readAuth();
   if (!auth || auth.generation !== session.generation) throw new HttpError(401, "Unlock the archive first."); // changed while the request came in
   const attempt = beginTry(ip, true);
@@ -986,7 +1011,8 @@ async function changeWord(req, res, session) {
   if (problem) throw new HttpError(400, problem);
   const next = { ...(await hashWord(body.next)), key: await wrapKey(body.next, session.privateKey) }; // the same private key, under the new word
   const fresh = await authTurn(() => {
-    if (!stillWord(auth)) throw new HttpError(401, "Unlock the archive first."); // the word was changed elsewhere meanwhile
+    // the word was changed elsewhere meanwhile, or this session was sealed while the new word was hashed
+    if (!stillWord(auth) || !sessions.has(session.key)) throw new HttpError(401, "Unlock the archive first.");
     writeAtomic(FILES.auth, JSON.stringify(next, null, 2) + "\n");
     sessions.clear(); // every session, here and elsewhere, is signed out
     return createSession(next, session.privateKey);
@@ -1004,6 +1030,7 @@ async function upload(req, res) {
   if (ext === "mp4" || ext === "webm") return uploadVideo(req, res, ext);
   const limit = ext === "gif" ? LIMIT.gif : LIMIT.upload;
   let body = await readBody(req, limit, `That ${ext === "gif" ? "GIF" : "image"} is too large. The limit is ${limit / MiB} MB.`);
+  stillKeeper(req);
   const info = imageInfo(body);
   if (!info || info.ext !== ext) throw new HttpError(415, "That file is not the image it claims to be.");
   if (!(info.width >= 1 && info.height >= 1 && info.width <= LIMIT.side && info.height <= LIMIT.side)) {
@@ -1030,6 +1057,7 @@ async function uploadVideo(req, res, ext) {
   const tmp = path.join(FILES.art, `.upload-${crypto.randomBytes(8).toString("hex")}.tmp`);
   try {
     const size = await receive(req, tmp, LIMIT.video, tooLarge);
+    stillKeeper(req);
     const fd = fs.openSync(tmp, "r+");
     try {
       if (!(ext === "mp4" ? cleanMp4(fd, size) : isWebm(fd))) throw new HttpError(415, "That file is not the video it claims to be.");
@@ -1142,9 +1170,12 @@ async function handle(req, res) {
   }
   if (req.method === "POST" && pathname === "/api/password") return changeWord(req, res, session);
 
+  // Each write reads its body first, then checks and changes the archive as it is by then, with nothing awaited
+  // before its commit: two writes at once never work on a stale copy, and a limit cannot be passed by sending many.
   if (req.method === "POST" && pathname === "/api/records") {
+    const body = await keeperJson(req);
     if (archive.records.length >= LIMIT.records) throw new HttpError(413, "The archive is full.");
-    const rec = cleanRecord(await readJson(req));
+    const rec = cleanRecord(body);
     commit({ ...archive, records: [...archive.records, rec] });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: rec.id });
   }
@@ -1155,7 +1186,7 @@ async function handle(req, res) {
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
   }
   if (req.method === "PUT" && pathname === "/api/about") {
-    const body = await readJson(req, LIMIT.aboutBody).catch((e) => {
+    const body = await keeperJson(req, LIMIT.aboutBody).catch((e) => {
       throw e.status === 413 ? new HttpError(413, `The About page is too long to keep: ${LIMIT.aboutBody / 1024} KB in all.`) : e;
     });
     commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body) });
@@ -1163,13 +1194,14 @@ async function handle(req, res) {
   }
   if (req.method === "POST" && pathname === "/api/uploads") return upload(req, res);
   if (req.method === "POST" && pathname === "/api/art") {
+    const body = await keeperJson(req);
     if (archive.art.length >= LIMIT.art) throw new HttpError(413, "There is no room for more art pieces.");
-    const plate = cleanArt(await readJson(req), null, true);
+    const plate = cleanArt(body, null, true);
     commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: plate.id });
   }
   if (req.method === "POST" && pathname === "/api/art/order") {
-    const ids = (await readJson(req)).ids;
+    const ids = (await keeperJson(req)).ids;
     const byId = new Map(archive.art.map((a) => [a.id, a]));
     if (!Array.isArray(ids) || ids.length !== byId.size || new Set(ids).size !== ids.length || !ids.every((id) => byId.has(id))) {
       throw new HttpError(409, "The art pieces have changed. Reload and try again.");
@@ -1179,10 +1211,11 @@ async function handle(req, res) {
   }
   const pm = pathname.match(/^\/api\/art\/([^/]+)$/);
   if (pm && validId(pm[1])) {
+    const body = req.method === "PUT" ? await keeperJson(req) : null;
     const prev = archive.art.find((a) => a.id === pm[1]);
     if (!prev) throw new HttpError(404, "That art piece is gone.");
     if (req.method === "PUT") {
-      const plate = cleanArt(await readJson(req), prev, true);
+      const plate = cleanArt(body, prev, true);
       const art = archive.art.map((a) => (a.id === prev.id ? plate : a));
       commit({ ...archive, art });
       sweepArt();
@@ -1197,13 +1230,14 @@ async function handle(req, res) {
   }
   // his forms: galleries of art pieces, in the keeper's order
   if (req.method === "POST" && pathname === "/api/galleries") {
+    const body = await keeperJson(req);
     if (archive.galleries.length >= LIMIT.galleries) throw new HttpError(413, "There is no room for more forms.");
-    const gallery = cleanGallery(await readJson(req));
+    const gallery = cleanGallery(body);
     commit({ ...archive, galleries: [...archive.galleries, gallery] });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: gallery.id });
   }
   if (req.method === "POST" && pathname === "/api/galleries/order") {
-    const ids = (await readJson(req)).ids;
+    const ids = (await keeperJson(req)).ids;
     const byId = new Map(archive.galleries.map((g) => [g.id, g]));
     if (!Array.isArray(ids) || ids.length !== byId.size || new Set(ids).size !== ids.length || !ids.every((id) => byId.has(id))) {
       throw new HttpError(409, "The forms have changed. Reload and try again.");
@@ -1213,10 +1247,11 @@ async function handle(req, res) {
   }
   const gm = pathname.match(/^\/api\/galleries\/([^/]+)$/);
   if (gm && validId(gm[1])) {
+    const body = req.method === "PUT" ? await keeperJson(req) : null;
     const prev = archive.galleries.find((g) => g.id === gm[1]);
     if (!prev) throw new HttpError(404, "That form is gone.");
     if (req.method === "PUT") {
-      const gallery = cleanGallery(await readJson(req), prev);
+      const gallery = cleanGallery(body, prev);
       commit({ ...archive, galleries: archive.galleries.map((g) => (g.id === prev.id ? gallery : g)) });
       return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: gallery.id });
     }
@@ -1227,18 +1262,18 @@ async function handle(req, res) {
     }
   }
   if (req.method === "POST" && pathname === "/api/encounters") {
+    const body = await keeperJson(req, LIMIT.encounterBody);
     if (archive.encounters.length >= LIMIT.encounters) throw new HttpError(413, "There is no room for more encounters.");
-    const body = await readJson(req, LIMIT.encounterBody);
     const enc = encounterFrom(body, null, session.privateKey);
     commit({ ...archive, encounters: [...archive.encounters, enc] });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: enc.id });
   }
   const em = pathname.match(/^\/api\/encounters\/([^/]+)$/);
   if (em && validId(em[1])) {
+    const body = req.method === "PUT" ? await keeperJson(req, LIMIT.encounterBody) : null;
     const prev = archive.encounters.find((e) => e.id === em[1]);
     if (!prev) throw new HttpError(404, "That encounter is gone.");
-    if (req.method === "PUT") {
-      const body = await readJson(req, LIMIT.encounterBody);
+    if (req.method === "PUT") { // a private section left out is kept as it is now, not as it was when the request began
       const enc = encounterFrom(body, prev, session.privateKey);
       commit({ ...archive, encounters: archive.encounters.map((e) => (e.id === prev.id ? enc : e)) });
       return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: enc.id });
@@ -1251,10 +1286,11 @@ async function handle(req, res) {
   }
   const m = pathname.match(/^\/api\/records\/([^/]+)$/);
   if (m && validId(m[1])) {
+    const body = req.method === "PUT" ? await keeperJson(req) : null;
     const prev = archive.records.find((r) => r.id === m[1]);
     if (!prev) throw new HttpError(404, "That record is gone.");
     if (req.method === "PUT") {
-      const rec = cleanRecord(await readJson(req), prev);
+      const rec = cleanRecord(body, prev);
       commit({ ...archive, records: archive.records.map((r) => (r.id === prev.id ? rec : r)) });
       return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: rec.id });
     }
@@ -1282,16 +1318,20 @@ function serve() {
   SITE = loadSite();
   if (!readAuth()) console.warn("No keeper's word yet: nobody can log in until you run `node server/server.mjs set-password`.");
 
+  // A body still arriving once the answer is on its way is read and thrown away only for a while, long enough for the
+  // client to take in the answer, not for as long as a video upload may take: one refused before it was read (an
+  // upload without a session) or half way, and one sent with a request that reads none (a GET), which could otherwise
+  // hold a connection for a quarter of an hour by sending a byte now and then.
+  const letGo = (req) => {
+    if (req.complete) return; // (still arriving: the next request on the connection cannot have begun)
+    const cut = setTimeout(() => { if (!req.complete) req.socket.destroy(); }, 10e3), keep = () => clearTimeout(cut);
+    cut.unref();
+    req.once("end", keep).once("close", keep);
+  };
   const server = http.createServer((req, res) => {
-    handle(req, res).catch((err) => {
+    handle(req, res).then(() => letGo(req), (err) => {
       if (res.headersSent) { res.destroy(); return; }
-      // A body refused before it was read (an upload without a session) or half way is read and thrown away only for
-      // a while, long enough for the client to take in the answer, not for as long as a video upload may take
-      if (!req.complete) { // (still arriving: the next request on the connection cannot have begun)
-        const cut = setTimeout(() => { if (!req.complete) req.socket.destroy(); }, 10e3), keep = () => clearTimeout(cut);
-        cut.unref();
-        req.once("end", keep).once("close", keep);
-      }
+      letGo(req);
       if (err instanceof HttpError) return sendJson(req, res, err.status, { error: err.message }, err.headers);
       console.error(err);
       sendJson(req, res, 500, { error: "Something went wrong." });

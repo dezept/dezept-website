@@ -1451,7 +1451,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var e = r.encounter && findEnc(r.encounter), from = e ? e.title : r.source;
       return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), r.note, function () { showDetail(r.id); });
     }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." }))]);
-    if (currentView === "detail") renderDetail();
+    renderDetail(); // also out of sight: its link to an encounter only for the keeper must not stay behind once sealed
   }
 
   // Encounters: newest first; each tells what happened, and, to the keeper alone, its private section. Those only
@@ -1650,6 +1650,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     Object.keys(BOOKS).forEach(function (b) { el["leaf" + b[0].toUpperCase() + b.slice(1)].hidden = b !== book; });
     if (name !== "plate") { shown = null; clearMedia(); } // a mature image is covered again once the visitor moves on, and a video stops
     currentView = name;
+    if (!owner) wipeForms(); // a form kept open as the session ended lets go of what it held once it is left
     currentBook = book;
     el.book.dataset.view = name;
     el.book.dataset.book = book;
@@ -1699,7 +1700,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // keeper appears once the keeper's archive has arrived, and goes once the archive is sealed.
   function renderDetail() {
     var r = find(detailId);
-    if (!r) return;
+    if (!r) { el.detDate.textContent = el.detTitle.textContent = el.detNote.textContent = ""; fill(el.detSource, []); return; } // a record removed leaves nothing behind
+
     el.detDate.textContent = r.date ? fmtDate(r.date) : "";
     el.detDate.setAttribute("datetime", r.date);
     el.detTitle.textContent = r.title;
@@ -1871,7 +1873,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!body.title) { formError("encounterForm", "Give the encounter a title."); el.efTitle.focus(); return; }
     if (prev && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
     save(prev ? "PUT" : "POST", prev ? "api/encounters/" + encodeURIComponent(prev.id) : "api/encounters", body, function (data) {
-      if (body.private !== undefined) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
+      if (body.private !== undefined && owner) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
       if (findEnc(data.id)) showEncounter(data.id); else showView("encounters");
       loadPrivate();
     }, el.efSubmit, prev ? "Saving…" : "Recording…", prev ? "The encounter is revised." : body.sealed ? "The encounter is recorded, for you alone." : "The encounter is recorded.");
@@ -2526,7 +2528,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     else if (FORMS[currentView]) formError(currentView, err.message);
     else toast(err.message);
   }
-  function applyArchive(raw) { state = normalize(raw); renderAll(); }
+  // A change sent while unsealed may be answered after the tab has sealed (in another tab, or the session ran out):
+  // the answer is the keeper's archive, and the encounters only for the keeper in it must not come back to the page
+  function applyArchive(raw) {
+    state = normalize(raw);
+    if (!owner) forgetSealed();
+    renderAll();
+  }
   function save(method, url, body, then, btn, label, done) {
     if (busy || !canPost()) return;
     setBusy(btn, true, label);
@@ -2551,7 +2559,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function setOwner(on, token) {
     owner = on;
     csrf = on ? token || "" : "";
-    if (!on) { privates = {}; privatesLoaded = false; forgetSealed(); wipeForms(); } // sealed: the private sections and the keeper's own encounters leave the page's memory too
+    // sealed: the private sections and the keeper's own encounters leave the page's memory too, and so does the last
+    // private section shown, which stays in the encounter's view while the tab shows something else
+    if (!on) { privates = {}; privatesLoaded = false; forgetSealed(); wipeForms(); fill(el.encPrivateText, []); el.encPrivate.hidden = true; }
     renderAll(); // a record on view too, which loses its link to one of them
     if (!on && currentView === "encounter" && !findEnc(encounterId)) showView("encounters");
     if (on) loadPrivate();
@@ -2717,7 +2727,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     t.hidden = false;
     t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
     clearTimeout(t._t);
-    t._t = setTimeout(function () { t.hidden = true; }, 4200);
+    t._t = setTimeout(function () { t.hidden = true; t.textContent = ""; }, 4200); // its words (a removed encounter's title) do not stay behind
   }
 
   // ---------- Ambient: light shafts, motes at three depths, flares, and anima wisps the construct draws in ----------
