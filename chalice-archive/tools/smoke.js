@@ -25,7 +25,9 @@ Checks:
      downloads stopped half way let go of their files; an upload without a session is refused at once and its
      connection let go within seconds; encounters, whose private sections are stored encrypted, never reach visitors,
      and need the session and its CSRF token; encounters only for the keeper, stored encrypted whole, of which
-     visitors receive nothing; plates saved before they had several images; the password file; dates that do not
+     visitors receive nothing; plates saved before they had several images; the password file, and set-password, which
+     refuses a word with control characters in it and another user's data directory; idle connections kept longer than
+     Caddy keeps them; an MP4 whose ftyp box gives its size in 64 bits; dates that do not
      exist are dropped; backups never overwrite one another; changing the word signs other sessions out; failed
      logins are throttled per IP (an IPv6 address by its /64), and a burst of parallel guesses gets no more tries
      than guesses one after another; guesses from many addresses pause every login, except from a browser with the
@@ -41,7 +43,9 @@ Checks:
      and leaves one that has none; only the gem wakes the construct, which reveals the choices, and they go again when
      the tome closes; a wrong word is refused; the right word shows the tools; records can be inscribed, revised and
      removed, and markup in them stays text; an encounter with a private section can be recorded, a record can name
-     it and link to it, and the private section shows only while unsealed, and leaves every tab when one tab seals;
+     it and link to it, and the private section shows only while unsealed, and leaves every tab when one tab seals; a
+     record's link to an encounter only for the keeper follows the seal on the record's page, and that encounter's
+     address opens it for the keeper after a reload; a date in the year 35 shows as such;
      the About page can be amended in Total RP 3's terms (directory, standard traits, glances, a description whose
      TRP markup becomes headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved
      writing, and the page has no portrait; a form can be added, and a plate of two images, one mature, uploaded into
@@ -218,6 +222,20 @@ async function apiChecks() {
     check((await run(['set-password'], { DATA_DIR: s.dataDir }, 'too short\ntoo short\n')).code !== 0 &&
       (await run(['set-password'], { DATA_DIR: s.dataDir }, `${WORD}\n${WORD}!\n`)).code !== 0 &&
       fs.readFileSync(path.join(s.dataDir, 'auth.json'), 'utf8') === authText, 'set-password refuses a short word and two words that differ');
+    const arrowed = await run(['set-password'], { DATA_DIR: s.dataDir }, `${WORD}\x1b[D\n${WORD}\x1b[D\n`);
+    check(arrowed.code !== 0 && /control characters/.test(arrowed.out) && fs.readFileSync(path.join(s.dataDir, 'auth.json'), 'utf8') === authText,
+      'set-password refuses a word with an arrow key typed into it, which no browser could send back');
+    // set-password run as another user than the one the data directory belongs to (root, through sudo) would write an
+    // auth.json the server cannot read; it must refuse before writing anything
+    const theirs = path.join(OUT, 'data-theirs');
+    const asRoot = process.getuid && process.getuid() === 0;
+    fs.rmSync(theirs, { recursive: true, force: true });
+    fs.mkdirSync(theirs, { mode: 0o700 });
+    if (asRoot) fs.chownSync(theirs, 65534, 65534);
+    const intruder = await run(['set-password'], { DATA_DIR: asRoot ? theirs : '/' }, `${WORD}\n${WORD}\n`);
+    check(intruder.code === 1 && /belongs to another user/.test(intruder.out) && fs.readdirSync(theirs).length === 0,
+      "set-password refuses to write into another user's data directory, where the server could not read the word");
+    fs.rmSync(theirs, { recursive: true, force: true });
     const misconfigured = await Promise.all([{ SESSION_HOURS: '12h' }, { SESSION_HOURS: '0' }, { PORT: 'eighty' }].map((e) => run([], { DATA_DIR: s.dataDir, PORT: '0', ...e }, '', 5000)));
     check(misconfigured.every((r) => r.code === 2 && /must be a number/.test(r.out)), 'the server will not start with a SESSION_HOURS or PORT that is not a number in range (so no session can last for ever)');
     const noOrigin = await Promise.all([{ PUBLIC_ORIGIN: '' }, { PUBLIC_ORIGIN: 'archive.test' }, { PUBLIC_ORIGIN: 'http://archive.test' }, { PUBLIC_ORIGIN: 'https://archive.test/archive' }]
@@ -253,6 +271,9 @@ async function apiChecks() {
     check(h['strict-transport-security'] === 'max-age=31536000; includeSubDomains' && h['x-content-type-options'] === 'nosniff' &&
       h['x-frame-options'] === 'DENY' && h['referrer-policy'] === 'no-referrer' && h['cache-control'] === 'no-store' &&
       h['cross-origin-opener-policy'] === 'same-origin' && !h['x-powered-by'], 'HSTS, nosniff, no framing, no referrer, no caching of the page');
+    const kept = await call('GET', '/api/session', { headers: { Connection: 'keep-alive' } });
+    check(kept.headers['keep-alive'] === 'timeout=130',
+      `the server keeps an idle connection open longer than Caddy does (2 minutes), so Caddy never sends a request down one the server is closing (${kept.headers['keep-alive']})`);
     check(Array.isArray((archiveIn(page.text) || {}).records), 'the page carries the archive in its data block');
     const model = page.text.match(/"(chalice\.[0-9a-f]{12}\.glb)"/)[1];
     const glb = await call('GET', '/' + model);
@@ -537,6 +558,14 @@ async function apiChecks() {
     check((await upload(badMoov, 'video/mp4')).status === 415, 'an MP4 whose moov box cannot be read through is refused, as its metadata could not be found to be blanked');
     check((await upload(mp4('qt  '), 'video/mp4')).status === 415 && (await upload(Buffer.from('not a video, not even close'), 'video/mp4')).status === 415 &&
       (await upload(webm, 'video/mp4')).status === 415, 'a QuickTime file, or anything else that is not an MP4, is refused as one');
+    // an ftyp box may give its size in 64 bits; its brand then comes 8 bytes later
+    const ftyp64 = (brand) => {
+      const body = Buffer.from(brand + '\0\0\0\0isommp41', 'latin1'), head = Buffer.alloc(16);
+      head.writeUInt32BE(1); head.write('ftyp', 4, 'latin1'); head.writeBigUInt64BE(BigInt(16 + body.length), 8);
+      return Buffer.concat([head, body, mbox('moov', mbox('mvhd', Buffer.alloc(100))), mdat]);
+    };
+    check((await upload(ftyp64('qt  '), 'video/mp4')).status === 415 && (await upload(ftyp64('isom'), 'video/mp4')).status === 200,
+      'an MP4 whose ftyp box gives its size in 64 bits is read right: a QuickTime file is still refused, an MP4 still taken');
     const upW = await upload(webm, 'video/webm');
     check(upW.status === 200 && /\.webm$/.test(upW.json.file) && fs.readFileSync(path.join(s.dataDir, 'art', upW.json.file)).equals(webm) &&
       (await upload(mp4In, 'video/webm')).status === 415, 'a WebM video is taken as it is, and nothing else as one');
@@ -597,6 +626,7 @@ async function apiChecks() {
     const other = cookieOf(await login({ Origin: ORIGIN }));
     check((await write('POST', '/api/password', { current: 'not the word', next: NEW_WORD })).status === 401, 'changing the word needs the current word');
     check((await write('POST', '/api/password', { current: WORD, next: 'short' })).status === 400, 'the new word must be at least 12 characters');
+    check((await write('POST', '/api/password', { current: WORD, next: NEW_WORD + '\u001b[D' })).status === 400, 'the new word cannot hold control characters');
     const changed = await write('POST', '/api/password', { current: WORD, next: NEW_WORD });
     const cookie2 = cookieOf(changed);
     check(changed.status === 200 && cookie2 && cookie2 !== cookie, 'the word can be changed, and the change starts a new session');
@@ -798,6 +828,10 @@ async function browserChecks() {
       return p;
     };
     const page = main = watch(await ctx.newPage());
+    // A page just loaded, and every further tab, first waits until its model is drawn. Under software rendering
+    // (SwiftShader, as here), compiling its shaders and drawing its first frame hold the page up for many seconds, longer
+    // than the steps timed after it allow, so they would time that and not what they check.
+    const settle = (p) => p.waitForSelector('.core.is-3d', { timeout: 30000 }).catch(() => {});
     const elsewhere = []; // everything the page asks for that is not the site itself
     page.on('request', (r) => { if (!r.url().startsWith(s.url) && !/^data:|^blob:/.test(r.url())) elsewhere.push(r.url()); });
     await page.goto(s.url);
@@ -866,6 +900,7 @@ async function browserChecks() {
       'Escape leaves a record form with nothing written in it');
     await page.click('#btn-inscribe');
     await page.fill('#f-title', 'Smoke record');
+    await page.fill('#f-date', '0035-05-01'); // a year below 100, which Date's constructor would take as 1935
     await page.fill('#f-note', 'Learned in the smoke test. ' + xss);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
@@ -874,6 +909,7 @@ async function browserChecks() {
     await page.waitForSelector('#view-detail:not([hidden])', { timeout: 10000 });
     check((await page.textContent('#det-title')) === 'Smoke record' && (await page.textContent('#det-note')).includes(xss) &&
       await page.evaluate(() => !window.__xss && !document.querySelector('#archive img')), 'an inscribed record is shown, and markup in it stays text');
+    check((await page.textContent('#det-date')) === '1 May 35', `a date in a year below 100 is shown in that year (${await page.textContent('#det-date')})`);
     await page.screenshot({ path: path.join(OUT, 'record.png') });
 
     await page.goto(s.url); // without the address of the record
@@ -937,6 +973,7 @@ async function browserChecks() {
     // a second tab of the same browser, on the same encounter: sealing the first tab must seal it too
     const tab2 = watch(await ctx.newPage());
     await tab2.goto(s.url + encHash);
+    await settle(tab2);
     const tab2Shows = await tab2.waitForSelector('#enc-private:not([hidden])', { timeout: 15000 }).then(() => true, () => false);
     const privateGone = (t) => document.getElementById('enc-private').hidden && !document.body.textContent.includes(t) &&
       ![...document.querySelectorAll('input, textarea, select')].some((x) => String(x.value).includes(t));
@@ -956,6 +993,7 @@ async function browserChecks() {
     const visitorSaw = [];
     visitor.on('response', (r) => { if (r.url().startsWith(s.url)) r.text().then((t) => visitorSaw.push(t), () => {}); });
     await visitor.goto(s.url + encHash);
+    await settle(visitor);
     await visitor.waitForSelector('#archive[open] #view-encounter:not([hidden])', { timeout: 20000 });
     await visitor.waitForTimeout(500);
     check((await visitor.textContent('#enc-title')) === 'An encounter with a druid' && await visitor.$('#enc-private[hidden]') !== null &&
@@ -976,6 +1014,33 @@ async function browserChecks() {
     await page.fill('#seal-word', WORD);
     await page.click('#seal-go');
     await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 15000 }).catch(() => {});
+    await page.click('.tab[data-book="knowledge"]');
+
+    // A record naming the encounter only for the keeper: on the record's own page, its link goes when the archive is
+    // sealed and comes back when it is unsealed. And the keeper's address of that encounter opens it after a reload,
+    // once the keeper's archive has arrived.
+    await page.click('#btn-inscribe');
+    await page.fill('#f-title', 'Kept to himself');
+    await page.selectOption('#f-encounter', { label: onlyMe + ', only for you' });
+    await page.click('#f-submit');
+    await page.waitForSelector('#view-detail:not([hidden])', { timeout: 10000 });
+    const linked = await page.evaluate(() => (document.querySelector('#det-source .link-to') || {}).textContent);
+    await page.click('#clasp');
+    await page.click('#seal-lock');
+    const unlinked = await page.waitForFunction(() => !document.querySelector('#det-source .link-to') && !document.getElementById('view-detail').hidden, null, { timeout: 10000 })
+      .then(() => true, () => false);
+    await page.click('#clasp');
+    await page.fill('#seal-word', WORD);
+    await page.click('#seal-go');
+    const relinked = await page.waitForFunction((t) => (document.querySelector('#det-source .link-to') || {}).textContent === t && !document.getElementById('view-detail').hidden,
+      onlyMe, { timeout: 15000 }).then(() => true, () => false);
+    check(linked === onlyMe && unlinked && relinked,
+      "on a record's own page, its link to an encounter only for the keeper goes when the archive is sealed, and comes back when it is unsealed");
+    await page.goto('about:blank');
+    await page.goto(s.url + onlyHash);
+    await settle(page);
+    check(await page.waitForFunction((t) => !document.getElementById('view-encounter').hidden && document.getElementById('enc-title').textContent === t, onlyMe, { timeout: 15000 })
+      .then(() => true, () => false) && (await page.evaluate(() => location.hash)) === onlyHash, "the keeper's address of an encounter only for the keeper opens it after a reload");
     await page.click('.tab[data-book="knowledge"]');
 
     // the About page
@@ -1098,6 +1163,7 @@ async function browserChecks() {
     const minorSeen = [];
     minor.on('request', (r) => minorSeen.push(r.url()));
     await minor.goto(s.url + plate.hash);
+    await settle(minor);
     await minor.waitForSelector('#archive[open] #view-plate:not([hidden])', { timeout: 20000 });
     await minor.click('#pl-versions .ver-btn >> nth=1');
     await minor.waitForSelector('#gate:not([hidden])', { timeout: 3000 });
@@ -1152,6 +1218,7 @@ async function browserChecks() {
     const plateHash = plate.hash;
     await page.goto(s.url + '#about');
     await page.reload();
+    await settle(page);
     await page.waitForSelector('#archive[open] #view-about:not([hidden])', { timeout: 10000 });
     check((await page.$$('#ab-traits .trait')).length === 11 && (await page.textContent('#ab-sections')).includes('old copper') && (await page.textContent('#ab-title')) === 'Archivist' &&
       !(await page.$('#leaf-about img, #view-about img')), 'an address with #about opens the About page at once, with no portrait on it');
@@ -1197,8 +1264,10 @@ async function browserChecks() {
     // is looked at: the private section leaves the page, and a form being written stays, with the seal panel open.
     const tab3 = watch(await ctx.newPage()), tab4 = watch(await ctx.newPage());
     await tab3.goto(s.url + encHash);
+    await settle(tab3);
     const tab3Shows = await tab3.waitForSelector('#enc-private:not([hidden])', { timeout: 15000 }).then(() => true, () => false);
     await tab4.goto(s.url + '#knowledge');
+    await settle(tab4);
     await tab4.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 15000 });
     await tab4.click('#btn-inscribe');
     await tab4.fill('#f-title', 'Written as the session ended');

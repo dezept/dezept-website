@@ -271,6 +271,8 @@ function unseal(word, auth) {
 function validWord(word) {
   if (typeof word !== "string" || word.length < WORD.min) return `Use at least ${WORD.min} characters.`;
   if (word.length > WORD.max) return `Use at most ${WORD.max} characters.`;
+  // An arrow key or Escape pressed while typing at set-password goes into the word, and no browser could send it back
+  if (/[\u0000-\u001f\u007f]/.test(word)) return "The word cannot hold control characters, such as an arrow key or Escape pressed while typing it.";
   return "";
 }
 
@@ -466,8 +468,9 @@ function cleanMp4(fd, size) {
     return out;
   };
   const top = boxes(0, size);
-  if (!top || !top.length || top[0][0] !== "ftyp" || top[0][3] < 16) return false;
-  if (read(8, 4).toString("latin1") === "qt  " || !top.some((b) => b[0] === "moov")) return false;
+  if (!top || !top.length || top[0][0] !== "ftyp" || top[0][3] < top[0][2] + 8) return false;
+  // its major brand follows its header, which is 16 bytes long when the box gives its size in 64 bits
+  if (read(top[0][2], 4).toString("latin1") === "qt  " || !top.some((b) => b[0] === "moov")) return false;
   const META = ["udta", "meta"];
   for (const [type, pos, hdr, len] of top) {
     if (META.includes(type) || type === "uuid") { blank(pos, hdr, len); continue; }
@@ -1296,7 +1299,11 @@ function serve() {
   });
   server.headersTimeout = 15e3;
   server.requestTimeout = 900e3; // a video upload over a slow connection takes a while (Cloudflare holds slow uploads back anyway)
-  server.keepAliveTimeout = 5e3;
+  // Caddy keeps an idle connection to this server for 2 minutes, then closes it. Were this server to close it first,
+  // Caddy could send a request down it at that very moment, and a login, a save or an upload would fail with a 502
+  // (only a request that is safe to send twice, such as a GET, is tried again). So this server waits longer, and
+  // Caddy always lets go first.
+  server.keepAliveTimeout = 130e3;
   server.listen(CONFIG.port, CONFIG.host, () => {
     const { address, port } = server.address();
     console.log(`Chalice Archive listening on http://${address.includes(":") ? `[${address}]` : address}:${port}`);
@@ -1345,6 +1352,13 @@ async function readWords(withCurrent) {
 // Sets the word. The private key is carried over to the new word, which needs the current one; with
 // --forget-private it is let go instead, and the private sections written so far can no longer be read.
 async function setPassword() {
+  // Only as the server's own user: auth.json written by anyone else (root, through sudo) is a file the server cannot
+  // read, so nobody could unseal the archive, and directories made here would be ones it cannot write
+  if (typeof process.getuid === "function" && fs.existsSync(CONFIG.dataDir) && fs.statSync(CONFIG.dataDir).uid !== process.getuid()) {
+    console.error(`${CONFIG.dataDir} belongs to another user. Run set-password as that user, such as:\n` +
+      `  sudo -u chalice env DATA_DIR=${CONFIG.dataDir} node ${fileURLToPath(import.meta.url)} set-password`);
+    process.exit(1);
+  }
   ensureDataDir();
   const prev = readAuth(), forget = process.argv.includes("--forget-private"), carry = Boolean(prev && prev.key) && !forget;
   const [word, again, current] = await readWords(carry);

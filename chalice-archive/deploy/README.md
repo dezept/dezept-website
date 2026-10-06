@@ -51,7 +51,8 @@ sudo -u chalice env DATA_DIR=/var/lib/chalice-archive node /opt/dezept-website/c
 ```
 
 - It asks twice and shows nothing while you type, so the word stays out of shell history and logs.
-- Use at least 12 characters, and a phrase you use nowhere else.
+- Use at least 12 characters, and a phrase you use nowhere else. Arrow keys and Escape don't edit at this prompt; they would go into the word, so it refuses one with them in it.
+- Run it as `chalice`, as above. Run as root (plain `sudo`), it refuses: the server could not read a word written by root, and nobody could unseal the archive.
 - Only a salted scrypt hash is stored (`auth.json`, mode 0600).
 - The word also locks the key that encrypts the encounters' private sections, and the encounters marked "Only for me" in whole. The key is made on the first login and stored in `auth.json` only wrapped by a second key derived from the word, so nothing on disk can read the private sections without the word.
 - Running it again replaces the word and signs every session out. Once there are private sections, it asks for the current word a third time, to carry the key over to the new word. Changing the word from the page does the same.
@@ -76,6 +77,8 @@ Leave off everything that rewrites the page:
 - automatic Web Analytics injection
 
 The page's Content-Security-Policy runs only the page's own script, matched by its hash. Anything injected is blocked, and Rocket Loader breaks the page outright.
+
+Add no Cache Rule or Page Rule that caches every address ("Cache Everything", or an Edge TTL that ignores the origin's `Cache-Control`). The page and the API answer `no-store`, and Cloudflare keeps one copy for everyone who asks for the same address, whoever they are: a cached answer to the keeper (`/api/private` holds the private sections, decrypted) would go to the next visitor who asked for it.
 
 Optional, and free: add a rate-limiting rule under Security → WAF:
 
