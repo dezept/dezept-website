@@ -51,9 +51,9 @@ sudo -u chalice env DATA_DIR=/var/lib/chalice-archive node /opt/dezept-website/c
 - It asks twice and shows nothing while you type, so the word stays out of shell history and logs.
 - Use at least 12 characters, and a phrase you use nowhere else.
 - Only a salted scrypt hash is stored (`auth.json`, mode 0600).
-- The word also locks the key that encrypts the encounters' private sections. The key is made on the first login and stored in `auth.json` only wrapped by a second key derived from the word, so nothing on disk can read the private sections without the word.
+- The word also locks the key that encrypts the encounters' private sections, and the encounters marked "Only for me" in whole. The key is made on the first login and stored in `auth.json` only wrapped by a second key derived from the word, so nothing on disk can read the private sections without the word.
 - Running it again replaces the word and signs every session out. Once there are private sections, it asks for the current word a third time, to carry the key over to the new word. Changing the word from the page does the same.
-- **A forgotten word:** run `set-password --forget-private` instead. The archive opens again with the new word, but the private sections written so far can never be read again, by anyone. Everything else is untouched.
+- **A forgotten word:** run `set-password --forget-private` instead. The archive opens again with the new word, but the private sections and the encounters only for you written so far can never be read again, by anyone (the page still lists the latter, as unreadable, so you can remove them). Everything else is untouched.
 
 ## 4. Cloudflare
 
@@ -149,7 +149,7 @@ Then open the site:
   - The images, GIFs and videos are in `/var/lib/chalice-archive/art/`. A file stays there while the archive or any of those 50 backups uses it, so restoring a backup finds its images. Videos take room: a removed one stays until it has dropped out of the last 50 backups, so keep an eye on the disk (`df -h /var/lib`).
   - Copy the whole `/var/lib/chalice-archive` directory off the VPS now and then.
   - To restore, stop the service, copy a backup over `archive.json`, then start the service.
-  - The encounters' private sections are encrypted in `archive.json` and every backup. Keep `auth.json` with them: its wrapped key and your word are what read them. A copy of the directory without the word is a copy without the private sections.
+  - The encounters' private sections, and the encounters only for you, are encrypted in `archive.json` and every backup. Keep `auth.json` with them: its wrapped key and your word are what read them. A copy of the directory without the word is a copy without the private sections.
 - **Removing a picture for good**: removing its art piece stops the server serving it at once. Cloudflare keeps its copy for up to a day; to clear it sooner, purge the image's address under Caching → Configuration → Custom Purge.
 - **Videos and Cloudflare**: Cloudflare's Service-Specific Terms ([explained here](https://blog.cloudflare.com/updated-tos/)) say that on the Free, Pro and Business plans the CDN is not for serving video from your own server; that takes Stream, R2 or the Enterprise plan. Cloudflare reserves the right to limit a site that does it anyway, or that serves a disproportionate share of pictures or other large files. Keep videos short and few, or decide to host them elsewhere.
 - **Logs**:

@@ -257,9 +257,53 @@ function withPrivate(enc, text, prevBox, key) {
   const plain = str(text, LIMIT.private);
   return plain ? { ...enc, private: sealPrivate(key, enc.id, plain) } : enc;
 }
-// Everything visitors may see: the archive without the encounters' private sections
+
+// An encounter only for the keeper ("Only for me" on the page): all of it, its title, date, text and private
+// section, is encrypted as one box bound to its id. Only its id and when it was added are stored in the clear.
+// Visitors never receive it, not even that it exists (publicArchive), and records that name it lose the link there.
+const SEALED = "sealed encounter:";
+const sealEncounter = (key, id, fields) => encrypt(key, Buffer.from(JSON.stringify(fields), "utf8"), SEALED + id);
+// Its fields, or null if it cannot be decrypted (the word was forgotten, or the box was moved onto another id)
+function openSealed(key, e) {
+  try {
+    const f = JSON.parse(decrypt(key, e.sealed, SEALED + e.id).toString("utf8"));
+    return { title: str(f.title, LIMIT.title) || "Untitled", date: validDate(f.date) ? f.date : "", text: str(f.text, LIMIT.story), private: str(f.private, LIMIT.private) };
+  } catch { return null; }
+}
+// An encounter as sent, for everyone or only for the keeper (`sealed`; left out, it stays as it was). Its private
+// text, left out, is kept: inside the box for a sealed one, as its own encrypted section for one everyone can read.
+function encounterFrom(body, prev, key) {
+  const enc = cleanEncounter(body, prev), wasSealed = Boolean(prev && prev.sealed);
+  const sealed = body.sealed === undefined ? wasSealed : body.sealed === true;
+  if (!sealed && !wasSealed) return withPrivate(enc, body.private, prev && prev.private, key);
+  let text = body.private === undefined ? undefined : str(body.private, LIMIT.private);
+  if (text === undefined && prev) text = wasSealed ? (openSealed(key, prev) || {}).private || "" : prev.private ? openPrivate(key, prev.id, prev.private) || "" : "";
+  if (!sealed) return withPrivate(enc, text || "", null, key);
+  return { id: enc.id, sealed: sealEncounter(key, enc.id, { title: enc.title, date: enc.date, text: enc.text, private: text || "" }), added: enc.added, example: false };
+}
+
+// Everything visitors may see: the archive without the encounters' private sections, without the encounters only
+// for the keeper, and without records' links to those
 function publicArchive() {
-  return { ...archive, encounters: archive.encounters.map(({ private: _, ...e }) => e) };
+  const hidden = new Set(archive.encounters.filter((e) => e.sealed).map((e) => e.id));
+  return {
+    ...archive,
+    encounters: archive.encounters.filter((e) => !e.sealed).map(({ private: _, ...e }) => e),
+    records: archive.records.map((r) => (hidden.has(r.encounter) ? { ...r, encounter: "" } : r)),
+  };
+}
+// What the keeper's session sees: everything, with the encounters only for the keeper decrypted, but still without
+// the private sections, which the page asks for apart (GET /api/private)
+function keeperArchive(key) {
+  return {
+    ...archive,
+    encounters: archive.encounters.map(({ private: _, ...e }) => {
+      if (!e.sealed) return e;
+      const f = openSealed(key, e);
+      return f ? { id: e.id, title: f.title, date: f.date, text: f.text, added: e.added, example: false, sealed: true }
+        : { id: e.id, title: "An encounter that can no longer be read", date: "", text: "", added: e.added, example: false, sealed: true, unreadable: true };
+    }),
+  };
 }
 
 // ---------- the art ----------
@@ -499,8 +543,9 @@ function cleanProfile(p, prev = {}) {
 
 function cleanArchive(raw) {
   const p = (raw && raw.profile) || {};
-  const encounters = (Array.isArray(raw && raw.encounters) ? raw.encounters : []).filter((e) => e && validId(e.id) && str(e.title, LIMIT.title)).slice(0, LIMIT.encounters)
-    .map((e) => ({ ...cleanEncounter(e, { id: e.id, added: Number(e.added) || 0 }), example: Boolean(e.example), ...(validBox(e.private) ? { private: box(e.private) } : {}) }));
+  const encounters = (Array.isArray(raw && raw.encounters) ? raw.encounters : []).filter((e) => e && validId(e.id) && (validBox(e.sealed) || str(e.title, LIMIT.title))).slice(0, LIMIT.encounters)
+    .map((e) => (validBox(e.sealed) ? { id: e.id, sealed: box(e.sealed), added: Number(e.added) || 0, example: false }
+      : { ...cleanEncounter(e, { id: e.id, added: Number(e.added) || 0 }), example: Boolean(e.example), ...(validBox(e.private) ? { private: box(e.private) } : {}) }));
   const records = (Array.isArray(raw && raw.records) ? raw.records : []).filter((r) => r && validId(r.id) && str(r.title, LIMIT.title)).slice(0, LIMIT.records)
     .map((r) => ({ ...cleanRecord(r, { id: r.id, added: Number(r.added) || 0 }, encounters), example: Boolean(r.example) }));
   const galleries = (Array.isArray(raw && raw.galleries) ? raw.galleries : []).filter((g) => g && validId(g.id) && str(g.name, LIMIT.galleryName)).slice(0, LIMIT.galleries)
@@ -878,15 +923,19 @@ async function handle(req, res) {
       return sendJson(req, res, 200, { owner: Boolean(s), csrf: s ? s.csrf : "" });
     }
     if (pathname === "/api/archive") return sendJson(req, res, 200, { archive: publicArchive() });
-    // The encounters' private sections, decrypted, only for the keeper's session (and its CSRF token, so no other
-    // page can make the browser fetch them). A section that cannot be decrypted comes back as null.
+    // The encounters' private sections, decrypted, and the archive as the keeper sees it, with the encounters only
+    // for the keeper; only for the keeper's session (and its CSRF token, so no other page can make the browser fetch
+    // them). A private section that cannot be decrypted comes back as null.
     if (pathname === "/api/private") {
       const s = sessionOf(req);
       if (!s) throw new HttpError(401, "Unlock the archive first.");
       if (!csrfOk(req, s)) throw new HttpError(403, "The request was refused.");
       const out = {};
-      for (const e of archive.encounters) if (e.private) out[e.id] = openPrivate(s.privateKey, e.id, e.private);
-      return sendJson(req, res, 200, { encounters: out });
+      for (const e of archive.encounters) {
+        if (e.sealed) { const f = openSealed(s.privateKey, e); if (!f) out[e.id] = null; else if (f.private) out[e.id] = f.private; }
+        else if (e.private) out[e.id] = openPrivate(s.privateKey, e.id, e.private);
+      }
+      return sendJson(req, res, 200, { encounters: out, archive: keeperArchive(s.privateKey) });
     }
     const art = pathname.match(/^\/art\/([^/]+)$/);
     if (art && ART_FILE.test(art[1])) return sendArt(req, res, art[1]);
@@ -912,27 +961,27 @@ async function handle(req, res) {
     if (archive.records.length >= LIMIT.records) throw new HttpError(413, "The archive is full.");
     const rec = cleanRecord(await readJson(req));
     commit({ ...archive, records: [...archive.records, rec] });
-    return sendJson(req, res, 200, { archive: publicArchive(), id: rec.id });
+    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: rec.id });
   }
   if (req.method === "POST" && pathname === "/api/records/clear-examples") { // the example records and encounters
     const encounters = archive.encounters.filter((e) => !e.example);
     const records = archive.records.filter((r) => !r.example).map((r) => (encounters.some((e) => e.id === r.encounter) ? r : { ...r, encounter: "" }));
     commit({ ...archive, records, encounters });
-    return sendJson(req, res, 200, { archive: publicArchive() });
+    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
   }
   if (req.method === "PUT" && pathname === "/api/about") {
     const body = await readJson(req, LIMIT.aboutBody).catch((e) => {
       throw e.status === 413 ? new HttpError(413, `The About page is too long to keep: ${LIMIT.aboutBody / 1024} KB in all.`) : e;
     });
     commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body) });
-    return sendJson(req, res, 200, { archive: publicArchive() });
+    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
   }
   if (req.method === "POST" && pathname === "/api/uploads") return upload(req, res);
   if (req.method === "POST" && pathname === "/api/art") {
     if (archive.art.length >= LIMIT.art) throw new HttpError(413, "There is no room for more art pieces.");
     const plate = cleanArt(await readJson(req), null, true);
     commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first
-    return sendJson(req, res, 200, { archive: publicArchive(), id: plate.id });
+    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: plate.id });
   }
   if (req.method === "POST" && pathname === "/api/art/order") {
     const ids = (await readJson(req)).ids;
@@ -941,7 +990,7 @@ async function handle(req, res) {
       throw new HttpError(409, "The art pieces have changed. Reload and try again.");
     }
     commit({ ...archive, art: ids.map((id) => byId.get(id)) });
-    return sendJson(req, res, 200, { archive: publicArchive() });
+    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
   }
   const pm = pathname.match(/^\/api\/art\/([^/]+)$/);
   if (pm && validId(pm[1])) {
@@ -952,13 +1001,13 @@ async function handle(req, res) {
       const art = archive.art.map((a) => (a.id === prev.id ? plate : a));
       commit({ ...archive, art });
       sweepArt();
-      return sendJson(req, res, 200, { archive: publicArchive(), id: plate.id });
+      return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: plate.id });
     }
     if (req.method === "DELETE") {
       const art = archive.art.filter((a) => a.id !== prev.id);
       commit({ ...archive, art });
       sweepArt();
-      return sendJson(req, res, 200, { archive: publicArchive() });
+      return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
     }
   }
   // his forms: galleries of art pieces, in the keeper's order
@@ -966,7 +1015,7 @@ async function handle(req, res) {
     if (archive.galleries.length >= LIMIT.galleries) throw new HttpError(413, "There is no room for more forms.");
     const gallery = cleanGallery(await readJson(req));
     commit({ ...archive, galleries: [...archive.galleries, gallery] });
-    return sendJson(req, res, 200, { archive: publicArchive(), id: gallery.id });
+    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: gallery.id });
   }
   if (req.method === "POST" && pathname === "/api/galleries/order") {
     const ids = (await readJson(req)).ids;
@@ -975,7 +1024,7 @@ async function handle(req, res) {
       throw new HttpError(409, "The forms have changed. Reload and try again.");
     }
     commit({ ...archive, galleries: ids.map((id) => byId.get(id)) });
-    return sendJson(req, res, 200, { archive: publicArchive() });
+    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
   }
   const gm = pathname.match(/^\/api\/galleries\/([^/]+)$/);
   if (gm && validId(gm[1])) {
@@ -984,20 +1033,20 @@ async function handle(req, res) {
     if (req.method === "PUT") {
       const gallery = cleanGallery(await readJson(req), prev);
       commit({ ...archive, galleries: archive.galleries.map((g) => (g.id === prev.id ? gallery : g)) });
-      return sendJson(req, res, 200, { archive: publicArchive(), id: gallery.id });
+      return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: gallery.id });
     }
     if (req.method === "DELETE") { // only an empty one, so no art piece is lost with it
       if (archive.art.some((a) => a.gallery === prev.id)) throw new HttpError(409, "Move its art pieces to another form, or remove them, first.");
       commit({ ...archive, galleries: archive.galleries.filter((g) => g.id !== prev.id) });
-      return sendJson(req, res, 200, { archive: publicArchive() });
+      return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
     }
   }
   if (req.method === "POST" && pathname === "/api/encounters") {
     if (archive.encounters.length >= LIMIT.encounters) throw new HttpError(413, "There is no room for more encounters.");
     const body = await readJson(req, LIMIT.encounterBody);
-    const enc = withPrivate(cleanEncounter(body), body.private, null, session.privateKey);
+    const enc = encounterFrom(body, null, session.privateKey);
     commit({ ...archive, encounters: [...archive.encounters, enc] });
-    return sendJson(req, res, 200, { archive: publicArchive(), id: enc.id });
+    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: enc.id });
   }
   const em = pathname.match(/^\/api\/encounters\/([^/]+)$/);
   if (em && validId(em[1])) {
@@ -1005,14 +1054,14 @@ async function handle(req, res) {
     if (!prev) throw new HttpError(404, "That encounter is gone.");
     if (req.method === "PUT") {
       const body = await readJson(req, LIMIT.encounterBody);
-      const enc = withPrivate(cleanEncounter(body, prev), body.private, prev.private, session.privateKey);
+      const enc = encounterFrom(body, prev, session.privateKey);
       commit({ ...archive, encounters: archive.encounters.map((e) => (e.id === prev.id ? enc : e)) });
-      return sendJson(req, res, 200, { archive: publicArchive(), id: enc.id });
+      return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: enc.id });
     }
     if (req.method === "DELETE") { // records that named it keep their own words, without the link
       commit({ ...archive, encounters: archive.encounters.filter((e) => e.id !== prev.id),
         records: archive.records.map((r) => (r.encounter === prev.id ? { ...r, encounter: "" } : r)) });
-      return sendJson(req, res, 200, { archive: publicArchive() });
+      return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
     }
   }
   const m = pathname.match(/^\/api\/records\/([^/]+)$/);
@@ -1022,11 +1071,11 @@ async function handle(req, res) {
     if (req.method === "PUT") {
       const rec = cleanRecord(await readJson(req), prev);
       commit({ ...archive, records: archive.records.map((r) => (r.id === prev.id ? rec : r)) });
-      return sendJson(req, res, 200, { archive: publicArchive(), id: rec.id });
+      return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: rec.id });
     }
     if (req.method === "DELETE") {
       commit({ ...archive, records: archive.records.filter((r) => r.id !== prev.id) });
-      return sendJson(req, res, 200, { archive: publicArchive() });
+      return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
     }
   }
   throw new HttpError(404, "Not found.");

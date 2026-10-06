@@ -4,8 +4,8 @@
    from #ca-model, the example art's images, GIFs and videos from #ca-files, and the API behaves like the real one,
    except that the word is "preview", every change, uploads included, is lost when the page reloads, and GIFs and
    videos are kept as they come (the server strips their metadata). The example
-   encounters' private sections come from #ca-private and are kept apart from the archive, as the server keeps
-   them; here they are only in memory, not encrypted. */
+   encounters' private sections, and the example encounter only for the keeper, come from #ca-private and are kept
+   apart from what visitors get, as the server keeps them; here they are only in memory, not encrypted. */
 (function () {
   "use strict";
   var MiB = 1024 * 1024;
@@ -20,6 +20,14 @@
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png|gif|mp4|webm)$/, STILL_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
   function isVideo(name) { return /\.(mp4|webm)$/.test(name); }
   var word = "preview", csrf = "", archive = null, model = null, files = null, sizes = {}, secret = null;
+  // #ca-private: { sections: encounter id -> its private text, sealed: [the encounters only for the keeper] }
+  function secrets() {
+    if (!secret) {
+      try { secret = JSON.parse(document.getElementById("ca-private").textContent) || {}; } catch (e) { secret = {}; }
+      if (!secret.sections) secret.sections = {};
+    }
+    return secret;
+  }
 
   function data() {
     if (!archive) {
@@ -29,15 +37,24 @@
       if (!Array.isArray(archive.galleries)) archive.galleries = [];
       if (!archive.about) archive.about = { facts: [], sections: [] };
       if (!Array.isArray(archive.encounters)) archive.encounters = [];
+      // the example encounters only for the keeper join the archive here, where only the keeper's answers show them
+      (secrets().sealed || []).forEach(function (e, n) {
+        archive.encounters.push({ id: e.id, title: e.title, date: e.date || "", text: e.text || "", added: 1000 + n, example: true, sealed: true });
+        if (e.private) privates()[e.id] = e.private;
+      });
     }
     return archive;
   }
   // encounter id -> its private text, never part of the archive
-  function privates() {
-    if (!secret) {
-      try { secret = JSON.parse(document.getElementById("ca-private").textContent) || {}; } catch (e) { secret = {}; }
-    }
-    return secret;
+  function privates() { return secrets().sections; }
+  // What visitors get: no encounter only for the keeper, and no record's link to one
+  function publicView(a) {
+    var hidden = {};
+    a.encounters.forEach(function (e) { if (e.sealed) hidden[e.id] = true; });
+    return Object.assign({}, a, {
+      encounters: a.encounters.filter(function (e) { return !e.sealed; }),
+      records: a.records.map(function (r) { return hidden[r.encounter] ? Object.assign({}, r, { encounter: "" }) : r; })
+    });
   }
   // image name -> data: URI: the example plates' images, then whatever is uploaded
   function fileMap() {
@@ -73,10 +90,12 @@
   function cleanEncounter(input, prev) {
     var title = str(input && input.title, LIMIT.title);
     if (!title) throw fail(400, "Give the encounter a title.");
-    return {
+    var enc = {
       id: prev ? prev.id : "e" + token().slice(0, 12), title: title, date: validDate(input.date) ? input.date : "",
       text: str(input.text, LIMIT.story), added: prev ? prev.added : Date.now(), example: false
     };
+    if (input.sealed === undefined ? prev && prev.sealed : input.sealed === true) enc.sealed = true; // only for the keeper
+    return enc;
   }
   // undefined keeps the private text, "" removes it
   function keepPrivate(id, text) {
@@ -195,7 +214,7 @@
   function handle(method, path, body, sent) {
     var a = data();
     if (method === "GET" && path === "api/session") return reply(200, { owner: !!csrf, csrf: csrf });
-    if (method === "GET" && path === "api/archive") return reply(200, { archive: a });
+    if (method === "GET" && path === "api/archive") return reply(200, { archive: publicView(a) });
     if (method === "POST" && path === "api/login") {
       if (body.password !== word) return reply(401, { error: "The seal does not yield." });
       csrf = token();
@@ -258,7 +277,7 @@
     if (method === "GET" && path === "api/private") {
       var out = {};
       a.encounters.forEach(function (e) { if (privates()[e.id] !== undefined) out[e.id] = privates()[e.id]; });
-      return reply(200, { encounters: out });
+      return reply(200, { encounters: out, archive: a });
     }
     if (method === "POST" && path === "api/encounters") {
       if (JSON.stringify(body).length > LIMIT.encounterBody) return reply(413, { error: "That is too large." });

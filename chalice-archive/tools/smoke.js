@@ -18,7 +18,8 @@ Checks:
      bytes, size, dimensions), plates, their order and links, art served only while used, the sweep of unused
      uploads; plates of several images, flagged mature one by one; his forms, which hold the plates; GIFs and MP4s,
      which lose their metadata, and WebM videos; videos served in byte ranges; encounters, whose private sections are stored
-     encrypted, never reach visitors, and need the session and its CSRF token; plates saved before
+     encrypted, never reach visitors, and need the session and its CSRF token; encounters only for the keeper, stored
+     encrypted whole, of which visitors receive nothing; plates saved before
      they had several images; the password file; changing the word signs other sessions out; failed logins are
      throttled per IP.
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
@@ -283,6 +284,34 @@ async function apiChecks() {
     check(goneEnc.status === 200 && !goneEnc.json.archive.encounters.some((e) => e.id === spare.json.id) &&
       goneEnc.json.archive.records.find((r) => r.id === spareRec.json.id).encounter === '', 'removing an encounter unlinks the records that named it');
 
+    // an encounter only for the keeper: all of it encrypted, and nothing of it for visitors, not even its id
+    const tag = () => crypto.randomBytes(6).toString('hex');
+    const sTitle = 'Sealed title ' + tag(), sText = 'Sealed text ' + tag(), sPriv = 'Sealed private ' + tag();
+    const sMade = await write('POST', '/api/encounters', { title: sTitle, date: '2026-03-04', text: sText, private: sPriv, sealed: true });
+    const sId = sMade.json && sMade.json.id, sSeen = sId && sMade.json.archive.encounters.find((e) => e.id === sId);
+    check(sMade.status === 200 && sSeen && sSeen.sealed === true && sSeen.title === sTitle && sSeen.date === '2026-03-04' && sSeen.text === sText && !('private' in sSeen),
+      "an encounter can be recorded only for the keeper, and the keeper's answer shows it");
+    const sRaw = fs.readFileSync(path.join(s.dataDir, 'archive.json'), 'utf8'), sStored = JSON.parse(sRaw).encounters.find((e) => e.id === sId);
+    check(sStored && Object.keys(sStored).sort().join() === 'added,example,id,sealed' && Buffer.from(sStored.sealed.iv, 'base64').length === 12 &&
+      ![sTitle, sText, sPriv].some((t) => sRaw.includes(t)), 'it is stored as one encrypted box: archive.json holds only its id and when it was added');
+    const sRec = await write('POST', '/api/records', { title: 'Learned in secret', encounter: sId });
+    const vPage = await call('GET', '/'), vApi = await call('GET', '/api/archive');
+    check(sRec.json.archive.records.find((r) => r.id === sRec.json.id).encounter === sId &&
+      ![vPage.text, vApi.text].some((t) => t.includes(sId) || t.includes(sTitle) || t.includes(sStored.sealed.data)) &&
+      archiveIn(vPage.text).records.find((r) => r.id === sRec.json.id).encounter === '',
+      'visitors get nothing of it, not even its id; a record that names it reaches them without the link');
+    const kp = (await call('GET', '/api/private', { headers: { Cookie: cookie, 'X-CSRF-Token': csrf } })).json;
+    check(kp.encounters[sId] === sPriv && kp.archive.encounters.some((e) => e.id === sId && e.title === sTitle && e.sealed) &&
+      kp.archive.records.find((r) => r.id === sRec.json.id).encounter === sId && !kp.archive.encounters.some((e) => 'private' in e),
+      "the keeper's session reads it back, its private section apart, and the record's link with it");
+    const opened = await write('PUT', '/api/encounters/' + sId, { title: sTitle, text: sText, sealed: false });
+    check(!opened.json.archive.encounters.find((e) => e.id === sId).sealed && (await call('GET', '/api/archive')).text.includes(sTitle) &&
+      (await readPrivate(cookie, csrf))[sId] === sPriv && !fs.readFileSync(path.join(s.dataDir, 'archive.json'), 'utf8').includes(sPriv),
+      'unticked, it is for everyone again, and its private section stays private and encrypted');
+    await write('PUT', '/api/encounters/' + sId, { title: sTitle, text: sText, sealed: true });
+    const reSealed = await call('GET', '/api/archive');
+    check(!reSealed.text.includes(sTitle) && !reSealed.text.includes(sId) && (await readPrivate(cookie, csrf))[sId] === sPriv, 'ticked again, it is gone from visitors, its private section kept inside it');
+
     const backups = fs.readdirSync(path.join(s.dataDir, 'backups')).filter((f) => f.endsWith('.json'));
     const archiveMode = fs.statSync(path.join(s.dataDir, 'archive.json')).mode & 0o777;
     check(backups.length >= 3 && archiveMode === 0o600, `each change keeps a backup of the previous archive (${backups.length} so far), and archive.json is 0600`);
@@ -468,7 +497,8 @@ async function apiChecks() {
     const [old1, old2, now] = await Promise.all([cookie, other, cookie2].map((c) => call('GET', '/api/session', { headers: { Cookie: c } })));
     check(old1.json.owner === false && old2.json.owner === false && now.json.owner === true, 'every older session is signed out');
     check((await login({ Origin: ORIGIN })).status === 401 && (await login({ Origin: ORIGIN }, { password: NEW_WORD })).status === 200, 'only the new word unlocks');
-    check((await readPrivate(cookie2, changed.json.csrf))[enc.id] === secret, 'the private sections stay readable under the new word');
+    check((await readPrivate(cookie2, changed.json.csrf))[enc.id] === secret && (await readPrivate(cookie2, changed.json.csrf))[sId] === sPriv,
+      'the private sections and the encounters only for the keeper stay readable under the new word');
 
     // logging out
     const csrf2 = changed.json.csrf;
@@ -499,27 +529,34 @@ async function privateChecks() {
     const k = { cookie: cookieOf(r), csrf: r.json && r.json.csrf, ok: r.status === 200 };
     k.write = (method, p, body) => request(s.port, method, p, { headers: { Cookie: k.cookie, Origin: `http://127.0.0.1:${s.port}`, 'X-CSRF-Token': k.csrf }, body });
     k.read = () => request(s.port, 'GET', '/api/private', { headers: { Cookie: k.cookie, 'X-CSRF-Token': k.csrf } }).then((r) => (r.json && r.json.encounters) || {});
+    k.title = (id) => request(s.port, 'GET', '/api/private', { headers: { Cookie: k.cookie, 'X-CSRF-Token': k.csrf } })
+      .then((r) => { const e = r.json && r.json.archive.encounters.find((x) => x.id === id); return e ? (e.unreadable ? null : e.title) : undefined; });
     return k;
   };
   const secret = 'Only for the keeper: ' + crypto.randomBytes(8).toString('hex');
-  let s = await startServer('private', env), a, b;
+  let s = await startServer('private', env), a, b, c, d;
+  const hidden = 'Only the keeper: ' + crypto.randomBytes(8).toString('hex');
   const dir = s.dataDir;
   try {
     const k = await login(s, WORD);
     a = (await k.write('POST', '/api/encounters', { title: 'A', private: secret })).json.id;
     b = (await k.write('POST', '/api/encounters', { title: 'B', private: 'what B keeps' })).json.id;
+    c = (await k.write('POST', '/api/encounters', { title: hidden, sealed: true })).json.id;
+    d = (await k.write('POST', '/api/encounters', { title: 'D', sealed: true })).json.id;
   } finally { s.stop(); }
   const files = ['archive.json', 'auth.json', ...fs.readdirSync(path.join(dir, 'backups')).map((f) => path.join('backups', f))];
-  check(files.every((f) => !fs.readFileSync(path.join(dir, f), 'utf8').includes(secret)), 'no file in the data directory, backups included, holds a private section as text');
+  check(files.every((f) => !fs.readFileSync(path.join(dir, f), 'utf8').includes(secret) && !fs.readFileSync(path.join(dir, f), 'utf8').includes(hidden)),
+    'no file in the data directory, backups included, holds a private section or an encounter only for the keeper as text');
   // A's ciphertext copied onto B: each is bound to its own encounter, so there it does not decrypt
   const saved = JSON.parse(fs.readFileSync(path.join(dir, 'archive.json'), 'utf8'));
   saved.encounters.find((e) => e.id === b).private = saved.encounters.find((e) => e.id === a).private;
+  saved.encounters.find((e) => e.id === d).sealed = saved.encounters.find((e) => e.id === c).sealed;
   fs.writeFileSync(path.join(dir, 'archive.json'), JSON.stringify(saved));
   s = await startServer('private', env, null, true);
   try {
-    const seen = await (await login(s, WORD)).read();
-    check(seen[a] === secret, 'after a restart, the word unlocks the private sections again');
-    check(seen[b] === null, 'a private section copied onto another encounter cannot be decrypted there');
+    const k = await login(s, WORD), seen = await k.read();
+    check(seen[a] === secret && (await k.title(c)) === hidden, 'after a restart, the word unlocks the private sections and the encounters only for the keeper again');
+    check(seen[b] === null && (await k.title(d)) === null, 'a private section, or an encounter only for the keeper, copied onto another encounter cannot be decrypted there');
   } finally { s.stop(); }
   const NEXT = 'a third long smoke-test passphrase', LOST = 'a fourth long smoke-test passphrase';
   check((await run(['set-password'], { DATA_DIR: dir }, `${NEXT}\n${NEXT}\n`)).code !== 0 &&
@@ -528,13 +565,13 @@ async function privateChecks() {
   s = await startServer('private', env, null, true);
   try {
     const k = await login(s, NEXT);
-    check(k.ok && (await k.read())[a] === secret, 'the new word reads the same private sections');
+    check(k.ok && (await k.read())[a] === secret && (await k.title(c)) === hidden, 'the new word reads the same private sections and encounters only for the keeper');
   } finally { s.stop(); }
   check((await run(['set-password', '--forget-private'], { DATA_DIR: dir }, `${LOST}\n${LOST}\n`)).code === 0, 'set-password --forget-private replaces a lost word');
   s = await startServer('private', env, null, true);
   try {
     const k = await login(s, LOST);
-    check((await k.read())[a] === null, 'after that, the private sections written before can no longer be read');
+    check((await k.read())[a] === null && (await k.title(c)) === null, 'after that, the private sections and encounters only for the keeper written before can no longer be read');
     await k.write('PUT', '/api/encounters/' + a, { title: 'A', private: 'written anew' });
     check((await k.read())[a] === 'written anew', 'and new ones can be written');
   } finally { s.stop(); }
@@ -670,6 +707,23 @@ async function browserChecks() {
     await page.waitForSelector('#records', { timeout: 10000 });
     check(!(await page.$$eval('#records .entry-title', (n) => n.some((x) => x.textContent.startsWith('Smoke record')))), 'a record can be removed');
 
+    // an encounter only for the keeper
+    const onlyMe = 'Only for me ' + Date.now();
+    await page.click('.tab[data-book="encounters"]');
+    await page.click('#btn-add-encounter');
+    await page.fill('#ef-title', onlyMe);
+    await page.check('#ef-sealed');
+    const helpSays = await page.textContent('#ef-text-help');
+    await page.fill('#ef-text', 'Nobody else. ' + xss);
+    await page.click('#ef-submit');
+    await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 10000 });
+    const onlyHash = await page.evaluate(() => location.hash);
+    check((await page.textContent('#enc-title')) === onlyMe && await page.$('#enc-sealed:not([hidden])') !== null && /^Only you can read this/.test(helpSays) &&
+      await page.evaluate(() => !window.__xss), 'an encounter can be recorded only for the keeper, and its page says so');
+    await page.click('#enc-back');
+    check((await page.$$eval('#encounters .entry', (n, t) => n.filter((x) => x.textContent.includes(t) && x.querySelector('.entry-meta').textContent.startsWith('Only for you')).length, onlyMe)) === 1,
+      'the list of encounters marks it as only for the keeper');
+
     // an encounter with a private section, and a record that learned from it
     const secret = 'Only for the keeper: ' + Date.now();
     await page.click('.tab[data-book="encounters"]');
@@ -700,7 +754,9 @@ async function browserChecks() {
     await page.click('#clasp');
     await page.click('#seal-lock');
     await page.waitForFunction(() => !document.querySelector('#clasp.is-open'), null, { timeout: 10000 }).catch(() => {});
-    check(await page.$('#enc-private[hidden]') !== null && !(await page.content()).includes(secret), 'sealing it again takes the private section off the page');
+    check(await page.$('#enc-private[hidden]') !== null && !(await page.content()).includes(secret) && !(await page.content()).includes(onlyMe) &&
+      await page.evaluate((t) => ![...document.querySelectorAll('input, textarea, select')].some((x) => String(x.value).includes(t)), onlyMe),
+      'sealing it again takes the private section, and the encounter only for the keeper, off the page');
     const visitorCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const visitor = await visitorCtx.newPage();
     const visitorSaw = [];
@@ -710,6 +766,11 @@ async function browserChecks() {
     await visitor.waitForTimeout(500);
     check((await visitor.textContent('#enc-title')) === 'An encounter with a druid' && await visitor.$('#enc-private[hidden]') !== null &&
       visitorSaw.length > 0 && !visitorSaw.some((t) => t.includes(secret)), 'a visitor reads the encounter but receives nothing of its private section');
+    await visitor.goto(s.url + onlyHash);
+    await visitor.waitForSelector('#archive[open] #encounters', { timeout: 20000 });
+    await visitor.waitForTimeout(500);
+    check(await visitor.$('#book[data-view="encounters"]') !== null && !visitorSaw.some((t) => t.includes(onlyMe) || t.includes(onlyHash.split('/')[1])),
+      "the address of an encounter only for the keeper shows a visitor nothing, and nothing they receive names it");
     await visitorCtx.close();
     await page.click('#clasp');
     await page.fill('#seal-word', WORD);
@@ -974,6 +1035,8 @@ async function previewChecks() {
     await page.click('.tab[data-book="about"]');
     check((await page.textContent('#ab-dir')).includes('Dracthyr') && !(await page.$('#leaf-about img')) && (await page.$$('#ab-traits .trait')).length > 0 &&
       (await page.$$('#ab-sections h6')).length > 0, 'preview: the About page shows its example profile');
+    await page.click('.tab[data-book="encounters"]');
+    const sealedBefore = await page.$$eval('#encounters .entry-title', (n) => n.some((x) => x.textContent === 'Example: an encounter only for you'));
     await page.click('.tab[data-book="knowledge"]');
     await page.click('#clasp');
     check((await page.textContent('#seal-text')).includes('preview'), 'preview: the seal panel says it is the preview and gives the word');
@@ -993,6 +1056,8 @@ async function previewChecks() {
     await page.click('#encounters .entry >> nth=0');
     check(await page.waitForSelector('#enc-private:not([hidden])', { timeout: 5000 }).then(() => true, () => false) &&
       (await page.textContent('#enc-private-text')).includes('example private section'), "preview: the example encounter's private section shows once unsealed");
+    check(!sealedBefore && (await page.$$eval('#encounters .entry-title', (n) => n.some((x) => x.textContent === 'Example: an encounter only for you'))),
+      'preview: the example encounter only for the keeper shows only once unsealed');
     await page.click('.tab[data-book="knowledge"]');
     await page.click('#btn-inscribe');
     await page.fill('#f-title', 'Preview record');

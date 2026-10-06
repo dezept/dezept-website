@@ -57,7 +57,8 @@ MEDIA = {".jpg": ("jpg", "image/jpeg"), ".gif": ("gif", "image/gif"), ".webm": (
 
 def preview_archive() -> tuple[dict, dict, dict]:
     """src/seed.json with the preview's examples added, the examples' images, GIFs and videos by name, as data: URIs,
-    and the example encounters' private sections, which the stand-in keeps apart from the archive as the server does."""
+    and the example encounters' private sections and encounters only for the keeper, which the stand-in keeps apart from
+    the archive as the server does."""
     archive = json.loads((ROOT / "src/seed.json").read_text(encoding="utf-8"))
     examples = json.loads((ROOT / "src/preview-examples.json").read_text(encoding="utf-8"))
     files, art = {}, []
@@ -88,7 +89,8 @@ def preview_archive() -> tuple[dict, dict, dict]:
     archive["about"] = examples["about"]
     archive["encounters"] = [{**e, "added": n, "example": True} for n, e in enumerate(examples["encounters"])]
     archive["records"] = [{**r, "added": n, "example": True} for n, r in enumerate(examples["records"])]
-    return archive, files, examples["private"]
+    # kept apart from the archive, as the server keeps them: the private sections, and the encounters only for the keeper
+    return archive, files, {"sections": examples["private"], "sealed": examples.get("sealed", [])}
 
 
 def cut(text: str, part: str) -> str:
