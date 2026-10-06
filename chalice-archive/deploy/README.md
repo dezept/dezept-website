@@ -26,7 +26,7 @@ sudo git clone https://github.com/dezept/dezept-website.git /opt/dezept-website
 ```
 
 - If the repository is private, give the VPS a read-only deploy key.
-- `dist/` is committed, so the VPS needs no build step. It holds three.js too: the site serves it itself, so no visitor's browser runs code from a CDN.
+- `dist/` is committed, so the VPS needs no build step. It holds three.js and the fonts too: the site serves them itself, so no visitor's browser asks a CDN or Google for anything.
 
 ## 3. Run the archive server
 
@@ -39,6 +39,7 @@ sudo systemctl enable --now chalice-archive
 ```
 
 - `SESSION_HOURS` (1 to 720) and `PORT` must be plain numbers. Anything else, such as `12h`, stops the server with a message in the journal, rather than letting sessions last for ever.
+- `PUBLIC_ORIGIN` must be the site's https address, such as `https://archive.example.com`, and nothing more. Without it, or with anything else, the server will not start, rather than checking logins and writes against whatever `Host` a request names.
 
 - systemd creates `/var/lib/chalice-archive` (mode 0700, owned by `chalice`).
 - On the first start the server copies `src/seed.json` into `archive.json` there.
@@ -94,7 +95,7 @@ sudo curl -fsSo /etc/caddy/certs/cloudflare-origin-pull-ca.pem https://developer
 sudo chown root:caddy /etc/caddy/certs/* && sudo chmod 640 /etc/caddy/certs/*
 sudo cp /opt/dezept-website/chalice-archive/deploy/Caddyfile /etc/caddy/Caddyfile
 sudo nano /etc/caddy/Caddyfile                 # set your hostname
-sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
+sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl restart caddy
 ```
 
 What the Caddyfile does:
@@ -102,6 +103,7 @@ What the Caddyfile does:
 - It requires Cloudflare's client certificate (Authenticated Origin Pulls), so connections that don't come through Cloudflare fail during the TLS handshake.
   - If you leave Authenticated Origin Pulls off in Cloudflare, delete the `client_auth` block, or every request fails with error 525/526.
 - It trusts `CF-Connecting-IP`, the visitor's address, only when the request comes from Cloudflare's ranges. It hands that address to Node as `X-Real-IP`, overwriting anything the request carried.
+- It switches off Caddy's admin API. Left on, it listens on `localhost:2019` and takes a whole new configuration from any process on the VPS that asks, the archive's own server included, which is otherwise allowed only loopback: a server that had been broken into could have had Caddy serve the Origin Certificate's key. So a changed Caddyfile needs `systemctl restart caddy`, not `reload`, which goes through the admin API.
 - It caps request bodies at 100 MB for uploads (`/api/uploads`, the same as Cloudflare's own limit on the Free and Pro plans) and 320 KB for everything else, compresses responses and drops the `Server` and `Via` headers. The server's own limits are lower (8 MiB for a picture, 40 MiB for a GIF, 90 MiB for a video, and 256 KiB or 64 KiB), so it is the one that answers with a clear message.
 
 ## 6. Firewall
@@ -139,12 +141,12 @@ Then open the site:
   ```
 
   Sessions live in memory, so a restart signs the keeper out.
-  If `deploy/Caddyfile` changed (it did when art uploads were added, and again when videos were), copy it again and reload Caddy, keeping your hostname:
+  If `deploy/Caddyfile` changed (it did when art uploads were added, again when videos were, and again when its admin API was switched off), copy it again and restart Caddy, keeping your hostname:
 
   ```sh
   sudo cp /opt/dezept-website/chalice-archive/deploy/Caddyfile /etc/caddy/Caddyfile
   sudo nano /etc/caddy/Caddyfile                 # set your hostname
-  sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
+  sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl restart caddy
   ```
 - **Backups**:
   - Each change keeps the previous `archive.json` in `/var/lib/chalice-archive/backups/`, up to the last 50.
@@ -165,12 +167,13 @@ Then open the site:
   - Checked only on the server, one check at a time.
   - From the third wrong try from one address, each miss imposes a wait that doubles (2 s, 4 s, 8 s …), up to an hour. An IPv6 address counts with the rest of its /64, which one client usually holds whole.
   - Each try counts the moment it is made, so a burst of guesses sent all at once gets no more tries than guesses sent one after another.
-  - Over 50 failures in ten minutes from anywhere pauses all logins for a while.
+  - Over 50 failures in ten minutes from anywhere pauses all logins for a while, except from a browser that has spoken the right word before: it carries a signed device cookie, which a new word cancels. So guessing from many addresses at once gains nothing, and cannot keep you out either.
 - **The session**:
   - A random 256-bit token in a `__Host-` cookie: HttpOnly, Secure, SameSite=Strict.
   - Page scripts can't read it, and other sites can't make the browser send it.
   - The server keeps only its SHA-256.
   - Sessions end after 12 hours (`SESSION_HOURS`), on "Seal it again", or when the word changes.
+  - Once a session has ended, an open tab lets go of the private sections within a minute, or as soon as it is looked at; one sealed in another tab of the same browser, at once.
 - **Writes**:
   - Each needs the session, a CSRF token in a header, a JSON body, and an `Origin` equal to `PUBLIC_ORIGIN`.
   - Uploads are the one exception to JSON: PNG, JPEG, WebP or GIF images and MP4 or WebM videos only, checked by their bytes, at most 8 MiB for a picture, 40 MiB for a GIF and 90 MiB for a video, stored under their content hash and served with their own type and `nosniff`. SVG is never accepted.
@@ -178,13 +181,13 @@ Then open the site:
   - Every field is validated and capped on the server. Artists' links must be `http(s)`.
   - The page shows all of it as text, never as markup.
 - **The page**:
-  - The CSP allows only its own inline script and style, by hash, three.js from the site itself, and the fonts from Google. No CDN can run code in the page, so none could reach the keeper's session or the private sections.
+  - The CSP allows only its own inline script and style, by hash, and three.js and the fonts from the site itself. Nothing comes from another host: no CDN can run code in the page, so none could reach the keeper's session or the private sections, and no font host learns who visits.
   - It also requires Trusted Types: browsers that support them (Chrome and Edge among them) refuse any attempt to write HTML into the page or turn text into script, so even a mistake in the page's code could not become cross-site scripting.
   - Also sent: HSTS, `nosniff`, no framing, no referrer, and a Permissions-Policy that switches off the camera, microphone, location and other features the page never uses.
-- **Slow requests**: a JSON body has 60 seconds to arrive, so nobody can hold connections open by sending a login a byte at a time.
+- **Slow requests**: a JSON body has 60 seconds to arrive, so nobody can hold connections open by sending a login a byte at a time. A request refused before its body has arrived, such as an upload without a session, is answered at once and let go 10 seconds later. A download stopped half way closes its file at once.
 - **The machine**:
   - Node runs as an unprivileged user.
-  - It can write only `/var/lib/chalice-archive` and talk only to loopback.
+  - It can write only `/var/lib/chalice-archive` and talk only to loopback, where nothing else listens that could be told what to do: Caddy's admin API is switched off.
   - The port Caddy listens on accepts only Cloudflare.
 
 `tools/smoke.js` tests these properties against a running server: headers, CSRF, Origin, cookies, validation, throttling, password changes and the page itself under its CSP.

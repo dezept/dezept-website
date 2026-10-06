@@ -8,48 +8,58 @@ Environment:
   CHROME       path to a Chromium/Chrome binary (default: Playwright's own install)
   CHROME_ARGS  extra browser flags, space-separated
   HTTPS_PROXY  used for the CDN requests when set
+  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, legacy, browser, preview
 
 Checks:
   1. Over HTTP, against a server set up as in production (Secure cookies, PUBLIC_ORIGIN, TRUST_PROXY):
-     security headers and a CSP whose hashes match the page, with no CDN among its script sources and Trusted Types
-     required; three.js served by the site itself, named by its hash; a SESSION_HOURS or PORT that is not a number in
-     range stops the server; nothing outside the page, the model, three.js, the API and
-     the art in use can be fetched; logins and writes refuse a foreign or missing Origin, a missing or wrong CSRF
-     token, and non-JSON bodies; the session cookie's flags; field validation and size limits; stored markup
-     cannot end the page's data block; backups; the About page's cleaning; image uploads (type sniffed from the
-     bytes, size, dimensions), plates, their order and links, art served only while used, the sweep of unused
-     uploads; plates of several images, flagged mature one by one; his forms, which hold the plates; GIFs and MP4s,
-     which lose their metadata, and WebM videos; videos served in byte ranges; encounters, whose private sections are stored
-     encrypted, never reach visitors, and need the session and its CSRF token; encounters only for the keeper, stored
-     encrypted whole, of which visitors receive nothing; plates saved before
-     they had several images; the password file; dates that do not exist are dropped; backups never overwrite one
-     another; changing the word signs other sessions out; failed logins are throttled per IP (an IPv6 address by its
-     /64), and a burst of parallel guesses gets no more tries than guesses one after another.
-  2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors, and nothing
-     is fetched from a CDN; Trusted Types stop any script writing HTML into the page; Escape keeps every form that has
-     unsaved writing in it, and leaves one that has none; only
-     the gem wakes the construct, which reveals the choices, and they go again when the tome closes; a wrong word is refused; the right word shows the
-     tools; records can be inscribed, revised and removed, and markup in them stays text; an encounter with a private
-     section can be recorded, a record can name it and link to it, and the private section shows only while unsealed; the About page can be
-     amended in Total RP 3's terms (directory, standard traits, glances, a description whose TRP markup becomes
-     headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved writing, and
-     the page has no portrait; a form can be added, and a plate of two images, one mature, uploaded into it, shown full
-     size, linked to and removed; a video and a GIF play in their players; a mature image stays covered and unloaded until a visitor says they are 18 or older, is covered
-     again once they move on, and stays covered for someone under 18; the session survives a reload; the word can
-     be changed from the page; sealing it again hides the tools.
+     security headers and a CSP whose hashes match the page, with no CDN among its script sources, no host but the
+     site for fonts, and Trusted Types required; three.js and the fonts served by the site itself, named by their
+     hashes; a SESSION_HOURS or PORT that is not a number in range, or a missing or malformed PUBLIC_ORIGIN, stops the
+     server; nothing outside the page, the model, three.js, the fonts, the API and the art in use can be fetched;
+     logins and writes refuse a foreign or missing Origin, a missing or wrong CSRF token, and non-JSON bodies; the
+     session cookie's flags; field validation and size limits; stored markup cannot end the page's data block;
+     backups; the About page's cleaning; image uploads (type sniffed from the bytes, size, dimensions), plates, their
+     order and links, art served only while used, the sweep of unused uploads; plates of several images, flagged
+     mature one by one; his forms, which hold the plates; GIFs and MP4s, which lose their metadata (a GIF without an
+     image and an MP4 whose boxes cannot be read through are refused), and WebM videos; videos served in byte ranges;
+     downloads stopped half way let go of their files; an upload without a session is refused at once and its
+     connection let go within seconds; encounters, whose private sections are stored encrypted, never reach visitors,
+     and need the session and its CSRF token; encounters only for the keeper, stored encrypted whole, of which
+     visitors receive nothing; plates saved before they had several images; the password file; dates that do not
+     exist are dropped; backups never overwrite one another; changing the word signs other sessions out; failed
+     logins are throttled per IP (an IPv6 address by its /64), and a burst of parallel guesses gets no more tries
+     than guesses one after another; guesses from many addresses pause every login, except from a browser with the
+     keeper's device cookie (not a forged one, nor one from before the word changed).
   1c. The private sections across server restarts: still readable with the word, carried over to a new word set from
-     the command line (which needs the current word), unreadable when moved onto another encounter, and gone after
-     set-password --forget-private.
+     the command line (which needs the current word, and will not write over a key the first login made while it
+     waited), unreadable when moved onto another encounter, and gone after set-password --forget-private.
+  1d. A login with the old word, sent at different moments while the word is changed: over before the change, or
+     refused; never a session that has already ended, nor an error.
+  2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors, and nothing
+     is fetched from anywhere but the site (three.js and the fonts included, and every face of the fonts loads);
+     Trusted Types stop any script writing HTML into the page; Escape keeps every form that has unsaved writing in it,
+     and leaves one that has none; only the gem wakes the construct, which reveals the choices, and they go again when
+     the tome closes; a wrong word is refused; the right word shows the tools; records can be inscribed, revised and
+     removed, and markup in them stays text; an encounter with a private section can be recorded, a record can name
+     it and link to it, and the private section shows only while unsealed, and leaves every tab when one tab seals;
+     the About page can be amended in Total RP 3's terms (directory, standard traits, glances, a description whose
+     TRP markup becomes headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved
+     writing, and the page has no portrait; a form can be added, and a plate of two images, one mature, uploaded into
+     it, shown full size, linked to and removed; a video and a GIF play in their players; a mature image stays
+     covered and unloaded until a visitor says they are 18 or older, is covered again once they move on, and stays
+     covered for someone under 18; the session survives a reload; the word can be changed from the page; sealing it
+     again hides the tools; a session that ends elsewhere is noticed as soon as a tab is looked at: the private
+     section leaves it, and a form being written stays, with the seal panel open.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model, the example forms and their plates, GIF and video load from the page, the
      stand-in server accepts only "preview", the About page can be amended and records and plates added, and a reload
-     forgets them. The real page carries no trace
-     of the stand-in.
+     forgets them. The real page carries no trace of the stand-in.
 Screenshots go to tools/.smoke/.
 */
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const net = require('net');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const { spawn } = require('child_process');
@@ -60,6 +70,7 @@ const SERVER = path.join(ROOT, 'server', 'server.mjs');
 const OUT = path.join(__dirname, '.smoke');
 const WORD = 'a long smoke-test passphrase';
 const NEW_WORD = 'another long smoke-test passphrase';
+const NEWER_WORD = 'a newer long smoke-test passphrase';
 const ORIGIN = 'https://archive.test';
 // The viewer plays media embedded in the page (its contract says muted autoplay works), so media-src takes data: and
 // blob: here; if it ever does not, the page says the preview could not play the video.
@@ -108,7 +119,37 @@ async function startServer(name, env, prepare, keep) {
     proc.stderr.on('data', onData);
     proc.on('exit', (code) => { clearTimeout(t); reject(new Error(`${name} server exited (${code}): ${log}`)); });
   });
-  return { port, dataDir, url: `http://127.0.0.1:${port}/`, stop: () => proc.kill('SIGTERM'), log: () => log };
+  return { port, dataDir, pid: proc.pid, url: `http://127.0.0.1:${port}/`, stop: () => proc.kill('SIGTERM'), log: () => log };
+}
+// How many files a server has open (Linux only: null elsewhere)
+const openFiles = (pid) => { try { return fs.readdirSync(`/proc/${pid}/fd`).length; } catch { return null; } };
+// set-password with its input still open, so the test can do something while it waits, as if the keeper were typing
+function runTyping(args, env) {
+  const p = spawn(process.execPath, [SERVER, ...args], { env: { ...process.env, ...env }, timeout: 60000 });
+  let out = '';
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  const done = new Promise((resolve) => p.on('close', (code) => resolve({ code, out })));
+  return { type: (text) => p.stdin.write(text), end: () => { p.stdin.end(); return done; } };
+}
+// A body sent a little at a time to a request that is refused at once: the answer must come at once, and the server
+// must let go of the connection soon after, not read the rest for the quarter of an hour an upload may take
+function trickle(port, method, urlPath, headers, waitMs) {
+  return new Promise((resolve) => {
+    const sock = net.connect(port, '127.0.0.1');
+    const t0 = Date.now();
+    let reply = '', answeredAfter = null, closedAfter = null;
+    sock.on('data', (d) => { if (!reply) answeredAfter = Date.now() - t0; reply += d; });
+    sock.on('error', () => {});
+    sock.on('close', () => { if (closedAfter === null) closedAfter = Date.now() - t0; });
+    sock.write(`${method} ${urlPath} HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\n${Object.entries(headers).map(([k, v]) => `${k}: ${v}\r\n`).join('')}\r\n`);
+    const timer = setInterval(() => { if (!sock.destroyed) sock.write(Buffer.alloc(512, 120)); }, 250);
+    setTimeout(() => {
+      clearInterval(timer);
+      resolve({ status: Number((reply.match(/^HTTP\/1\.1 (\d+)/) || [])[1]), answeredAfter, closedAfter }); // closedAfter null: still open
+      sock.destroy();
+    }, waitMs);
+  });
 }
 
 function request(port, method, urlPath, { headers = {}, body } = {}) {
@@ -155,15 +196,18 @@ const JPEG_HEAD = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0
   0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x20, 0x00, 0x30, 0x03, 0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xd9]);
 
 const cookieOf = (res) => ((res.headers['set-cookie'] || [])[0] || '').split(';')[0];
+const deviceOf = (res) => ((res.headers['set-cookie'] || []).find((c) => /^(__Host-)?ca_device=/.test(c)) || '').split(';')[0]; // the keeper's device cookie
 const inlineHash = (html, re) => "'sha256-" + crypto.createHash('sha256').update((html.match(re) || [])[1] || '', 'utf8').digest('base64') + "'";
 const archiveIn = (html) => JSON.parse((html.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/) || [])[1] || 'null');
 
 // ---------- 1. the API, set up as in production ----------
 async function apiChecks() {
-  const s = await startServer('api', { COOKIE_SECURE: 'true', PUBLIC_ORIGIN: ORIGIN, TRUST_PROXY: 'true' });
+  // PUBLIC_ORIGIN as a person might write it; browsers send https://archive.test
+  const s = await startServer('api', { COOKIE_SECURE: 'true', PUBLIC_ORIGIN: 'https://Archive.test/', TRUST_PROXY: 'true' });
   const call = (method, p, opts = {}) => request(s.port, method, p, opts);
   let ip = 0;
   const fresh = () => `198.51.100.${++ip}`; // a new client address for each login, so throttling stays out of the way
+  const trickled = trickle(s.port, 'POST', '/api/uploads', { Origin: ORIGIN, 'Content-Type': 'video/mp4', 'Content-Length': 90 * 1024 * 1024 }, 13000);
   try {
     const auth = JSON.parse(fs.readFileSync(path.join(s.dataDir, 'auth.json'), 'utf8'));
     const authMode = fs.statSync(path.join(s.dataDir, 'auth.json')).mode & 0o777;
@@ -176,6 +220,10 @@ async function apiChecks() {
       fs.readFileSync(path.join(s.dataDir, 'auth.json'), 'utf8') === authText, 'set-password refuses a short word and two words that differ');
     const misconfigured = await Promise.all([{ SESSION_HOURS: '12h' }, { SESSION_HOURS: '0' }, { PORT: 'eighty' }].map((e) => run([], { DATA_DIR: s.dataDir, PORT: '0', ...e }, '', 5000)));
     check(misconfigured.every((r) => r.code === 2 && /must be a number/.test(r.out)), 'the server will not start with a SESSION_HOURS or PORT that is not a number in range (so no session can last for ever)');
+    const noOrigin = await Promise.all([{ PUBLIC_ORIGIN: '' }, { PUBLIC_ORIGIN: 'archive.test' }, { PUBLIC_ORIGIN: 'http://archive.test' }, { PUBLIC_ORIGIN: 'https://archive.test/archive' }]
+      .map((e) => run([], { DATA_DIR: s.dataDir, PORT: '0', COOKIE_SECURE: 'true', ...e }, '', 5000)));
+    check(noOrigin.every((r) => r.code === 2 && /PUBLIC_ORIGIN/.test(r.out)),
+      "the server will not start without PUBLIC_ORIGIN, or with one that is not the site's https address (no write is ever checked against the Host header)");
 
     // headers and the CSP
     const page = await call('GET', '/');
@@ -187,6 +235,15 @@ async function apiChecks() {
     const scriptSrc = (csp.match(/script-src ([^;]*)/) || [])[1] || '';
     check(scriptSrc.split(' ').every((s) => s === "'self'" || /^'sha256-[A-Za-z0-9+/=]{44}'$/.test(s)) && /require-trusted-types-for 'script'/.test(csp) && /trusted-types 'none'/.test(csp),
       'scripts may come only from the page itself and the site: no CDN; and Trusted Types forbid every HTML and script sink');
+    const directive = (name) => (csp.match(new RegExp(`(?:^|; )${name} ([^;]*)`)) || [])[1] || '';
+    check(directive('style-src').split(' ').every((x) => /^'sha256-[A-Za-z0-9+/=]{44}'$/.test(x)) && directive('font-src') === "'self'",
+      'styles may come only from the page itself, and fonts only from the site: not from Google or any other host');
+    const fontNames = [...new Set([...page.text.matchAll(/url\(([a-z0-9-]+\.[0-9a-f]{12}\.woff2)\)/g)].map((m) => m[1]))];
+    const fontsGot = await Promise.all(fontNames.map((n) => call('GET', '/' + n)));
+    check(fontNames.length === 7 && fontsGot.every((r, i) => r.status === 200 && r.headers['content-type'] === 'font/woff2' && /immutable/.test(r.headers['cache-control']) &&
+      Number(r.headers['content-length']) === fs.statSync(path.join(ROOT, 'dist', fontNames[i])).size &&
+      crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'dist', fontNames[i]))).digest('hex').startsWith(fontNames[i].split('.')[1])) &&
+      !/fonts\.(googleapis|gstatic)\.com/.test(page.text), `the fonts are served by the site itself, each named by its hash, and the page names no font host (${fontNames.length} fonts)`);
     const threeName = (page.text.match(/"\.\/(three\.[0-9a-f]{12}\.js)"/) || [])[1];
     const three = threeName && await call('GET', '/' + threeName);
     check(!!three && three.status === 200 && three.headers['content-type'] === 'text/javascript; charset=utf-8' && /immutable/.test(three.headers['cache-control']) &&
@@ -225,6 +282,9 @@ async function apiChecks() {
     const setCookie = (ok.headers['set-cookie'] || [])[0] || '';
     check(ok.status === 200 && /^__Host-ca_session=[A-Za-z0-9_-]{43}; Path=\/; HttpOnly; SameSite=Strict; Max-Age=43200; Secure$/.test(setCookie),
       'the right word sets a __Host- session cookie: HttpOnly, Secure, SameSite=Strict, Path=/, 12 hours');
+    check(ok.status === 200, 'PUBLIC_ORIGIN, set as https://Archive.test/, is matched as browsers write it (https://archive.test)');
+    check(/^__Host-ca_device=[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}; Path=\/; HttpOnly; SameSite=Strict; Max-Age=34560000; Secure$/.test((ok.headers['set-cookie'] || [])[1] || ''),
+      "the right word also marks the browser as the keeper's: a signed device cookie, HttpOnly, Secure, SameSite=Strict, for 400 days");
     const cookie = cookieOf(ok), csrf = ok.json && ok.json.csrf;
     check(typeof csrf === 'string' && csrf.length === 43 && !setCookie.includes(csrf), 'the CSRF token comes back in the body, separate from the cookie');
     const me = await call('GET', '/api/session', { headers: { Cookie: cookie } });
@@ -456,6 +516,8 @@ async function apiChecks() {
     check(upG.status === 200 && /^[0-9a-f]{32}\.gif$/.test(upG.json.file) && upG.json.width === 48 && upG.json.height === 32 && !gifKept.includes('secret') && gifKept.equals(gifFile),
       'a GIF keeps its frames and its size, and loses its comments and XMP');
     check((await upload(gifIn.subarray(0, gifIn.length - 40), 'image/gif')).status === 415, 'a GIF cut off in the middle is refused');
+    const noImage = Buffer.concat([gifFile.subarray(0, 13 + gct), Buffer.from([0x21, 0xf9, 4, 0, 0, 0, 0, 0, 0x3b])]);
+    check((await upload(noImage, 'image/gif')).status === 415, 'a GIF without a single image in it is refused');
     const mbox = (type, ...parts) => {
       const body = Buffer.concat(parts.map((x) => (typeof x === 'string' ? Buffer.from(x, 'latin1') : x))), len = Buffer.alloc(4);
       len.writeUInt32BE(8 + body.length);
@@ -471,6 +533,8 @@ async function apiChecks() {
     check(upM.status === 200 && /\.mp4$/.test(upM.json.file) && mp4Kept.length === mp4In.length && !mp4Kept.includes('secret') && !mp4Kept.includes('+48.85') &&
       mp4Kept.includes(mdat) && mp4Kept.includes(tkhd) && mp4Kept.indexOf(mdat) === mp4In.indexOf(mdat),
       'an MP4 keeps its picture data where it was, and loses its metadata (where it was made, its tags, its XMP)');
+    const badMoov = Buffer.concat([mbox('ftyp', 'isom', '\0\0\0\0', 'isommp41'), mbox('moov', mbox('mvhd', Buffer.alloc(100)), Buffer.from([0, 0, 0xff, 0xff]), 'udta', 'secret place'), mdat]);
+    check((await upload(badMoov, 'video/mp4')).status === 415, 'an MP4 whose moov box cannot be read through is refused, as its metadata could not be found to be blanked');
     check((await upload(mp4('qt  '), 'video/mp4')).status === 415 && (await upload(Buffer.from('not a video, not even close'), 'video/mp4')).status === 415 &&
       (await upload(webm, 'video/mp4')).status === 415, 'a QuickTime file, or anything else that is not an MP4, is refused as one');
     const upW = await upload(webm, 'video/webm');
@@ -494,6 +558,25 @@ async function apiChecks() {
     check(tail.status === 206 && tail.headers['content-range'] === `bytes ${webm.length - 5}-${webm.length - 1}/${webm.length}` &&
       beyond.status === 416 && beyond.headers['content-range'] === `bytes */${webm.length}`, 'the last bytes can be asked for, and a range past the end is refused (416)');
     check(/media-src 'self' blob:/.test(csp), "the CSP lets the art's videos play, and nothing else");
+    // a long video, and visitors who stop watching it half way: every download must let go of its file
+    const upL = await upload(Buffer.concat([webm, Buffer.alloc(12 * 1024 * 1024, 7)]), 'video/webm');
+    const longPlate = await write('POST', '/api/art', { versions: [{ file: upL.json.file, thumb: upJ.json.file, width: 96, height: 64 }] });
+    const filesBefore = openFiles(s.pid);
+    for (let i = 0; i < 20; i++) {
+      await new Promise((resolve) => {
+        const req = http.get({ host: '127.0.0.1', port: s.port, path: '/art/' + upL.json.file, agent: false }, (res) => {
+          let got = 0;
+          res.on('data', (c) => { got += c.length; if (got > 256 * 1024) { req.destroy(); resolve(); } });
+          res.on('end', resolve);
+        });
+        req.on('error', resolve);
+      });
+    }
+    await new Promise((r) => setTimeout(r, 500));
+    const filesAfter = openFiles(s.pid);
+    if (filesBefore === null) console.log('SKIP  a download stopped half way lets go of its file (needs /proc)');
+    else check(longPlate.status === 200 && filesAfter - filesBefore <= 5, `a download stopped half way lets go of its file (${filesBefore} files open before 20 such downloads, ${filesAfter} after)`);
+    await write('DELETE', '/api/art/' + longPlate.json.id);
     await write('DELETE', '/api/art/' + pv.id);
     const removedPlate = await write('DELETE', '/api/art/' + pb.id);
     check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pb.id) &&
@@ -505,6 +588,10 @@ async function apiChecks() {
     await write('DELETE', '/api/art/' + pa.id); // removing a plate sweeps
     check(!fs.existsSync(path.join(s.dataDir, 'art', upD.json.file)) && fs.existsSync(path.join(s.dataDir, 'art', upB.json.file)) && fs.existsSync(path.join(s.dataDir, 'art', upA.json.file)),
       'the sweep removes an old upload no plate used, and keeps images a backup still uses');
+
+    const tr = await trickled;
+    check(tr.status === 401 && tr.answeredAfter !== null && tr.answeredAfter < 2000 && tr.closedAfter !== null && tr.closedAfter < 12500,
+      `an upload without a session, sent slowly, is refused at once, and the server lets go of it within seconds instead of reading it for minutes (answered after ${tr.answeredAfter} ms, closed after ${tr.closedAfter} ms)`);
 
     // changing the word signs every other session out
     const other = cookieOf(await login({ Origin: ORIGIN }));
@@ -548,6 +635,15 @@ async function apiChecks() {
     const v6Other = await call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': '2001:db8:5:7::1' }, body: { password: NEW_WORD } });
     check(v6Tries.slice(0, 3).every((r) => r.status === 401) && v6Tries[3].status === 429 && v6Other.status === 200,
       'IPv6 addresses are throttled by their /64: a new address in it still waits, and another /64 does not');
+    // more than 50 misses in ten minutes, from anywhere, pause every login: but not for the keeper's own browsers,
+    // so that nobody can keep the keeper out by guessing from many addresses
+    const many = await Promise.all(Array.from({ length: 60 }, (_, i) =>
+      call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': `192.0.2.${i + 1}` }, body: { password: 'a guess from somewhere' } })));
+    const fromAnywhere = await login({ Origin: ORIGIN }, { password: NEW_WORD });
+    const asKeeper = (device) => call('POST', '/api/login', { headers: { Origin: ORIGIN, 'X-Real-IP': fresh(), Cookie: device }, body: { password: NEW_WORD } });
+    const keeperIn = await asKeeper(deviceOf(changed)), forged = await asKeeper(`__Host-ca_device=${'A'.repeat(22)}.${'B'.repeat(43)}`), before = await asKeeper(deviceOf(ok));
+    check(many.some((r) => r.status === 429) && fromAnywhere.status === 429 && keeperIn.status === 200 && forged.status === 429 && before.status === 429,
+      `guesses from many addresses pause every login, but not from a browser with the keeper's device cookie; a forged one, or one from before the word changed, does not help (${[fromAnywhere, keeperIn, forged, before].map((r) => r.status).join(', ')})`);
   } finally {
     s.stop();
   }
@@ -570,7 +666,15 @@ async function privateChecks() {
   const hidden = 'Only the keeper: ' + crypto.randomBytes(8).toString('hex');
   const dir = s.dataDir;
   try {
+    // set-password, run while the keeper logs in for the first time (which makes the private key), must not write
+    // over that key: it would take every private section written since with it
+    const typing = runTyping(['set-password'], { DATA_DIR: dir });
+    typing.type('a word typed meanwhile\na word typed meanwhile\n');
+    await new Promise((r) => setTimeout(r, 1500)); // it has read auth.json and waits for the end of its input
     const k = await login(s, WORD);
+    const typed = await typing.end();
+    check(k.ok && typed.code === 1 && /changed on the server while you typed/.test(typed.out) && JSON.parse(fs.readFileSync(path.join(dir, 'auth.json'), 'utf8')).key,
+      'set-password will not write over the private key that a first login made while the new word was being typed');
     a = (await k.write('POST', '/api/encounters', { title: 'A', private: secret })).json.id;
     b = (await k.write('POST', '/api/encounters', { title: 'B', private: 'what B keeps' })).json.id;
     c = (await k.write('POST', '/api/encounters', { title: hidden, sealed: true })).json.id;
@@ -609,6 +713,39 @@ async function privateChecks() {
   } finally { s.stop(); }
 }
 
+// ---------- 1d. a login with the old word, while the word is being changed ----------
+// Sent at different moments during the change: either it ends before the change does (which then signs it out, as
+// every session), or it is refused like any wrong word. Never a session that is over before it is used, nor an error.
+async function wordRaceChecks() {
+  const s = await startServer('race', { COOKIE_SECURE: 'false', TRUST_PROXY: 'true' });
+  const origin = `http://127.0.0.1:${s.port}`;
+  let ip = 0;
+  const login = (password) => request(s.port, 'POST', '/api/login', { headers: { Origin: origin, 'X-Real-IP': `198.51.100.${++ip}` }, body: { password } });
+  try {
+    await login(WORD); // the first login makes the private key
+    const t = Date.now();
+    let k = await login(WORD), cur = WORD;
+    const kdf = (Date.now() - t) / 2; // a login: the word checked, then the private key unwrapped
+    const seen = [];
+    for (const f of [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]) {
+      const next = `the word, version ${f * 2}`, at = {}, t0 = Date.now();
+      const [change, late] = await Promise.all([
+        request(s.port, 'POST', '/api/password', { headers: { Origin: origin, Cookie: cookieOf(k), 'X-CSRF-Token': k.json.csrf }, body: { current: cur, next } })
+          .then((r) => { at.change = Date.now() - t0; return r; }),
+        new Promise((r) => setTimeout(r, f * kdf)).then(() => login(cur)).then((r) => { at.login = Date.now() - t0; return r; }),
+      ]);
+      if (change.status !== 200) throw new Error(`the word could not be changed: ${change.text}`);
+      seen.push(late.status === 200 ? (at.login < at.change ? '200 before the change' : '200 AFTER the change') : String(late.status));
+      k = change;
+      cur = next;
+    }
+    check(seen.every((x) => x === '401' || x === '200 before the change'),
+      `a login with the old word while the word is changed is either over before the change or refused (${seen.join(', ')})`);
+  } finally {
+    s.stop();
+  }
+}
+
 // ---------- 1b. an archive saved before plates had several images ----------
 async function legacyChecks() {
   const png = makePng(20, 10);
@@ -645,23 +782,27 @@ async function enter(page, book) {
 async function browserChecks() {
   const s = await startServer('browser', { COOKIE_SECURE: 'false' });
   const browser = await launch();
+  let main = null, seen = []; // the keeper's page and the errors so far, for the report below if a step fails
   try {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
     await ctx.addInitScript(() => {
       document.addEventListener('securitypolicyviolation', (e) => console.error(`CSP blocked ${e.blockedURI || 'inline'} (${e.violatedDirective})`));
     });
-    const page = await ctx.newPage();
-    const errors = [];
-    page.on('pageerror', (e) => errors.push(e.message));
-    page.on('console', (m) => {
-      // the expected 401 when a wrong word is tried shows up as a failed request
-      if ((m.type() === 'error' || m.type() === 'warning') && !/status of 401/.test(m.text())) errors.push(m.text());
-    });
-    const elsewhere = []; // everything the page asks for that is not the site itself or its fonts
-    page.on('request', (r) => { if (!r.url().startsWith(s.url) && !/^data:|^blob:|^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(r.url())) elsewhere.push(r.url()); });
+    const errors = seen;
+    const watch = (p) => {
+      p.on('pageerror', (e) => errors.push(e.message));
+      p.on('console', (m) => {
+        // the expected 401 when a wrong word is tried shows up as a failed request
+        if ((m.type() === 'error' || m.type() === 'warning') && !/status of 401/.test(m.text())) errors.push(m.text());
+      });
+      return p;
+    };
+    const page = main = watch(await ctx.newPage());
+    const elsewhere = []; // everything the page asks for that is not the site itself
+    page.on('request', (r) => { if (!r.url().startsWith(s.url) && !/^data:|^blob:/.test(r.url())) elsewhere.push(r.url()); });
     await page.goto(s.url);
     check(await page.waitForSelector('.core.is-3d', { timeout: 30000 }).then(() => true, () => false), '3D model replaces the cutout under the CSP');
-    check(elsewhere.length === 0, `three.js and the model come from the site itself: nothing is fetched from a CDN${elsewhere.length ? ': ' + elsewhere.join(' ') : ''}`);
+    check(elsewhere.length === 0, `three.js, the model and the fonts come from the site itself: nothing is fetched from anywhere else${elsewhere.length ? ': ' + elsewhere.join(' ') : ''}`);
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(OUT, 'landing.png') });
 
@@ -793,6 +934,13 @@ async function browserChecks() {
       (await page.textContent('#enc-records')).includes('Druids'), "the record's link opens the encounter, which lists what he learned from it");
     await page.screenshot({ path: path.join(OUT, 'encounter.png') });
 
+    // a second tab of the same browser, on the same encounter: sealing the first tab must seal it too
+    const tab2 = watch(await ctx.newPage());
+    await tab2.goto(s.url + encHash);
+    const tab2Shows = await tab2.waitForSelector('#enc-private:not([hidden])', { timeout: 15000 }).then(() => true, () => false);
+    const privateGone = (t) => document.getElementById('enc-private').hidden && !document.body.textContent.includes(t) &&
+      ![...document.querySelectorAll('input, textarea, select')].some((x) => String(x.value).includes(t));
+
     // sealed, the private section leaves the page; a visitor never receives it
     await page.click('#clasp');
     await page.click('#seal-lock');
@@ -800,6 +948,9 @@ async function browserChecks() {
     check(await page.$('#enc-private[hidden]') !== null && !(await page.content()).includes(secret) && !(await page.content()).includes(onlyMe) &&
       await page.evaluate((t) => ![...document.querySelectorAll('input, textarea, select')].some((x) => String(x.value).includes(t)), onlyMe),
       'sealing it again takes the private section, and the encounter only for the keeper, off the page');
+    check(tab2Shows && await tab2.waitForFunction(privateGone, secret, { timeout: 5000 }).then(() => true, () => false),
+      'sealing one tab seals the other tabs of the browser too: the private section leaves them at once');
+    await tab2.close();
     const visitorCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const visitor = await visitorCtx.newPage();
     const visitorSaw = [];
@@ -869,6 +1020,9 @@ async function browserChecks() {
       aboutSeen.head === 'Appearance|center|rgb(29, 106, 97)',
       "TRP markup in the description becomes headings, colours darkened for parchment and http(s) links only; a section's heading is centred in its chosen colour, without doubled quotes");
     await page.screenshot({ path: path.join(OUT, 'about.png') });
+    const fontsLoaded = await page.evaluate(() => Promise.all(['500 16px Cinzel', '700 16px Cinzel', '16px "IM Fell English"', 'italic 16px "IM Fell English"', '16px "IM Fell English SC"']
+      .map((f) => document.fonts.load(f, 'Ab').then((got) => got.length > 0 && got.every((x) => x.status === 'loaded'), () => false))));
+    check(fontsLoaded.every(Boolean) && elsewhere.length === 0, `every face of the page's fonts loads from the site itself, under the CSP (${fontsLoaded.join(', ')})`);
 
     // a plate of two images, the second mature: uploaded from the keeper's browser, shown, linked to, removed
     const requested = [];
@@ -1038,7 +1192,35 @@ async function browserChecks() {
     await page.fill('#seal-word', NEW_WORD);
     await page.click('#seal-go');
     check(await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 15000 }).then(() => true, () => false), 'the new word unlocks');
+
+    // The session ends where no tab can see it (here the word is changed on the server). A tab finds out as soon as it
+    // is looked at: the private section leaves the page, and a form being written stays, with the seal panel open.
+    const tab3 = watch(await ctx.newPage()), tab4 = watch(await ctx.newPage());
+    await tab3.goto(s.url + encHash);
+    const tab3Shows = await tab3.waitForSelector('#enc-private:not([hidden])', { timeout: 15000 }).then(() => true, () => false);
+    await tab4.goto(s.url + '#knowledge');
+    await tab4.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 15000 });
+    await tab4.click('#btn-inscribe');
+    await tab4.fill('#f-title', 'Written as the session ended');
+    const moved = await run(['set-password'], { DATA_DIR: s.dataDir }, `${NEWER_WORD}\n${NEWER_WORD}\n${NEW_WORD}\n`);
+    for (const t of [tab3, tab4]) {
+      await t.bringToFront();
+      await t.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    }
+    check(moved.code === 0 && tab3Shows && await tab3.waitForFunction(privateGone, secret, { timeout: 5000 }).then(() => true, () => false),
+      'when the session ends elsewhere, a tab notices as soon as it is looked at, and takes the private section off the page');
+    check(await tab4.waitForSelector('#seal:not([hidden]) #seal-error:not([hidden])', { timeout: 5000 }).then(() => true, () => false) &&
+      (await tab4.inputValue('#f-title')) === 'Written as the session ended' && await tab4.$('#view-form:not([hidden])') !== null,
+      'a form being written as the session ended stays as it is, and the seal panel opens to unseal and send it');
     check(errors.length === 0, `no console errors or CSP violations${errors.length ? ': ' + errors.join(' | ') : ''}`);
+  } catch (e) { // where the keeper's page stood when a step failed, and how it looked
+    if (main) {
+      const state = await main.evaluate(() => ({ url: location.href, ready: document.readyState, hidden: document.hidden, open: document.getElementById('archive').open,
+        view: document.getElementById('book').dataset.view })).catch((x) => x.message);
+      await main.screenshot({ path: path.join(OUT, 'failed.png') }).catch(() => {});
+      console.log(`      the page then: ${JSON.stringify(state)}; errors so far: ${JSON.stringify(seen)}; screenshot in tools/.smoke/failed.png`);
+    }
+    throw e;
   } finally {
     await browser.close();
     s.stop();
@@ -1162,7 +1344,10 @@ function launch() {
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  for (const [name, fn] of [['API checks', apiChecks], ['private section checks', privateChecks], ['older archive checks', legacyChecks], ['browser checks', browserChecks], ['preview checks', previewChecks]]) {
+  const only = (process.env.SMOKE_ONLY || '').split(',').filter(Boolean);
+  for (const [key, name, fn] of [['api', 'API checks', apiChecks], ['private', 'private section checks', privateChecks], ['race', 'word race checks', wordRaceChecks],
+    ['legacy', 'older archive checks', legacyChecks], ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks]]) {
+    if (only.length && !only.includes(key)) { console.log(`SKIP  ${name} (SMOKE_ONLY)`); continue; }
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }
   console.log(failures.length ? `\n${failures.length} check(s) failed` : '\nall checks passed');

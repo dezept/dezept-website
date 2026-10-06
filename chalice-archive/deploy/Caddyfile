@@ -1,6 +1,12 @@
 # /etc/caddy/Caddyfile for the Chalice Archive behind Cloudflare. deploy/README.md has the whole setup.
 # Replace archive.example.com with your hostname (twice: here and PUBLIC_ORIGIN in chalice-archive.service).
 {
+	# No admin API. It would listen on localhost:2019 and take a whole new configuration from any process on the VPS
+	# that asks, the archive's own server among them, which is otherwise kept to loopback: one that had been broken
+	# into could have had Caddy serve the Origin Certificate's private key. A changed Caddyfile therefore needs
+	# `systemctl restart caddy`; `reload` asks the admin API.
+	admin off
+
 	# Cloudflare redirects http to https ("Always Use HTTPS"), and port 80 stays closed, so Caddy only serves 443.
 	auto_https disable_redirects
 

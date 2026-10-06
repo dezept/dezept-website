@@ -7,8 +7,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 7-6 7-6-7z' fill='%2366efdc' stroke='%230a0e1a' stroke-width='1.2'/%3E%3Cpath d='M8 1l3 7-3 7' fill='%23fff' fill-opacity='.35'/%3E%3C/svg%3E">
 <link rel="preload" href="__MODEL_URL__" as="fetch" crossorigin>
 <link rel="modulepreload" href="__THREE_URL__">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
+__FONT_LINK__
 <style id="ca-style">
+__FONTS__
 /* Layout: one dark stage where the construct is the only bright object. A click on its gem draws in the light drifting around it and projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
 :root {
   --void: #0a0e1a;
@@ -1807,7 +1808,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   el.recForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     var rec = recFromForm(), prev = editingId ? find(editingId) : null;
     if (!rec.title) { formError("form", "Give the record a title."); el.fTitle.focus(); return; }
     save(prev ? "PUT" : "POST", prev ? "api/records/" + encodeURIComponent(prev.id) : "api/records", rec,
@@ -1857,7 +1858,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function encounterChanged() { return currentView === "encounterForm" && JSON.stringify(encFromForm()) !== encWas; }
   el.encounterForm.addEventListener("submit", function (ev) {
     ev.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     var body = encFromForm(), prev = encEditing ? findEnc(encEditing) : null;
     if (!body.title) { formError("encounterForm", "Give the encounter a title."); el.efTitle.focus(); return; }
     if (prev && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
@@ -2043,7 +2044,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function aboutChanged() { return currentView === "aboutForm" && JSON.stringify(aboutFromForm()) !== aboutWas; }
   el.aboutForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     save("PUT", "api/about", aboutFromForm(), function () { showView("about"); }, el.abfSubmit, "Saving…", "The page is amended.");
   });
   el.abfCancel.addEventListener("click", leaveCurrentForm);
@@ -2226,7 +2227,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   });
   el.artForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     var prev = artEditing ? findArt(artEditing) : null, rows = Array.prototype.slice.call(el.afVersions.children);
     if (!rows.length) { formError("artForm", "Add an image first."); el.afAdd.focus(); return; }
     var empty = rows.filter(function (r) { return !r.dataset.id && !r._draft; })[0];
@@ -2282,7 +2283,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   el.galleryForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     var name = el.gfName.value.trim(), prev = galEditing ? galleryOf(galEditing) : null;
     if (!name) { formError("galleryForm", "Give the form a name."); el.gfName.focus(); return; }
     save(prev ? "PUT" : "POST", prev ? "api/galleries/" + encodeURIComponent(prev.id) : "api/galleries", { name: name }, function (data) { showGallery(data.id); },
@@ -2505,9 +2506,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return refreshSession().then(function () {
       if (owner && csrf !== stale) toast("This tab's session was out of date. Try once more.");
       else if (owner) toast(err.message);
-      else { openSeal(); sealError("The archive has sealed itself again. Speak the word, then try once more."); }
+      else sealedAgain();
     });
   }
+  // The session is over while something is still to be sent: the seal panel opens, and the form stays as it is
+  function sealedAgain() { openSeal(); sealError("The archive has sealed itself again. Speak the word, then try once more."); }
+  // A form sent while sealed: nothing goes to the server, the seal panel says why
+  function mayPost() { if (!canPost()) sealedAgain(); return canPost(); }
   function failed(err) {
     if (err.status === 401 || err.status === 403) refused(err);
     else if (FORMS[currentView]) formError(currentView, err.message);
@@ -2543,7 +2548,22 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!on && currentView === "encounter" && !findEnc(encounterId)) showView("encounters");
     else if (!on && currentView === "detail" && find(detailId)) showDetail(detailId); // without its link to one of them
     if (on) loadPrivate();
+    watchSession();
   }
+  // The session can end without this tab doing anything: it runs out, it is sealed in another tab, the word is changed
+  // elsewhere, or the server restarts. So while unsealed, the tab asks the server every minute, and at once whenever
+  // it is looked at again; once the session is over, the private sections and the encounters only for the keeper
+  // leave the page. Tabs also tell one another when they seal, unseal or change the word; an unsealed tab then asks
+  // at once (for its new CSRF token, or to seal itself), but a sealed tab stays sealed until it is unsealed or reloaded,
+  // so nothing private appears on a screen nobody is looking at.
+  var SESSION_CHECK = 60e3, sessionTimer = 0, otherTabs = null;
+  function watchSession() {
+    clearTimeout(sessionTimer);
+    if (owner) sessionTimer = setTimeout(refreshSession, SESSION_CHECK);
+  }
+  try { otherTabs = new BroadcastChannel("ca-session"); otherTabs.onmessage = function () { if (owner) refreshSession(); }; } catch (e) {}
+  function tellTabs() { try { if (otherTabs) otherTabs.postMessage("session"); } catch (e) {} }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && owner) refreshSession(); });
   // The encounters only for the keeper, and records' links to them, are dropped from the page, and so is the last
   // one shown, if it was one of them
   function forgetSealed() {
@@ -2569,8 +2589,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       if (d.archive) applyArchive(d.archive); else if (currentView === "encounter") renderEncounter();
     }, function () {});
   }
+  // Only a change re-renders the page: the check every minute must not disturb what is open
   function refreshSession() {
-    return call("GET", "api/session").then(function (s) { setOwner(!!s.owner, s.csrf); }, function () {});
+    return call("GET", "api/session").then(function (s) {
+      var on = !!s.owner, lost = owner && !on;
+      if (on === owner && (!on || s.csrf === csrf)) { watchSession(); return; }
+      setOwner(on, s.csrf);
+      if (lost && FORMS[currentView] && el.archive.open) sealedAgain(); // what is written in the open form waits to be sent once unsealed
+    }, watchSession);
   }
   var SEAL_COPY = {
     unlock: ["The keeper's word", "Speak the word to take up the quill."],
@@ -2619,6 +2645,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       setOwner(false, "");
       if (FORMS[currentView]) { leaveCurrentForm(); wipeForms(); }
       closeSeal(true);
+      tellTabs();
       toast("Sealed. The editing tools are hidden again.");
     }
     sealWorking(true, el.sealGo.textContent);
@@ -2638,6 +2665,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         sealWorking(false);
         setOwner(true, s.csrf);
         closeSeal(true);
+        tellTabs();
         toast("Unsealed. The quill is yours.");
       }, function (err) {
         sealWorking(false);
@@ -2656,6 +2684,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         sealWorking(false);
         setOwner(true, s.csrf);
         closeSeal(true);
+        tellTabs();
         toast("The word is changed. Every other session is sealed.");
       }, function (err) {
         sealWorking(false);

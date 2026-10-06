@@ -7,8 +7,71 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 7-6 7-6-7z' fill='%2366efdc' stroke='%230a0e1a' stroke-width='1.2'/%3E%3Cpath d='M8 1l3 7-3 7' fill='%23fff' fill-opacity='.35'/%3E%3C/svg%3E">
 <link rel="preload" href="chalice.fc0400a35d90.glb" as="fetch" crossorigin>
 <link rel="modulepreload" href="./three.31cad1f27a14.js">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
 <style id="ca-style">
+/* The page's fonts, written by tools/vendor_fonts.mjs. Do not edit. */
+/* cinzel-latin-ext-500-normal.woff2, from @fontsource/cinzel 5.3.0 */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(cinzel-latin-ext-500-normal.08eac55c1178.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+/* cinzel-latin-500-normal.woff2, from @fontsource/cinzel 5.3.0 */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(cinzel-latin-500-normal.2864b2c9db37.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+/* cinzel-latin-ext-700-normal.woff2, from @fontsource/cinzel 5.3.0 */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(cinzel-latin-ext-700-normal.55b110958b9b.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+/* cinzel-latin-700-normal.woff2, from @fontsource/cinzel 5.3.0 */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(cinzel-latin-700-normal.8efa224fe70f.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+/* im-fell-english-latin-400-normal.woff2, from @fontsource/im-fell-english 5.3.0 */
+@font-face {
+  font-family: 'IM Fell English';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(im-fell-english-latin-400-normal.248300df1647.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+/* im-fell-english-latin-400-italic.woff2, from @fontsource/im-fell-english 5.3.0 */
+@font-face {
+  font-family: 'IM Fell English';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url(im-fell-english-latin-400-italic.8fc678575e83.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+/* im-fell-english-sc-latin-400-normal.woff2, from @fontsource/im-fell-english-sc 5.3.0 */
+@font-face {
+  font-family: 'IM Fell English SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(im-fell-english-sc-latin-400-normal.f0f85c4edd2c.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
 /* Layout: one dark stage where the construct is the only bright object. A click on its gem draws in the light drifting around it and projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
 :root {
   --void: #0a0e1a;
@@ -1807,7 +1870,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   el.recForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     var rec = recFromForm(), prev = editingId ? find(editingId) : null;
     if (!rec.title) { formError("form", "Give the record a title."); el.fTitle.focus(); return; }
     save(prev ? "PUT" : "POST", prev ? "api/records/" + encodeURIComponent(prev.id) : "api/records", rec,
@@ -1857,7 +1920,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function encounterChanged() { return currentView === "encounterForm" && JSON.stringify(encFromForm()) !== encWas; }
   el.encounterForm.addEventListener("submit", function (ev) {
     ev.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     var body = encFromForm(), prev = encEditing ? findEnc(encEditing) : null;
     if (!body.title) { formError("encounterForm", "Give the encounter a title."); el.efTitle.focus(); return; }
     if (prev && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
@@ -2043,7 +2106,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function aboutChanged() { return currentView === "aboutForm" && JSON.stringify(aboutFromForm()) !== aboutWas; }
   el.aboutForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     save("PUT", "api/about", aboutFromForm(), function () { showView("about"); }, el.abfSubmit, "Saving…", "The page is amended.");
   });
   el.abfCancel.addEventListener("click", leaveCurrentForm);
@@ -2226,7 +2289,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   });
   el.artForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     var prev = artEditing ? findArt(artEditing) : null, rows = Array.prototype.slice.call(el.afVersions.children);
     if (!rows.length) { formError("artForm", "Add an image first."); el.afAdd.focus(); return; }
     var empty = rows.filter(function (r) { return !r.dataset.id && !r._draft; })[0];
@@ -2282,7 +2345,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   el.galleryForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (busy || !canPost()) return;
+    if (busy || !mayPost()) return;
     var name = el.gfName.value.trim(), prev = galEditing ? galleryOf(galEditing) : null;
     if (!name) { formError("galleryForm", "Give the form a name."); el.gfName.focus(); return; }
     save(prev ? "PUT" : "POST", prev ? "api/galleries/" + encodeURIComponent(prev.id) : "api/galleries", { name: name }, function (data) { showGallery(data.id); },
@@ -2505,9 +2568,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return refreshSession().then(function () {
       if (owner && csrf !== stale) toast("This tab's session was out of date. Try once more.");
       else if (owner) toast(err.message);
-      else { openSeal(); sealError("The archive has sealed itself again. Speak the word, then try once more."); }
+      else sealedAgain();
     });
   }
+  // The session is over while something is still to be sent: the seal panel opens, and the form stays as it is
+  function sealedAgain() { openSeal(); sealError("The archive has sealed itself again. Speak the word, then try once more."); }
+  // A form sent while sealed: nothing goes to the server, the seal panel says why
+  function mayPost() { if (!canPost()) sealedAgain(); return canPost(); }
   function failed(err) {
     if (err.status === 401 || err.status === 403) refused(err);
     else if (FORMS[currentView]) formError(currentView, err.message);
@@ -2543,7 +2610,22 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!on && currentView === "encounter" && !findEnc(encounterId)) showView("encounters");
     else if (!on && currentView === "detail" && find(detailId)) showDetail(detailId); // without its link to one of them
     if (on) loadPrivate();
+    watchSession();
   }
+  // The session can end without this tab doing anything: it runs out, it is sealed in another tab, the word is changed
+  // elsewhere, or the server restarts. So while unsealed, the tab asks the server every minute, and at once whenever
+  // it is looked at again; once the session is over, the private sections and the encounters only for the keeper
+  // leave the page. Tabs also tell one another when they seal, unseal or change the word; an unsealed tab then asks
+  // at once (for its new CSRF token, or to seal itself), but a sealed tab stays sealed until it is unsealed or reloaded,
+  // so nothing private appears on a screen nobody is looking at.
+  var SESSION_CHECK = 60e3, sessionTimer = 0, otherTabs = null;
+  function watchSession() {
+    clearTimeout(sessionTimer);
+    if (owner) sessionTimer = setTimeout(refreshSession, SESSION_CHECK);
+  }
+  try { otherTabs = new BroadcastChannel("ca-session"); otherTabs.onmessage = function () { if (owner) refreshSession(); }; } catch (e) {}
+  function tellTabs() { try { if (otherTabs) otherTabs.postMessage("session"); } catch (e) {} }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && owner) refreshSession(); });
   // The encounters only for the keeper, and records' links to them, are dropped from the page, and so is the last
   // one shown, if it was one of them
   function forgetSealed() {
@@ -2569,8 +2651,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       if (d.archive) applyArchive(d.archive); else if (currentView === "encounter") renderEncounter();
     }, function () {});
   }
+  // Only a change re-renders the page: the check every minute must not disturb what is open
   function refreshSession() {
-    return call("GET", "api/session").then(function (s) { setOwner(!!s.owner, s.csrf); }, function () {});
+    return call("GET", "api/session").then(function (s) {
+      var on = !!s.owner, lost = owner && !on;
+      if (on === owner && (!on || s.csrf === csrf)) { watchSession(); return; }
+      setOwner(on, s.csrf);
+      if (lost && FORMS[currentView] && el.archive.open) sealedAgain(); // what is written in the open form waits to be sent once unsealed
+    }, watchSession);
   }
   var SEAL_COPY = {
     unlock: ["The keeper's word", "Speak the word to take up the quill."],
@@ -2619,6 +2707,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       setOwner(false, "");
       if (FORMS[currentView]) { leaveCurrentForm(); wipeForms(); }
       closeSeal(true);
+      tellTabs();
       toast("Sealed. The editing tools are hidden again.");
     }
     sealWorking(true, el.sealGo.textContent);
@@ -2638,6 +2727,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         sealWorking(false);
         setOwner(true, s.csrf);
         closeSeal(true);
+        tellTabs();
         toast("Unsealed. The quill is yours.");
       }, function (err) {
         sealWorking(false);
@@ -2656,6 +2746,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         sealWorking(false);
         setOwner(true, s.csrf);
         closeSeal(true);
+        tellTabs();
         toast("The word is changed. Every other session is sealed.");
       }, function (err) {
         sealWorking(false);
