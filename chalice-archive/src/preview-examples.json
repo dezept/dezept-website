@@ -1,29 +1,91 @@
 {
-  "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The particulars and the first section come from src/seed.json's profile; the images are rendered from the game's model by tools/example_plates.js. None of them is mature; two are flagged so the preview shows how a mature image is covered.",
+  "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The About page is a made-up example laid out like a Total RP 3 profile, with TRP markup in its description; the images are rendered from the game's model by tools/example_plates.js. None of them is mature; two are flagged so the preview shows how a mature image is covered.",
   "about": {
     "portrait": "aexamplefacing",
+    "title": "Archivist",
+    "currently": "Cataloguing a shelf of the Valdrakken library he was not asked to catalogue. Ask him what year it is.",
+    "ooc": "An example page, only in the preview. Unseal the archive with the word “preview” and choose Amend this page to see how it is written; a reload brings the example back.",
+    "race": "Dracthyr",
+    "class": "Evoker",
+    "age": "Older than he looks, by ten thousand years",
+    "eyes": "Molten amber",
+    "eyeColor": "#e3a13a",
+    "height": "Tall; taller still in his true form",
+    "build": "Lean and long-limbed",
+    "birthplace": "The Forbidden Reach",
+    "residence": "Valdrakken, for now",
     "facts": [
       {
-        "label": "Race",
-        "value": "Dracthyr"
-      },
-      {
-        "label": "Slumber",
-        "value": "Ten thousand years, in the Forbidden Reach"
+        "label": "Motto",
+        "value": "What is not written is lost."
       },
       {
         "label": "Construct",
         "value": "Eternal Gladiator's Chalice"
+      },
+      {
+        "label": "Voice",
+        "value": "Low and careful, with turns of phrase no one has used in an age"
+      }
+    ],
+    "traits": [
+      {
+        "left": "Chaotic",
+        "right": "Lawful",
+        "value": 15
+      },
+      {
+        "left": "Forgiving",
+        "right": "Vindictive",
+        "value": 6
+      },
+      {
+        "left": "Altruistic",
+        "right": "Selfish",
+        "value": 8
+      },
+      {
+        "left": "Superstitious",
+        "right": "Rational",
+        "value": 17
+      },
+      {
+        "left": "Cautious",
+        "right": "Impulsive",
+        "value": 4
+      },
+      {
+        "left": "Ascetic",
+        "right": "Bon vivant",
+        "value": 7
+      }
+    ],
+    "glances": [
+      {
+        "title": "Scales",
+        "text": "Obsidian, dulled at the edges, as if they were kept from the sun for a very long time."
+      },
+      {
+        "title": "The construct",
+        "text": "A copper chalice floats at his shoulder. Its gem turns to follow whoever is speaking."
+      },
+      {
+        "title": "Ink",
+        "text": "His claws are stained with it to the second knuckle."
       }
     ],
     "sections": [
       {
-        "heading": "The construct",
-        "body": "An archival construct of Shadowlands make, bought from a broker who asked no questions and answered fewer."
+        "heading": "Physical description",
+        "body": "{p:c}{col:ffd100}“What is not written is lost.”{/col}{/p}\n\nHe stands a head taller than most of the visage-bearers in Valdrakken and moves like someone who has had to relearn how. His scales are a dull obsidian, chipped at the edges of the horns, and his eyes are the amber of a forge banked for the night.\n\nHe dresses in borrowed robes, still creased from the merchant's folding, and carries a satchel heavier than it has any right to be."
       },
       {
-        "heading": "An example section",
-        "body": "This page holds examples for the preview. Unseal the archive with the word “preview” and choose Amend this page to see how his own particulars and sections are written.\nNothing written here is kept: a reload brings the examples back."
+        "heading": "Personality",
+        "body": "Patient to a fault, and orderly in a way that unsettles people who notice it. He asks questions as if each answer will be written down, because it will be.\n\nHe does not like to be wrong, and he is wrong often. The world moved on without him; he is trying to catch up without saying so."
+      },
+      {
+        "heading": "History",
+        "body": "{h2:c}The Slumber{/h2}\nSealed with the rest of his kind in the Forbidden Reach, he woke to a world ten thousand years older than the one he remembered.\n\n{h2:c}The Chalice{/h2}\nAn archival construct of {col:66efdc}Shadowlands{/col} make, bought from a broker who asked no questions and answered fewer. It remembers what he tells it, and nothing else."
       }
     ]
   },

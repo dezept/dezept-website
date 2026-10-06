@@ -7,8 +7,10 @@
   "use strict";
   var LIMIT = {
     title: 120, domain: 60, note: 4000, source: 160, upload: 8 * 1024 * 1024, art: 500, versions: 12, label: 60,
-    artist: 80, link: 300, caption: 1000, facts: 16, factLabel: 40, factValue: 160, sections: 12, heading: 80, section: 6000
+    artist: 80, link: 300, caption: 1000, facts: 24, factLabel: 40, factValue: 400, sections: 24, heading: 120, section: 40000,
+    traits: 24, pole: 40, glances: 5, glanceTitle: 80, glanceText: 1000, aboutBody: 256 * 1024
   };
+  var ABOUT_TEXT = { title: 60, currently: 1000, ooc: 1000, race: 60, "class": 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120 };
   var STATUSES = ["remembered", "superseded", "relearned", "fragment", "sought"];
   var IMAGE_TYPES = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
@@ -101,13 +103,20 @@
   function cleanAbout(input, art) {
     var a = input && typeof input === "object" ? input : {};
     function list(v) { return (Array.isArray(v) ? v : []).filter(function (x) { return x && typeof x === "object"; }); }
-    return {
-      portrait: typeof a.portrait === "string" && art.some(function (x) { return x.id === a.portrait && !x.versions[0].mature; }) ? a.portrait : "",
-      facts: list(a.facts).map(function (f) { return { label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }; })
-        .filter(function (f) { return f.label || f.value; }).slice(0, LIMIT.facts),
-      sections: list(a.sections).map(function (x) { return { heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }; })
-        .filter(function (x) { return x.heading || x.body; }).slice(0, LIMIT.sections)
-    };
+    var out = { portrait: typeof a.portrait === "string" && art.some(function (x) { return x.id === a.portrait && !x.versions[0].mature; }) ? a.portrait : "" };
+    Object.keys(ABOUT_TEXT).forEach(function (k) { out[k] = str(a[k], ABOUT_TEXT[k]); });
+    out.eyeColor = typeof a.eyeColor === "string" && /^#[0-9a-f]{6}$/i.test(a.eyeColor) ? a.eyeColor.toLowerCase() : "";
+    out.facts = list(a.facts).map(function (f) { return { label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }; })
+      .filter(function (f) { return f.label || f.value; }).slice(0, LIMIT.facts);
+    out.traits = list(a.traits).map(function (t) {
+      var v = Math.round(Number(t.value));
+      return { left: str(t.left, LIMIT.pole), right: str(t.right, LIMIT.pole), value: isFinite(v) ? Math.min(20, Math.max(0, v)) : 10 };
+    }).filter(function (t) { return t.left || t.right; }).slice(0, LIMIT.traits);
+    out.glances = list(a.glances).map(function (g) { return { title: str(g.title, LIMIT.glanceTitle), text: str(g.text, LIMIT.glanceText) }; })
+      .filter(function (g) { return g.title || g.text; }).slice(0, LIMIT.glances);
+    out.sections = list(a.sections).map(function (x) { return { heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }; })
+      .filter(function (x) { return x.heading || x.body; }).slice(0, LIMIT.sections);
+    return out;
   }
   function change(fields) { archive = Object.assign({}, data(), fields); return archive; }
   function modelBytes() {
@@ -162,6 +171,7 @@
     }
     if (method === "POST" && path === "api/uploads") return reply(415, { error: "Send a PNG, JPEG or WebP image." });
     if (method === "PUT" && path === "api/about") {
+      if (JSON.stringify(body).length > LIMIT.aboutBody) return reply(413, { error: "The About page is too long to keep: " + LIMIT.aboutBody / 1024 + " KB in all." });
       var profile = Object.assign({}, a.profile, { name: str(body.name, 60) || "Unnamed Dracthyr", epithet: str(body.epithet, 280) });
       return reply(200, { archive: change({ profile: profile, about: cleanAbout(body, a.art) }) });
     }

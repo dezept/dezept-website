@@ -59,7 +59,13 @@ const LIMIT = {
   body: 64 * 1024, aboutBody: 256 * 1024, upload: 8 * 1024 * 1024, records: 5000, sessions: 50,
   title: 120, domain: 60, note: 4000, source: 160,
   art: 500, versions: 12, files: 2000, side: 10000, artist: 80, link: 300, caption: 1000, label: 60,
-  facts: 16, factLabel: 40, factValue: 160, sections: 12, heading: 80, section: 6000,
+  facts: 24, factLabel: 40, factValue: 400, sections: 24, heading: 120, section: 40000,
+  traits: 24, pole: 40, glances: 5, glanceTitle: 80, glanceText: 1000,
+};
+// The About page follows a Total RP 3 profile. Its short text fields and their caps:
+const ABOUT_TEXT = {
+  title: 60, currently: 1000, ooc: 1000,
+  race: 60, class: 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120,
 };
 const STATUSES = ["remembered", "superseded", "relearned", "fragment", "sought"];
 // Art is stored as uploaded, under the first 32 hex digits of its SHA-256, so its name changes with its content
@@ -262,17 +268,29 @@ function cleanArt(input, prev, check) {
   };
 }
 
-// The About page: particulars (label and value) and sections (heading and text), plus a plate's main image as its portrait
+// The About page, laid out like a Total RP 3 profile: a plate's main image as its portrait, a short title, what he is
+// doing now and an OOC note, the directory (race, class, age …), additional information (the particulars, label
+// and value), personality traits (two opposites and a value from 0, all left, to 20, all right), up to five things
+// seen at first glance, and the description in sections. Section text keeps TRP's markup; the page renders it.
 function cleanAbout(input, art) {
   const a = input && typeof input === "object" ? input : {};
   const list = (v) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === "object");
-  return {
+  const out = {
     portrait: typeof a.portrait === "string" && art.some((x) => x.id === a.portrait && !x.versions[0].mature) ? a.portrait : "", // never a mature image
-    facts: list(a.facts).map((f) => ({ label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }))
-      .filter((f) => f.label || f.value).slice(0, LIMIT.facts),
-    sections: list(a.sections).map((x) => ({ heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }))
-      .filter((x) => x.heading || x.body).slice(0, LIMIT.sections),
   };
+  for (const [key, max] of Object.entries(ABOUT_TEXT)) out[key] = str(a[key], max);
+  out.eyeColor = typeof a.eyeColor === "string" && /^#[0-9a-f]{6}$/i.test(a.eyeColor) ? a.eyeColor.toLowerCase() : "";
+  out.facts = list(a.facts).map((f) => ({ label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }))
+    .filter((f) => f.label || f.value).slice(0, LIMIT.facts);
+  out.traits = list(a.traits).map((t) => {
+    const v = Math.round(Number(t.value));
+    return { left: str(t.left, LIMIT.pole), right: str(t.right, LIMIT.pole), value: Number.isFinite(v) ? Math.min(20, Math.max(0, v)) : 10 };
+  }).filter((t) => t.left || t.right).slice(0, LIMIT.traits);
+  out.glances = list(a.glances).map((g) => ({ title: str(g.title, LIMIT.glanceTitle), text: str(g.text, LIMIT.glanceText) }))
+    .filter((g) => g.title || g.text).slice(0, LIMIT.glances);
+  out.sections = list(a.sections).map((x) => ({ heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }))
+    .filter((x) => x.heading || x.body).slice(0, LIMIT.sections);
+  return out;
 }
 
 function cleanProfile(p, prev = {}) {
@@ -634,7 +652,9 @@ async function handle(req, res) {
     return sendJson(req, res, 200, { archive });
   }
   if (req.method === "PUT" && pathname === "/api/about") {
-    const body = await readJson(req, LIMIT.aboutBody);
+    const body = await readJson(req, LIMIT.aboutBody).catch((e) => {
+      throw e.status === 413 ? new HttpError(413, `The About page is too long to keep: ${LIMIT.aboutBody / 1024} KB in all.`) : e;
+    });
     commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body, archive.art) });
     return sendJson(req, res, 200, { archive });
   }

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
 <style id="ca-style">
-/* Layout: one dark stage where the construct is the only bright object. Scanning its gem projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, an old leather-bound tome of parchment leaves. */
+/* Layout: one dark stage where the construct is the only bright object. Scanning its gem projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
 :root {
   --void: #0a0e1a;
   --void-2: #10172a;
@@ -173,7 +173,7 @@ button, input, textarea { font: inherit; color: inherit; }
 @keyframes beam { to { transform: translateY(calc(100vh - 138px)); opacity: .2; } }
 
 /* ---------- The archive: an old tome ---------- */
-.archive { width: min(1180px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--sepia); overflow: visible; font-family: var(--font-book); }
+.archive { width: min(980px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--sepia); overflow: visible; font-family: var(--font-book); }
 .archive::backdrop { background: radial-gradient(ellipse at 50% 45%, rgb(var(--umber-rgb) / .74), rgb(var(--umber-rgb) / .9)); backdrop-filter: blur(2px); }
 .archive :focus-visible { outline-color: var(--rubric); }
 .archive[open] .tome, .archive[open] .tabs { animation: tome-in .5s cubic-bezier(.2, .8, .2, 1); }
@@ -194,15 +194,24 @@ button, input, textarea { font: inherit; color: inherit; }
 .corner.tr { top: -3px; right: -3px; transform: scaleX(-1); }
 .corner.bl { bottom: -3px; left: -3px; transform: scaleY(-1); }
 .corner.br { bottom: -3px; right: -3px; transform: scale(-1); }
-.ribbon { position: absolute; z-index: 1; top: 0; left: calc(50% + 7px); width: 10px; height: calc(100% + 30px); pointer-events: none; background: linear-gradient(90deg, #4a0805, #7e130b 50%, #5a0a06); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 8px), 0 100%); opacity: .92; }
+.ribbon { position: absolute; z-index: 0; left: 84px; bottom: -30px; width: 14px; height: 80px; pointer-events: none; background: linear-gradient(90deg, #4a0805, #7e130b 50%, #5a0a06); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%); filter: drop-shadow(0 3px 3px rgb(0 0 0 / .5)); } /* hangs out below the page */
 
-/* the open book: two parchment leaves either side of the spine, the page edges stacked below */
-.book { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: min(780px, calc(100vh - 116px)); height: min(780px, calc(100dvh - 116px)); border-radius: 3px; background: var(--parchment);
-  box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .7), 0 3px 0 0 var(--parchment-edge), 0 5px 0 0 var(--parchment), 0 7px 0 0 var(--parchment-deep), 0 8px 0 1px rgb(var(--sepia-rgb) / .6); }
-.book::after { content: ""; position: absolute; z-index: 2; top: 0; bottom: 0; left: 50%; width: 56px; translate: -50% 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .18) 35%, rgb(var(--sepia-rgb) / .42) 50%, rgb(var(--sepia-rgb) / .18) 65%, transparent); }
-.page { position: relative; min-width: 0; overflow: auto; overscroll-behavior: contain; box-sizing: border-box; padding: clamp(26px, 3.4vw, 48px) clamp(22px, 3.6vw, 54px); background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment); scrollbar-width: thin; scrollbar-color: var(--parchment-edge) transparent; font-size: 18px; line-height: 1.5; }
-.page-l { box-shadow: inset -40px 0 50px -40px rgb(var(--sepia-rgb) / .5), inset 0 0 80px rgb(var(--sepia-rgb) / .22); }
-.page-r { box-shadow: inset 40px 0 50px -40px rgb(var(--sepia-rgb) / .5), inset 0 0 80px rgb(var(--sepia-rgb) / .22); }
+/* The open book: one parchment page with a printed double rule, the page edges stacked below. It reads down one
+   centred column: the chapter's own leaf first (the About page's portrait and names, the plates, the recent
+   records), then the open view. A record, a plate or a form has the page to itself (data-solo). */
+.book { position: relative; z-index: 1; height: min(860px, calc(100vh - 116px)); height: min(860px, calc(100dvh - 116px)); border-radius: 3px;
+  background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment);
+  box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .7), 0 3px 0 0 var(--parchment-edge), 0 5px 0 0 var(--parchment), 0 7px 0 0 var(--parchment-deep), 0 8px 0 1px rgb(var(--sepia-rgb) / .6), inset 0 0 90px rgb(var(--sepia-rgb) / .26); }
+.book::before { content: ""; position: absolute; z-index: 2; inset: 11px; border: 1px solid rgb(var(--sepia-rgb) / .3); outline: 1px solid rgb(var(--sepia-rgb) / .16); outline-offset: 3px; pointer-events: none; }
+.book-scroll { height: 100%; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--parchment-edge) transparent;
+  mask-image: linear-gradient(transparent 8px, #000 28px, #000 calc(100% - 28px), transparent calc(100% - 8px)); } /* text fades out at the rules */
+.page { box-sizing: border-box; max-width: 800px; margin: 0 auto; padding: 0 clamp(24px, 6vw, 72px); font-size: 18px; line-height: 1.5; }
+.page-l { padding-top: clamp(34px, 4.4vw, 54px); }
+.page-r { padding-top: 36px; padding-bottom: clamp(36px, 4.4vw, 56px); }
+.book[data-solo] .page-l { display: none; }
+.book[data-solo] .page-r { padding-top: clamp(34px, 4.4vw, 54px); }
+.book[data-view="plates"] .page-r { display: none; } /* the list of plates alone; a plate opens on its own */
+.book[data-view="plates"] .page-l { padding-bottom: clamp(36px, 4.4vw, 56px); }
 
 /* The keeper's clasp: a small brass keyhole on the fore-edge. The word it asks for shows or hides the editing tools. */
 .clasp { position: absolute; z-index: 4; right: -11px; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 22px; height: 52px; padding: 0; border: 1px solid var(--leather-dark); border-radius: 4px; cursor: pointer; color: var(--leather-dark); background: linear-gradient(90deg, #6a4714, var(--brass) 35%, var(--brass-light) 55%, #8a6420); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5); }
@@ -224,7 +233,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .rubric span { order: 2; font-family: var(--font-book); font-size: 15px; font-weight: 400; font-style: italic; letter-spacing: 0; text-transform: none; color: var(--sepia-faint); }
 .empty { margin: 0; padding: 10px 0; font-style: italic; color: var(--sepia-faint); }
 
-/* left leaf: each chapter's own; the owner's tools sit at its head */
+/* each chapter's own leaf, above its view; the owner's tools sit at its head */
 .leaf { display: flex; flex-direction: column; gap: 22px; }
 .ar-tools { display: flex; flex-wrap: wrap; gap: 10px; }
 .ar-tools:not(:has(.btn:not([hidden]))) { display: none; }
@@ -244,7 +253,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .glyph[data-s="superseded"] { background: linear-gradient(transparent 36%, var(--c) 36% 64%, transparent 64%); }
 
 
-/* right leaf: the index, or a record, or a form */
+/* the views: the index, or a record, or a form */
 #view-overview { display: grid; gap: 34px; }
 .recent { margin: 0; padding: 0; list-style: none; }
 .recent li + li { border-top: 1px solid rgb(var(--sepia-rgb) / .15); }
@@ -281,33 +290,76 @@ button, input, textarea { font: inherit; color: inherit; }
 .det-facts dd { margin: 0; font-style: italic; color: var(--sepia-soft); }
 .owner-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 
-/* About: a frontispiece portrait facing the particulars and sections */
-#leaf-about { align-items: center; text-align: center; }
-.frontis { display: grid; justify-items: center; gap: 10px; margin: 4px 0 0; }
+/* About, laid out like a Total RP 3 profile: the portrait and his names head the page; beneath them what he is doing
+   now, the directory, additional information, personality traits, at first glance, and the description */
+.ab-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px clamp(22px, 4vw, 44px); }
+.frontis { display: grid; justify-items: center; gap: 8px; margin: 0; }
 .mount { display: block; box-sizing: border-box; padding: 6px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: linear-gradient(160deg, var(--parchment), var(--parchment-deep)); box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 2px 7px rgb(var(--sepia-rgb) / .35); }
 button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .mount img { display: block; background: var(--void); }
 .mount.is-missing img { visibility: hidden; }
 .mount.is-missing { background: repeating-linear-gradient(45deg, rgb(var(--sepia-rgb) / .08) 0 6px, transparent 6px 12px), var(--parchment-deep); }
-.frontis-open { padding: 14px; }
-.frontis-open img { width: min(270px, 58vw); height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 22%; border-radius: 50%; box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .6), 0 0 0 5px var(--parchment), 0 0 0 6px rgb(var(--sepia-rgb) / .45); }
-.frontis-empty { display: grid; place-items: center; box-sizing: border-box; width: min(230px, 54vw); aspect-ratio: 4 / 5; padding: 24px; border: 1.5px dashed rgb(var(--sepia-rgb) / .35); border-radius: 50%; font-style: italic; color: var(--sepia-faint); }
-.frontis-credit { margin: 0; font-size: 15px; font-style: italic; color: var(--sepia-faint); }
-.ab-name { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 3.2vw, 40px); line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
-.ab-name::after { content: ""; display: block; width: 120px; height: 9px; margin: 12px auto 0; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
-.ab-epithet { margin: -8px 0 0; max-width: 34ch; font-size: 19px; font-style: italic; line-height: 1.45; color: var(--sepia-soft); }
-#leaf-about .ar-tools { justify-content: center; }
-#view-about { display: grid; gap: 32px; }
-.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px 20px; margin: 0; font-size: 18px; line-height: 1.35; }
-.facts dt { font-family: var(--font-book-sc); color: var(--rubric); overflow-wrap: anywhere; }
-.facts dd { margin: 0; font-style: italic; color: var(--sepia-soft); overflow-wrap: anywhere; }
-.ab-sections { display: grid; gap: 30px; }
+.frontis-open { padding: 11px; }
+.frontis-open img { width: clamp(132px, 21vw, 186px); height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 22%; border-radius: 50%; box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .6), 0 0 0 5px var(--parchment), 0 0 0 6px rgb(var(--sepia-rgb) / .45); }
+.frontis-empty { display: grid; place-items: center; box-sizing: border-box; width: clamp(120px, 19vw, 160px); aspect-ratio: 4 / 5; padding: 16px; border: 1.5px dashed rgb(var(--sepia-rgb) / .35); border-radius: 50%; font-size: 15px; font-style: italic; text-align: center; color: var(--sepia-faint); }
+.frontis-credit { max-width: 190px; margin: 0; font-size: 14px; font-style: italic; line-height: 1.3; text-align: center; color: var(--sepia-faint); }
+.ab-titles { display: grid; justify-items: start; gap: 4px; min-width: 0; }
+.ab-title { margin: 0; font-family: var(--font-book-sc); font-size: 18px; letter-spacing: .06em; color: var(--rubric); }
+.ab-name { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 4vw, 44px); line-height: 1.08; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
+.ab-name::after { content: ""; display: block; width: 120px; height: 9px; margin-top: 12px; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
+.ab-epithet { margin: 2px 0 0; max-width: 42ch; font-size: 19px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
+#leaf-about .ar-tools { margin-top: 8px; }
+#view-about { display: grid; gap: 38px; }
+
+.now { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px 30px; padding: 16px 20px 17px; border: 1px solid rgb(var(--sepia-rgb) / .3); border-radius: 2px; background: rgb(255 246 218 / .38); box-shadow: inset 0 0 24px rgb(var(--sepia-rgb) / .08); }
+.now-label { margin: 0 0 3px; font-family: var(--font-book-sc); font-size: 16px; font-weight: 400; color: var(--rubric); }
+.now p { margin: 0; font-size: 17.5px; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
+.now .is-ooc p { font-style: italic; color: var(--sepia-soft); }
+
+.dir { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); column-gap: 36px; margin: 0; }
+.dir-wide { grid-template-columns: minmax(0, 1fr); }
+.dir-row { display: grid; grid-template-columns: 6.2em minmax(0, 1fr); gap: 14px; align-items: baseline; padding: 7px 0 8px; border-bottom: 1px solid rgb(var(--sepia-rgb) / .14); }
+.dir dt { font-family: var(--font-book-sc); font-size: 16px; color: var(--rubric); overflow-wrap: anywhere; }
+.dir dd { margin: 0; font-size: 18px; line-height: 1.38; white-space: pre-line; overflow-wrap: anywhere; }
+.swatch { display: inline-block; width: .78em; height: .78em; margin-right: 8px; border-radius: 50%; vertical-align: -.04em; box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .65), inset 0 1px 2px rgb(255 255 255 / .45); }
+
+.traits { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.trait { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 1.6fr) minmax(0, 1fr); align-items: center; gap: 16px; }
+.t-pole { font-size: 17px; line-height: 1.25; color: var(--sepia-faint); overflow-wrap: anywhere; }
+.t-left { text-align: right; }
+.t-pole.is-lean { color: var(--sepia); }
+.t-bar { position: relative; height: 14px; }
+.t-bar::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; translate: 0 -50%; border-radius: 1px; background: rgb(var(--sepia-rgb) / .22); }
+.t-bar::after { content: ""; position: absolute; left: 50%; top: 2px; bottom: 2px; width: 1px; background: rgb(var(--sepia-rgb) / .45); }
+.t-fill { position: absolute; top: 50%; height: 4px; translate: 0 -50%; border-radius: 2px; background: linear-gradient(90deg, var(--ink-copper), var(--rubric)); }
+.t-mark { position: absolute; z-index: 1; top: 50%; width: 9px; height: 9px; translate: -50% -50%; rotate: 45deg; background: var(--brass-light); box-shadow: 0 0 0 1.5px var(--sepia), 0 1px 3px rgb(var(--sepia-rgb) / .5); }
+
+.glances { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px 18px; margin: 0; padding: 0; list-style: none; }
+.glance { padding: 12px 15px 14px; border: 1px solid rgb(var(--sepia-rgb) / .24); border-radius: 2px; background: rgb(255 246 218 / .3); }
+.glance h5 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; font-family: var(--font-book-sc); font-size: 17px; font-weight: 400; line-height: 1.25; color: var(--rubric); overflow-wrap: anywhere; }
+.glance h5::before { content: ""; flex: none; width: 7px; height: 7px; rotate: 45deg; background: var(--brass); box-shadow: 0 0 0 1px var(--sepia-soft); }
+.glance p { margin: 0; font-size: 16.5px; font-style: italic; line-height: 1.42; white-space: pre-line; overflow-wrap: anywhere; color: var(--sepia-soft); }
+
+/* the description: TRP markup made into headings, paragraphs, colours and links */
+.ab-sections { display: grid; gap: 40px; }
 .ab-sections:empty { display: none; }
-.ab-body { margin: 0; max-width: 60ch; font-size: 19px; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; color: var(--sepia); }
-.ab-section:first-child .ab-body::first-letter { float: left; margin: .06em .1em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.3em; line-height: .82; color: var(--rubric); }
+.trp { font-size: 19px; line-height: 1.62; overflow-wrap: anywhere; }
+.trp p { margin: 0 0 .8em; }
+.trp > :last-child { margin-bottom: 0; }
+.trp h5, .trp h6, .trp .h3 { margin: 1.15em 0 .4em; font-family: var(--font-title); font-weight: 700; line-height: 1.2; text-wrap: balance; color: var(--sepia); }
+.trp > :first-child { margin-top: 0; }
+.trp h5 { font-size: 30px; }
+.trp h6 { font-size: 23px; }
+.trp .h3 { font-size: 17px; letter-spacing: .08em; text-transform: uppercase; }
+.trp .al-c { text-align: center; }
+.trp .al-r { text-align: right; }
+.trp a { color: var(--rubric); text-decoration-color: rgb(142 29 18 / .45); text-underline-offset: 3px; }
+.trp a:hover { text-decoration-color: currentColor; }
+.trp .dropcap { display: flow-root; } /* holds the capital, so it never hangs into the next paragraph */
+.trp .dropcap::first-letter { float: left; margin: .05em .09em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.4em; line-height: .8; color: var(--rubric); }
 
 /* Art: a list of plates facing the plate itself; a click shows it full size */
-.plates { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 20px 14px; margin: 0; padding: 0; list-style: none; }
+.plates { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px 14px; margin: 0; padding: 0; list-style: none; }
 .plates .plates-empty { grid-column: 1 / -1; }
 .plate-btn { display: grid; gap: 7px; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
 .plate-btn .mount { padding: 5px; transition: box-shadow .2s; }
@@ -321,14 +373,13 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .plate { display: grid; justify-items: center; gap: 14px; margin: 0; text-align: center; }
 .plate-no { margin: 0; font-family: var(--font-book-sc); font-size: 17px; letter-spacing: .06em; color: var(--rubric); }
 .plate-open { padding: 9px; }
-.plate-open img { max-width: 100%; max-height: min(54vh, 470px); width: auto; height: auto; }
+.plate-open img { max-width: 100%; max-height: min(62vh, 600px); width: auto; height: auto; }
 .plate figcaption { display: grid; gap: 4px; justify-items: center; }
 .plate-title { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.15; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
 .plate-credit { margin: 0; font-size: 17px; font-style: italic; color: var(--sepia-soft); overflow-wrap: anywhere; }
 .plate-credit a { color: var(--rubric); text-underline-offset: 3px; }
 .plate-note { margin: 8px 0 0; max-width: 46ch; font-size: 18px; line-height: 1.5; white-space: pre-line; text-align: left; overflow-wrap: anywhere; color: var(--sepia); }
 .plate-view .owner-row { justify-content: center; margin-top: 10px; }
-.narrow-only { display: none; }
 
 /* A mature image's cover. Nothing of the image is loaded until the visitor chooses to see it. */
 .spoiler { position: relative; display: grid; place-items: center; align-content: center; gap: 7px; box-sizing: border-box; width: 100%; aspect-ratio: 4 / 5; padding: 10px; overflow: hidden; text-align: center; color: var(--brass-light);
@@ -337,7 +388,7 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
   background: radial-gradient(circle at 40% 32%, #c8301f, var(--wow-red) 55%, var(--wow-red-dark)); box-shadow: 0 0 0 2px var(--brass), 0 0 0 3px var(--leather-dark), 0 3px 8px rgb(0 0 0 / .6); }
 .spoiler-label { font-family: var(--font-title); font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-indent: .14em; text-transform: uppercase; }
 .spoiler-hint { font-size: 16px; font-style: italic; color: rgb(241 212 138 / .75); }
-.spoiler-big { width: calc(min(54vh, 470px) * var(--r, .8)); max-width: 100%; gap: 10px; } /* the image's own shape, at the size the image would have */
+.spoiler-big { width: calc(min(62vh, 600px) * var(--r, .8)); max-width: 100%; gap: 10px; } /* the image's own shape, at the size the image would have */
 .spoiler-big .spoiler-seal { font-size: 19px; }
 .spoiler-big .spoiler-label { font-size: 15px; }
 .plate-open.is-covered { cursor: pointer; }
@@ -419,7 +470,26 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 .row { display: grid; gap: 2px 12px; align-items: end; }
 .row-fact { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; }
 .row-section { grid-template-columns: minmax(0, 1fr) auto; padding-bottom: 8px; border-bottom: 1px dotted rgb(var(--sepia-rgb) / .3); }
-.row-section textarea { grid-column: 1 / -1; min-height: 120px; }
+.row-section textarea { grid-column: 1 / -1; min-height: 160px; max-height: 70vh; field-sizing: content; }
+.row-trait { grid-template-columns: minmax(0, 1fr) minmax(90px, 1.2fr) minmax(0, 1fr) auto; align-items: center; }
+.row-trait [data-k="left"] { text-align: right; }
+.row-trait .row-tools { padding-bottom: 0; }
+.row-glance { grid-template-columns: minmax(0, 1fr) auto; padding-bottom: 8px; border-bottom: 1px dotted rgb(var(--sepia-rgb) / .3); }
+.row-glance textarea { grid-column: 1 / -1; min-height: 90px; }
+.range { width: 100%; min-width: 0; margin: 0; accent-color: var(--rubric); }
+.adds { display: flex; flex-wrap: wrap; gap: 0 24px; }
+.eye-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.eye-pick input[type="color"] { width: 42px; height: 30px; padding: 1px 2px; border: 1px solid rgb(var(--sepia-rgb) / .5); border-radius: 2px; background: rgb(255 248 225 / .4); cursor: pointer; }
+.eye-pick input[type="color"]:disabled { opacity: .4; cursor: default; }
+#about-form { max-width: none; }
+.help-box { font-size: 15.5px; color: var(--sepia-soft); }
+.help-box summary { cursor: pointer; font-style: italic; }
+.help-box summary:hover { color: var(--rubric); }
+.help-list { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; margin: 10px 0 6px; padding: 12px 14px; border: 1px solid rgb(var(--sepia-rgb) / .2); background: rgb(255 248 225 / .3); }
+.help-list dt, .help-box code { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; font-size: 13px; color: var(--sepia); }
+.help-list dt { white-space: nowrap; }
+.help-list dd { margin: 0; line-height: 1.4; }
+.help-box > p { margin: 0; font-style: italic; }
 .row-tools { display: flex; gap: 3px; padding-bottom: 6px; }
 .icon-btn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid rgb(var(--sepia-rgb) / .35); border-radius: 2px; background: rgb(255 248 225 / .35); cursor: pointer; font-family: var(--font-book); font-size: 17px; line-height: 1; color: var(--sepia-soft); }
 .icon-btn:hover { border-color: var(--rubric); color: var(--rubric); }
@@ -443,20 +513,24 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 .toast.show { animation: toast-in .3s ease-out; }
 @keyframes toast-in { from { opacity: 0; translate: -50% 10px; } to { opacity: 1; translate: -50% 0; } }
 
-/* one leaf at a time on narrow screens; a record or form replaces the bookplate */
+/* narrow screens: a thinner binding and a narrower margin */
 @media (max-width: 860px) {
   .archive { width: calc(100% - 24px); }
   .tome { padding: 9px; }
   .tome::before { inset: 4px; }
   .corner { width: 30px; height: 30px; }
-  .ribbon, .book::after { display: none; }
-  .book { grid-template-columns: minmax(0, 1fr); height: auto; max-height: calc(100vh - 92px); max-height: calc(100dvh - 92px); overflow: auto; overscroll-behavior: contain; background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment); }
-  .page { overflow: visible; background: none; box-shadow: none; padding: 26px 20px; }
-  .page-r { border-top: 1px solid rgb(var(--sepia-rgb) / .25); }
-  .book[data-solo] .page-l { display: none; } /* a record, a plate or a form comes first */
-  .book[data-solo] .page-r { border-top: 0; }
-  .book[data-view="plates"] .page-r { display: none; } /* the list of plates alone; a plate opens on its own */
-  .narrow-only { display: block; }
+  .ribbon { left: 44px; bottom: -22px; width: 11px; height: 50px; }
+  .book { height: calc(100vh - 92px); height: calc(100dvh - 92px); }
+  .book::before { inset: 7px; outline: none; }
+  .page { padding-inline: 20px; }
+  .trp { font-size: 18px; }
+  .trait { gap: 10px; grid-template-columns: minmax(0, 1fr) minmax(80px, 1.2fr) minmax(0, 1fr); }
+  .t-pole { font-size: 15.5px; }
+  .row-trait { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .row-trait [data-k="left"] { grid-column: 1; grid-row: 1; text-align: left; }
+  .row-trait [data-k="right"] { grid-column: 2; grid-row: 1; }
+  .row-trait .range { grid-column: 1 / 3; grid-row: 2; }
+  .row-trait .row-tools { grid-column: 3; grid-row: 1 / 3; align-self: center; }
   .tabs { gap: 3px; padding: 0 30px 0 14px; margin-bottom: -6px; } /* clear of the close button */
   .tab { padding: 7px clamp(7px, 2.4vw, 12px) 12px; font-size: clamp(10px, 2.9vw, 12px); letter-spacing: .05em; }
   .row-fact { grid-template-columns: minmax(0, 1fr) auto; }
@@ -473,6 +547,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   .btn-close { top: -8px; right: -6px; width: 34px; height: 34px; }
   .clasp { right: -8px; width: 18px; height: 44px; }
   .seal { right: 50%; translate: 50% -50%; }
+}
+@media (max-width: 560px) {
+  .ab-head { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
+  .ab-titles { justify-items: center; }
+  .ab-name::after { margin-inline: auto; }
+  .page { padding-inline: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool, .nebula i, .hub-opt, .lightbox { animation: none !important; }
@@ -550,219 +630,295 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       </div>
     </form>
     <button class="btn-close" id="btn-close" type="button" aria-label="Close the archive" autofocus><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
+    <span class="ribbon" aria-hidden="true"></span>
     <div class="book" id="book" data-book="knowledge" data-view="overview">
-      <span class="ribbon" aria-hidden="true"></span>
-      <section class="page page-l" id="page-l">
-        <h2 class="sr-only" id="ar-title"><span id="ar-chapter">Character Knowledge</span>, from the archive of <span id="ar-name">Unnamed Dracthyr</span></h2>
-        <div class="leaf" id="leaf-knowledge">
-          <div class="ar-tools">
-            <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
-            <button class="btn" id="btn-clear-examples" type="button" hidden>Remove examples</button>
-          </div>
-          <section aria-labelledby="recent-title">
-            <h3 class="rubric" id="recent-title">Recent accessions <span id="recent-count"></span></h3>
-            <ol class="recent" id="recent"></ol>
-          </section>
-        </div>
-
-        <div class="leaf" id="leaf-about" hidden>
-          <figure class="frontis">
-            <button class="mount frontis-open" id="frontis-open" type="button" aria-label="View the portrait full size" hidden></button>
-            <div class="frontis-empty" id="frontis-empty">No likeness yet</div>
-            <figcaption class="frontis-credit" id="frontis-credit" hidden></figcaption>
-          </figure>
-          <h3 class="ab-name" id="ab-name"></h3>
-          <p class="ab-epithet" id="ab-epithet"></p>
-          <div class="ar-tools">
-            <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
-          </div>
-        </div>
-
-        <div class="leaf" id="leaf-art" hidden>
-          <div class="ar-tools">
-            <button class="btn" id="btn-add-art" type="button" hidden>Add a plate</button>
-          </div>
-          <section aria-labelledby="plates-title">
-            <h3 class="rubric" id="plates-title">Plates <span id="plates-count"></span></h3>
-            <ol class="plates" id="plates"></ol>
-          </section>
-        </div>
-      </section>
-
-      <section class="page page-r" id="page-r">
-        <section id="view-overview">
-          <section aria-labelledby="index-title">
-            <h3 class="rubric" id="index-title">Index of knowledge <span id="index-count"></span></h3>
-            <div class="index" id="index"></div>
-          </section>
-        </section>
-
-        <section class="detail" id="view-detail" hidden>
-          <button class="back" id="det-back" type="button">← Return to the index</button>
-          <div class="det-meta">
-            <span class="det-status" id="det-status"><span class="glyph" id="det-glyph"></span><span id="det-status-label"></span></span>
-            <span id="det-domain"></span>
-            <time id="det-date"></time>
-          </div>
-          <h3 class="det-title" id="det-title"></h3>
-          <p class="det-note" id="det-note"></p>
-          <dl class="det-facts">
-            <dt>Learned from</dt><dd id="det-source"></dd>
-            <dt>State</dt><dd id="det-state"></dd>
-          </dl>
-          <div class="owner-row" id="det-tools" hidden>
-            <button class="btn" id="det-edit" type="button">Revise</button>
-            <button class="btn" id="det-delete" type="button">Remove record</button>
-          </div>
-        </section>
-
-        <section id="view-form" hidden>
-          <form class="form" id="rec-form" novalidate>
-            <button class="back" id="f-back" type="button">← Return without inscribing</button>
-            <h3 id="form-heading">Inscribe a record</h3>
-            <div class="field">
-              <label for="f-title">Title</label>
-              <input class="input" id="f-title" name="title" maxlength="120" autocomplete="off" placeholder="The Sundering">
+      <div class="book-scroll" id="book-scroll">
+        <section class="page page-l" id="page-l">
+          <h2 class="sr-only" id="ar-title"><span id="ar-chapter">Character Knowledge</span>, from the archive of <span id="ar-name">Unnamed Dracthyr</span></h2>
+          <div class="leaf" id="leaf-knowledge">
+            <div class="ar-tools">
+              <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
+              <button class="btn" id="btn-clear-examples" type="button" hidden>Remove examples</button>
             </div>
-            <div class="row-2">
+            <section aria-labelledby="recent-title">
+              <h3 class="rubric" id="recent-title">Recent accessions <span id="recent-count"></span></h3>
+              <ol class="recent" id="recent"></ol>
+            </section>
+          </div>
+
+          <div class="leaf" id="leaf-about" hidden>
+            <header class="ab-head">
+              <figure class="frontis">
+                <button class="mount frontis-open" id="frontis-open" type="button" aria-label="View the portrait full size" hidden></button>
+                <div class="frontis-empty" id="frontis-empty">No likeness yet</div>
+                <figcaption class="frontis-credit" id="frontis-credit" hidden></figcaption>
+              </figure>
+              <div class="ab-titles">
+                <p class="ab-title" id="ab-title" hidden></p>
+                <h3 class="ab-name" id="ab-name"></h3>
+                <p class="ab-epithet" id="ab-epithet"></p>
+                <div class="ar-tools">
+                  <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
+                </div>
+              </div>
+            </header>
+          </div>
+
+          <div class="leaf" id="leaf-art" hidden>
+            <div class="ar-tools">
+              <button class="btn" id="btn-add-art" type="button" hidden>Add a plate</button>
+            </div>
+            <section aria-labelledby="plates-title">
+              <h3 class="rubric" id="plates-title">Plates <span id="plates-count"></span></h3>
+              <ol class="plates" id="plates"></ol>
+            </section>
+          </div>
+        </section>
+
+        <section class="page page-r" id="page-r">
+          <section id="view-overview">
+            <section aria-labelledby="index-title">
+              <h3 class="rubric" id="index-title">Index of knowledge <span id="index-count"></span></h3>
+              <div class="index" id="index"></div>
+            </section>
+          </section>
+
+          <section class="detail" id="view-detail" hidden>
+            <button class="back" id="det-back" type="button">← Return to the index</button>
+            <div class="det-meta">
+              <span class="det-status" id="det-status"><span class="glyph" id="det-glyph"></span><span id="det-status-label"></span></span>
+              <span id="det-domain"></span>
+              <time id="det-date"></time>
+            </div>
+            <h3 class="det-title" id="det-title"></h3>
+            <p class="det-note" id="det-note"></p>
+            <dl class="det-facts">
+              <dt>Learned from</dt><dd id="det-source"></dd>
+              <dt>State</dt><dd id="det-state"></dd>
+            </dl>
+            <div class="owner-row" id="det-tools" hidden>
+              <button class="btn" id="det-edit" type="button">Revise</button>
+              <button class="btn" id="det-delete" type="button">Remove record</button>
+            </div>
+          </section>
+
+          <section id="view-form" hidden>
+            <form class="form" id="rec-form" novalidate>
+              <button class="back" id="f-back" type="button">← Return without inscribing</button>
+              <h3 id="form-heading">Inscribe a record</h3>
               <div class="field">
-                <label for="f-domain">Domain</label>
-                <input class="input" id="f-domain" name="domain" list="domain-list" maxlength="60" autocomplete="off" placeholder="Wars &amp; catastrophes">
-                <datalist id="domain-list"></datalist>
+                <label for="f-title">Title</label>
+                <input class="input" id="f-title" name="title" maxlength="120" autocomplete="off" placeholder="The Sundering">
+              </div>
+              <div class="row-2">
+                <div class="field">
+                  <label for="f-domain">Domain</label>
+                  <input class="input" id="f-domain" name="domain" list="domain-list" maxlength="60" autocomplete="off" placeholder="Wars &amp; catastrophes">
+                  <datalist id="domain-list"></datalist>
+                </div>
+                <div class="field">
+                  <label for="f-date">Date</label>
+                  <input class="input" id="f-date" name="date" type="date">
+                </div>
+              </div>
+              <fieldset class="field">
+                <legend>What he knows</legend>
+                <div class="status-pick" id="status-pick"></div>
+                <p class="help" id="f-status-desc"></p>
+              </fieldset>
+              <div class="field">
+                <label for="f-note">Record</label>
+                <textarea class="input" id="f-note" name="note" maxlength="4000" placeholder="What he learned, in his own words."></textarea>
               </div>
               <div class="field">
-                <label for="f-date">Date</label>
-                <input class="input" id="f-date" name="date" type="date">
+                <label for="f-source">Learned from</label>
+                <input class="input" id="f-source" name="source" maxlength="160" autocomplete="off" placeholder="A book, a person, the construct's memory">
               </div>
-            </div>
-            <fieldset class="field">
-              <legend>What he knows</legend>
-              <div class="status-pick" id="status-pick"></div>
-              <p class="help" id="f-status-desc"></p>
-            </fieldset>
-            <div class="field">
-              <label for="f-note">Record</label>
-              <textarea class="input" id="f-note" name="note" maxlength="4000" placeholder="What he learned, in his own words."></textarea>
-            </div>
-            <div class="field">
-              <label for="f-source">Learned from</label>
-              <input class="input" id="f-source" name="source" maxlength="160" autocomplete="off" placeholder="A book, a person, the construct's memory">
-            </div>
-            <p class="form-error" id="f-error" role="alert" hidden></p>
-            <div class="form-actions">
-              <button class="btn" id="f-submit" type="submit">Inscribe</button>
-              <button class="btn" id="f-cancel" type="button">Cancel</button>
-            </div>
-          </form>
-        </section>
-
-        <section id="view-about" hidden>
-          <section id="ab-facts-wrap" aria-labelledby="facts-title">
-            <h3 class="rubric" id="facts-title">Particulars</h3>
-            <dl class="facts" id="ab-facts"></dl>
+              <p class="form-error" id="f-error" role="alert" hidden></p>
+              <div class="form-actions">
+                <button class="btn" id="f-submit" type="submit">Inscribe</button>
+                <button class="btn" id="f-cancel" type="button">Cancel</button>
+              </div>
+            </form>
           </section>
-          <div class="ab-sections" id="ab-sections"></div>
-          <p class="empty" id="ab-empty" hidden></p>
-        </section>
 
-        <section id="view-about-form" hidden>
-          <form class="form" id="about-form" novalidate>
-            <button class="back" id="abf-back" type="button">← Return without amending</button>
-            <h3>Amend this page</h3>
-            <div class="field">
-              <label for="abf-name">Name</label>
-              <input class="input" id="abf-name" name="name" maxlength="60" autocomplete="off">
-            </div>
-            <div class="field">
-              <label for="abf-epithet">Epithet</label>
-              <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280" placeholder="A line or two beneath his name"></textarea>
-            </div>
-            <div class="field">
-              <label for="abf-portrait">Portrait</label>
-              <select class="input" id="abf-portrait" name="portrait"></select>
-              <p class="help">One of the plates in the Art chapter, shown above his name.</p>
-            </div>
-            <fieldset class="field">
-              <legend>Particulars</legend>
-              <div class="rows" id="abf-facts"></div>
-              <button class="back add" id="abf-add-fact" type="button">+ Add a particular</button>
-            </fieldset>
-            <fieldset class="field">
-              <legend>Sections</legend>
-              <div class="rows" id="abf-sections"></div>
-              <button class="back add" id="abf-add-section" type="button">+ Add a section</button>
-            </fieldset>
-            <p class="form-error" id="abf-error" role="alert" hidden></p>
-            <div class="form-actions">
-              <button class="btn" id="abf-submit" type="submit">Save the page</button>
-              <button class="btn" id="abf-cancel" type="button">Cancel</button>
-            </div>
-          </form>
-        </section>
+          <section id="view-about" hidden>
+            <div class="now" id="ab-now" hidden></div>
+            <section id="ab-dir-wrap" aria-labelledby="dir-title" hidden>
+              <h4 class="rubric" id="dir-title">Directory</h4>
+              <dl class="dir" id="ab-dir"></dl>
+            </section>
+            <section id="ab-facts-wrap" aria-labelledby="facts-title" hidden>
+              <h4 class="rubric" id="facts-title">Additional information</h4>
+              <dl class="dir dir-wide" id="ab-facts"></dl>
+            </section>
+            <section id="ab-traits-wrap" aria-labelledby="traits-title" hidden>
+              <h4 class="rubric" id="traits-title">Personality traits</h4>
+              <ul class="traits" id="ab-traits"></ul>
+            </section>
+            <section id="ab-glances-wrap" aria-labelledby="glances-title" hidden>
+              <h4 class="rubric" id="glances-title">At first glance</h4>
+              <ul class="glances" id="ab-glances"></ul>
+            </section>
+            <div class="ab-sections" id="ab-sections"></div>
+            <p class="empty" id="ab-empty" hidden></p>
+          </section>
 
-        <section class="plate-view" id="view-plate" hidden>
-          <button class="back narrow-only" id="pl-back" type="button">← Return to the plates</button>
-          <p class="empty" id="pl-empty" hidden>The plates will be shown here.</p>
-          <figure class="plate" id="pl-figure">
-            <p class="plate-no" id="pl-no"></p>
-            <button class="mount plate-open" id="pl-open" type="button" aria-label="View the plate full size"></button>
-            <div class="versions" id="pl-versions" role="group" aria-label="This plate's images" hidden></div>
-            <figcaption>
-              <h3 class="plate-title" id="pl-title"></h3>
-              <p class="plate-credit" id="pl-credit"></p>
-              <p class="plate-note" id="pl-note"></p>
-            </figcaption>
-          </figure>
-          <div class="owner-row" id="pl-tools" hidden>
-            <button class="btn" id="pl-edit" type="button">Revise</button>
-            <button class="btn" id="pl-portrait" type="button">Make it the portrait</button>
-            <button class="btn" id="pl-earlier" type="button">Move earlier</button>
-            <button class="btn" id="pl-later" type="button">Move later</button>
-            <button class="btn" id="pl-delete" type="button">Remove plate</button>
-          </div>
-        </section>
-
-        <section id="view-art-form" hidden>
-          <form class="form" id="art-form" novalidate>
-            <button class="back" id="af-back" type="button">← Return without adding</button>
-            <h3 id="af-heading">Add a plate</h3>
-            <div class="field">
-              <label for="af-title">Title</label>
-              <input class="input" id="af-title" name="title" maxlength="120" autocomplete="off" placeholder="At the edge of the Reach">
-            </div>
-            <div class="row-2">
-              <div class="field">
-                <label for="af-artist">Artist</label>
-                <input class="input" id="af-artist" name="artist" maxlength="80" autocomplete="off" placeholder="Who made it">
+          <section id="view-about-form" hidden>
+            <form class="form" id="about-form" novalidate>
+              <button class="back" id="abf-back" type="button">← Return without amending</button>
+              <h3>Amend this page</h3>
+              <p class="help">Laid out like a Total RP 3 profile. Anything left empty is left out of the page.</p>
+              <div class="row-2">
+                <div class="field">
+                  <label for="abf-title">Title</label>
+                  <input class="input" id="abf-title" name="title" maxlength="60" autocomplete="off" placeholder="Archivist">
+                </div>
+                <div class="field">
+                  <label for="abf-name">Name</label>
+                  <input class="input" id="abf-name" name="name" maxlength="60" autocomplete="off">
+                </div>
               </div>
               <div class="field">
-                <label for="af-date">Date</label>
-                <input class="input" id="af-date" name="date" type="date">
+                <label for="abf-epithet">Full title</label>
+                <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280" placeholder="A line or two beneath his name"></textarea>
               </div>
-            </div>
-            <div class="field">
-              <label for="af-link">The artist's page</label>
-              <input class="input" id="af-link" name="link" type="url" maxlength="300" autocomplete="off" placeholder="https://">
-            </div>
-            <div class="field">
-              <label for="af-note">Note</label>
-              <textarea class="input short" id="af-note" name="note" maxlength="1000" placeholder="A commission, a gift, a scene from a story"></textarea>
-            </div>
-            <fieldset class="field">
-              <legend>Images</legend>
-              <p class="help">The first is the main image, shown in the list of plates; the others are its alternate versions. Tick <i>Mature</i> on any that is for adults only: it stays covered until a visitor says they are 18 or older. PNG, JPEG or WebP; big images are scaled to 2400 pixels on the long side, and nothing but the picture is kept.</p>
-              <div class="rows" id="af-versions"></div>
-              <button class="back add" id="af-add" type="button">+ Add an image</button>
-            </fieldset>
-            <p class="form-error" id="af-error" role="alert" hidden></p>
-            <div class="form-actions">
-              <button class="btn" id="af-submit" type="submit">Add the plate</button>
-              <button class="btn" id="af-cancel" type="button">Cancel</button>
-            </div>
-          </form>
-        </section>
+              <div class="field">
+                <label for="abf-portrait">Portrait</label>
+                <select class="input" id="abf-portrait" name="portrait"></select>
+                <p class="help">One of the plates in the Art chapter, shown beside his name.</p>
+              </div>
+              <div class="row-2">
+                <div class="field">
+                  <label for="abf-currently">Currently</label>
+                  <textarea class="input short" id="abf-currently" name="currently" maxlength="1000" placeholder="What he is doing right now"></textarea>
+                </div>
+                <div class="field">
+                  <label for="abf-ooc">Out of character</label>
+                  <textarea class="input short" id="abf-ooc" name="ooc" maxlength="1000" placeholder="Notes for other players"></textarea>
+                </div>
+              </div>
+              <fieldset class="field">
+                <legend>Directory</legend>
+                <div class="row-2" id="abf-directory"></div>
+                <div class="eye-pick">
+                  <label class="check"><input type="checkbox" id="abf-eye-on"> Show the eye colour</label>
+                  <input type="color" id="abf-eye-color" value="#e3a13a" aria-label="Eye colour">
+                </div>
+              </fieldset>
+              <fieldset class="field">
+                <legend>Additional information</legend>
+                <div class="rows" id="abf-facts"></div>
+                <datalist id="fact-labels"></datalist>
+                <button class="back add" id="abf-add-fact" type="button">+ Add a line</button>
+              </fieldset>
+              <fieldset class="field">
+                <legend>Personality traits</legend>
+                <p class="help">Each trait sits between two opposites. Slide toward the one that fits him.</p>
+                <div class="rows" id="abf-traits"></div>
+                <div class="adds">
+                  <button class="back add" id="abf-add-trait" type="button">+ Add a trait</button>
+                  <button class="back add" id="abf-std-traits" type="button">+ Add TRP's standard traits</button>
+                </div>
+              </fieldset>
+              <fieldset class="field">
+                <legend>At first glance</legend>
+                <p class="help">Up to five things anyone would notice.</p>
+                <div class="rows" id="abf-glances"></div>
+                <button class="back add" id="abf-add-glance" type="button">+ Add a glance</button>
+              </fieldset>
+              <fieldset class="field">
+                <legend>Description</legend>
+                <p class="help">In sections, each with an optional heading. A whole Total RP 3 description can be pasted into one section; its markup carries over.</p>
+                <details class="help-box">
+                  <summary>Formatting, as in Total RP 3</summary>
+                  <dl class="help-list">
+                    <dt>{h1}Title{/h1}</dt><dd>A heading. <code>{h2}</code> and <code>{h3}</code> are smaller. Add <code>:c</code> or <code>:r</code> to centre it or align it right, as in <code>{h2:c}</code>.</dd>
+                    <dt>{p:c}Text{/p}</dt><dd>A centred paragraph. <code>{p:r}</code> aligns it right.</dd>
+                    <dt>{col:ffd100}Text{/col}</dt><dd>Coloured text. The game's colour codes (<code>|cffffd100Text|r</code>) work too. Pale colours are darkened so they stay readable on parchment.</dd>
+                    <dt>{link*https://…*Text}</dt><dd>A link. Only http and https addresses become links.</dd>
+                    <dt>A blank line</dt><dd>Starts a new paragraph. A single line break stays a line break.</dd>
+                  </dl>
+                  <p>Icons and images (<code>{icon:…}</code>, <code>{img:…}</code>) are game files, so they are left out.</p>
+                </details>
+                <div class="rows" id="abf-sections"></div>
+                <div class="adds">
+                  <button class="back add" id="abf-add-section" type="button">+ Add a section</button>
+                  <button class="back add" id="abf-std-sections" type="button">+ Add TRP's three sections</button>
+                </div>
+              </fieldset>
+              <p class="form-error" id="abf-error" role="alert" hidden></p>
+              <div class="form-actions">
+                <button class="btn" id="abf-submit" type="submit">Save the page</button>
+                <button class="btn" id="abf-cancel" type="button">Cancel</button>
+              </div>
+            </form>
+          </section>
 
-      </section>
+          <section class="plate-view" id="view-plate" hidden>
+            <button class="back narrow-only" id="pl-back" type="button">← Return to the plates</button>
+            <p class="empty" id="pl-empty" hidden>The plates will be shown here.</p>
+            <figure class="plate" id="pl-figure">
+              <p class="plate-no" id="pl-no"></p>
+              <button class="mount plate-open" id="pl-open" type="button" aria-label="View the plate full size"></button>
+              <div class="versions" id="pl-versions" role="group" aria-label="This plate's images" hidden></div>
+              <figcaption>
+                <h3 class="plate-title" id="pl-title"></h3>
+                <p class="plate-credit" id="pl-credit"></p>
+                <p class="plate-note" id="pl-note"></p>
+              </figcaption>
+            </figure>
+            <div class="owner-row" id="pl-tools" hidden>
+              <button class="btn" id="pl-edit" type="button">Revise</button>
+              <button class="btn" id="pl-portrait" type="button">Make it the portrait</button>
+              <button class="btn" id="pl-earlier" type="button">Move earlier</button>
+              <button class="btn" id="pl-later" type="button">Move later</button>
+              <button class="btn" id="pl-delete" type="button">Remove plate</button>
+            </div>
+          </section>
+
+          <section id="view-art-form" hidden>
+            <form class="form" id="art-form" novalidate>
+              <button class="back" id="af-back" type="button">← Return without adding</button>
+              <h3 id="af-heading">Add a plate</h3>
+              <div class="field">
+                <label for="af-title">Title</label>
+                <input class="input" id="af-title" name="title" maxlength="120" autocomplete="off" placeholder="At the edge of the Reach">
+              </div>
+              <div class="row-2">
+                <div class="field">
+                  <label for="af-artist">Artist</label>
+                  <input class="input" id="af-artist" name="artist" maxlength="80" autocomplete="off" placeholder="Who made it">
+                </div>
+                <div class="field">
+                  <label for="af-date">Date</label>
+                  <input class="input" id="af-date" name="date" type="date">
+                </div>
+              </div>
+              <div class="field">
+                <label for="af-link">The artist's page</label>
+                <input class="input" id="af-link" name="link" type="url" maxlength="300" autocomplete="off" placeholder="https://">
+              </div>
+              <div class="field">
+                <label for="af-note">Note</label>
+                <textarea class="input short" id="af-note" name="note" maxlength="1000" placeholder="A commission, a gift, a scene from a story"></textarea>
+              </div>
+              <fieldset class="field">
+                <legend>Images</legend>
+                <p class="help">The first is the main image, shown in the list of plates; the others are its alternate versions. Tick <i>Mature</i> on any that is for adults only: it stays covered until a visitor says they are 18 or older. PNG, JPEG or WebP; big images are scaled to 2400 pixels on the long side, and nothing but the picture is kept.</p>
+                <div class="rows" id="af-versions"></div>
+                <button class="back add" id="af-add" type="button">+ Add an image</button>
+              </fieldset>
+              <p class="form-error" id="af-error" role="alert" hidden></p>
+              <div class="form-actions">
+                <button class="btn" id="af-submit" type="submit">Add the plate</button>
+                <button class="btn" id="af-cancel" type="button">Cancel</button>
+              </div>
+            </form>
+          </section>
+
+        </section>
+      </div>
     </div>
   </div>
   <form class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" novalidate hidden>
@@ -807,7 +963,17 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var SUGGESTED_DOMAINS = ["Dragonkind & the Aspects", "Peoples & factions", "Wars & catastrophes", "Places", "Cosmology & the beyond"];
   var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge" };
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
-  var MAX = { facts: 16, sections: 12, versions: 12, upload: 8 * 1024 * 1024 };
+  var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * 1024 * 1024 };
+  // The About page follows a Total RP 3 profile: the directory, additional information, personality traits, at first
+  // glance and the description. server/server.mjs caps each field; the form uses the same limits.
+  var ABOUT_TEXT = ["title", "currently", "ooc", "race", "class", "age", "eyes", "height", "build", "birthplace", "residence"];
+  var DIRECTORY = [["race", "Race", "Dracthyr", 60], ["class", "Class", "Evoker", 60], ["age", "Age", "", 60], ["eyes", "Eyes", "Molten amber", 60],
+                   ["height", "Height", "", 60], ["build", "Build", "", 60], ["birthplace", "Birthplace", "The Forbidden Reach", 120], ["residence", "Residence", "Valdrakken", 120]];
+  var FACT_LABELS = ["Motto", "Nickname", "House name", "Pronouns", "Voice", "Profession", "Guild", "Rank", "Languages", "Relationships"];
+  var STANDARD_TRAITS = [["Chaotic", "Lawful"], ["Chaste", "Lustful"], ["Forgiving", "Vindictive"], ["Altruistic", "Selfish"], ["Sincere", "Deceitful"],
+                         ["Gentle", "Brutish"], ["Superstitious", "Rational"], ["Renegade", "Paragon"], ["Cautious", "Impulsive"], ["Ascetic", "Bon vivant"],
+                         ["Valorous", "Spineless"]];
+  var STANDARD_SECTIONS = ["Physical description", "Personality", "History"];
   var IMAGE_SIDE = 2400, THUMB_SIDE = 800; // longest side of the stored image and of its thumbnail, in pixels
   var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   // The preview build (dist/preview.html, published as the claude.ai Artifact) answers requests in the page itself,
@@ -827,6 +993,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return isNaN(d) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   }
   function isDate(v) { return /^\d{4}-\d{2}-\d{2}$/.test(v); }
+  function traitValue(v) { v = Math.round(Number(v)); return isFinite(v) ? Math.min(20, Math.max(0, v)) : 10; }
 
   // The server puts the archive into #ca-data, and answers every accepted change with the whole archive again
   function normalize(raw) {
@@ -854,11 +1021,18 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       };
     }).filter(function (a) { return a.versions.length; });
     var ab = raw.about || {};
+    function list(v, keys) {
+      return (Array.isArray(v) ? v : []).filter(Boolean).map(function (x) { var o = {}; keys.forEach(function (k) { o[k] = String(x[k] || ""); }); return o; });
+    }
     var about = {
       portrait: art.some(function (a) { return a.id === ab.portrait && !a.versions[0].mature; }) ? ab.portrait : "", // never a mature image
-      facts: (Array.isArray(ab.facts) ? ab.facts : []).filter(Boolean).map(function (f) { return { label: String(f.label || ""), value: String(f.value || "") }; }),
-      sections: (Array.isArray(ab.sections) ? ab.sections : []).filter(Boolean).map(function (x) { return { heading: String(x.heading || ""), body: String(x.body || "") }; })
+      eyeColor: /^#[0-9a-f]{6}$/i.test(ab.eyeColor) ? ab.eyeColor : "",
+      facts: list(ab.facts, ["label", "value"]),
+      traits: list(ab.traits, ["left", "right"]).map(function (t, i) { t.value = traitValue(ab.traits[i].value); return t; }),
+      glances: list(ab.glances, ["title", "text"]),
+      sections: list(ab.sections, ["heading", "body"])
     };
+    ABOUT_TEXT.forEach(function (k) { about[k] = typeof ab[k] === "string" ? ab[k] : ""; });
     return { profile: profile, about: about, art: art, records: records };
   }
   function loadState() {
@@ -935,6 +1109,75 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   function hostOf(link) { try { return new URL(link).hostname.replace(/^www\./, ""); } catch (e) { return link; } }
 
+  // ---------- Total RP 3 markup ----------
+  // The About page's description keeps TRP3's markup, so a profile can be pasted straight from the game. It is turned
+  // into elements here and never parsed as HTML: {h1}…{/h1} to {h3} (with :c or :r), {p:c}/{p:r}, {col:rrggbb}…{/col},
+  // the game's |cffrrggbb…|r and {link*url*text}. Icons, images and textures are game files, so they are dropped.
+  var TRP_BLOCK = /\{(h[1-3]|p)(?::([lcr]))?\}([\s\S]*?)\{\/\1\}/gi;
+  var TRP_INLINE = /\{col:([0-9a-f]{6})\}|\{\/col\}|\|c[0-9a-f]{2}([0-9a-f]{6})|\|r|\{link\*([^*{}]*)\*([^{}]*)\}|\{(?:icon|img):[^{}]*\}|\|T[^|]*\|t|\n/gi;
+  var ALIGN = { c: "al-c", r: "al-r" };
+  function trp(text) {
+    var out = document.createDocumentFragment(), src = String(text || "").replace(/\r\n?/g, "\n"), last = 0, m;
+    TRP_BLOCK.lastIndex = 0;
+    while ((m = TRP_BLOCK.exec(src))) {
+      trpFlow(src.slice(last, m.index), out);
+      var tag = m[1].toLowerCase(), align = (m[2] || "").toLowerCase();
+      if (tag === "p") trpFlow(m[3], out, align);
+      else out.append(trpInline(m[3].trim(), h(tag === "h1" ? "h5" : "h6", { class: [ALIGN[align], tag === "h3" ? "h3" : ""].join(" ").trim() || null })));
+      last = TRP_BLOCK.lastIndex;
+    }
+    trpFlow(src.slice(last), out);
+    return out;
+  }
+  // a blank line starts a paragraph; a single line break stays a line break
+  function trpFlow(text, parent, align) {
+    text.replace(/^\s*\n|\n\s*$/g, "").split(/\n[ \t]*(?:\n[ \t]*)+/).forEach(function (para) {
+      if (para.trim()) parent.append(trpInline(para, h("p", { class: ALIGN[align] })));
+    });
+  }
+  function trpInline(text, into) {
+    var stack = [into], last = 0, m;
+    function top() { return stack[stack.length - 1]; }
+    TRP_INLINE.lastIndex = 0;
+    while ((m = TRP_INLINE.exec(text))) {
+      if (m.index > last) top().append(text.slice(last, m.index));
+      last = TRP_INLINE.lastIndex;
+      if (m[1] || m[2]) {
+        var span = h("span");
+        span.style.color = ink(m[1] || m[2]);
+        top().append(span);
+        stack.push(span);
+      } else if (m[3] !== undefined) {
+        var url = m[3].trim(), label = m[4].trim() || url;
+        top().append(/^https?:\/\/[^\s"<>]+$/i.test(url) ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer nofollow", text: label }) : label);
+      } else if (m[0] === "\n") {
+        top().append(h("br"));
+      } else if (/^(\{\/col\}|\|r)$/i.test(m[0])) {
+        if (stack.length > 1) stack.pop();
+      }
+    }
+    if (last < text.length) top().append(text.slice(last));
+    return into;
+  }
+  // TRP colours are picked for the game's dark frames. Here they keep their hue but are darkened until they read on
+  // parchment (4.5:1 against it); white and pale greys become the ink itself.
+  function ink(hex) {
+    var c = [0, 2, 4].map(function (i) { return parseInt(hex.substr(i, 2), 16) / 255; });
+    var max = Math.max.apply(null, c), min = Math.min.apply(null, c), d = max - min, l = (max + min) / 2, sat = 0, hue = 0;
+    if (d) {
+      sat = d / (1 - Math.abs(2 * l - 1));
+      hue = 60 * (max === c[0] ? ((c[1] - c[2]) / d + 6) % 6 : max === c[1] ? (c[2] - c[0]) / d + 2 : (c[0] - c[1]) / d + 4);
+    }
+    if (sat < .12) return l > .45 ? "var(--sepia)" : "#" + hex;
+    function rgb(l) {
+      var a = sat * Math.min(l, 1 - l);
+      return [0, 8, 4].map(function (n) { var k = (n + hue / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); });
+    }
+    function lum(v) { return v.reduce(function (sum, x, i) { return sum + [.2126, .7152, .0722][i] * (x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4)); }, 0); }
+    while (l > .06 && lum(rgb(l)) > .115) l -= .02;
+    return "rgb(" + rgb(l).map(function (x) { return Math.round(x * 255); }).join(" ") + ")";
+  }
+
   // ---------- Landing: the construct alone; the name is there for screen readers ----------
   function renderLanding() {
     var name = state.profile.name || "Unnamed Dracthyr";
@@ -998,9 +1241,24 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!shown) el.index.append(h("p", { class: "empty", text: "Records appear here, gathered into chapters by domain." }));
   }
 
-  // About: his portrait, name and epithet on the left; particulars and sections on the right
+  // About: his portrait and names at the head of the page, then the profile as in Total RP 3
+  function trait(t) {
+    var v = t.value / 20, lean = t.value < 10 ? t.left : t.value > 10 ? t.right : "", d = Math.abs(t.value - 10);
+    var fill = h("i", { class: "t-fill" }), mark = h("i", { class: "t-mark" });
+    fill.style.left = Math.min(v, .5) * 100 + "%";
+    fill.style.width = Math.abs(v - .5) * 100 + "%";
+    mark.style.left = v * 100 + "%";
+    var words = !lean ? "evenly between the two" : (d <= 3 ? "slightly " : d <= 6 ? "fairly " : d < 10 ? "strongly " : "entirely ") + lean;
+    return h("li", { class: "trait", title: words.charAt(0).toUpperCase() + words.slice(1) },
+      h("span", { class: "t-pole t-left" + (t.value < 10 ? " is-lean" : ""), text: t.left }),
+      h("span", { class: "t-bar", "aria-hidden": "true" }, fill, mark),
+      h("span", { class: "t-pole t-right" + (t.value > 10 ? " is-lean" : ""), text: t.right }),
+      h("span", { class: "sr-only", text: ": " + words }));
+  }
   function renderAbout() {
     var p = state.profile, ab = state.about, por = ab.portrait ? findArt(ab.portrait) : null;
+    el.abTitle.textContent = ab.title;
+    el.abTitle.hidden = !ab.title;
     el.abName.textContent = p.name || "Unnamed Dracthyr";
     el.abEpithet.textContent = p.epithet;
     el.abEpithet.hidden = !p.epithet;
@@ -1009,15 +1267,34 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.frontisCredit.textContent = por && por.artist ? "After a likeness by " + por.artist : "";
     el.frontisCredit.hidden = !el.frontisCredit.textContent;
     fill(el.frontisOpen, por ? [verImg(por.versions[0], "thumb", por.title || "A likeness of " + el.abName.textContent)] : []);
-    var facts = [];
-    ab.facts.forEach(function (f) { facts.push(h("dt", { text: f.label }), h("dd", { text: f.value })); });
-    fill(el.abFacts, facts);
-    el.abFactsWrap.hidden = !ab.facts.length;
-    fill(el.abSections, ab.sections.map(function (x) {
-      return h("section", { class: "ab-section" }, x.heading ? h("h4", { class: "rubric", text: x.heading }) : null, x.body ? h("p", { class: "ab-body", text: x.body }) : null);
+    fill(el.abNow, [
+      ab.currently ? h("div", null, h("h4", { class: "now-label", text: "Currently" }), h("p", { text: ab.currently })) : null,
+      ab.ooc ? h("div", { class: "is-ooc" }, h("h4", { class: "now-label", text: "Out of character" }), h("p", { text: ab.ooc })) : null
+    ].filter(Boolean));
+    el.abNow.hidden = !(ab.currently || ab.ooc);
+    function row(label, value, before) { return h("div", { class: "dir-row" }, h("dt", { text: label }), h("dd", null, before, value)); }
+    var dir = DIRECTORY.filter(function (d) { return ab[d[0]]; });
+    fill(el.abDir, dir.map(function (d) {
+      var swatch = null;
+      if (d[0] === "eyes" && ab.eyeColor) { swatch = h("span", { class: "swatch", "aria-hidden": "true" }); swatch.style.background = ab.eyeColor; }
+      return row(d[1], ab[d[0]], swatch);
     }));
-    el.abEmpty.hidden = !!(ab.facts.length || ab.sections.length);
-    el.abEmpty.textContent = canPost() ? "Nothing is written here yet. Amend this page to say who he is." : "Nothing is written here yet.";
+    el.abDirWrap.hidden = !dir.length;
+    fill(el.abFacts, ab.facts.map(function (f) { return row(f.label, f.value); }));
+    el.abFactsWrap.hidden = !ab.facts.length;
+    fill(el.abTraits, ab.traits.map(trait));
+    el.abTraitsWrap.hidden = !ab.traits.length;
+    fill(el.abGlances, ab.glances.map(function (g) { return h("li", { class: "glance" }, g.title ? h("h5", { text: g.title }) : null, g.text ? h("p", { text: g.text }) : null); }));
+    el.abGlancesWrap.hidden = !ab.glances.length;
+    fill(el.abSections, ab.sections.map(function (x) {
+      return h("section", { class: "ab-section" }, x.heading ? h("h4", { class: "rubric", text: x.heading }) : null, h("div", { class: "trp" }, trp(x.body)));
+    }));
+    // a red capital opens the first plain paragraph of the description, if it is long enough to wrap around it
+    var first = el.abSections.querySelector(".trp > p:not(.al-c):not(.al-r)");
+    if (first && /^\p{L}/u.test(first.textContent) && first.textContent.length > 120) first.classList.add("dropcap");
+    var any = ab.currently || ab.ooc || dir.length || ab.facts.length || ab.traits.length || ab.glances.length || ab.sections.length;
+    el.abEmpty.hidden = !!any;
+    el.abEmpty.textContent = canPost() ? "Nothing is written here yet. Amend this page to say who he is, or paste his Total RP 3 profile into it." : "Nothing is written here yet.";
   }
 
   // Art: the plates in the keeper's order on the left, the chosen one on the right. A plate whose main image is
@@ -1095,7 +1372,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var v = VIEWS[name], book = v[1];
     Object.keys(VIEWS).forEach(function (k) { el[VIEWS[k][0]].hidden = VIEWS[k][0] !== v[0]; });
     Object.keys(BOOKS).forEach(function (b) { el["leaf" + b[0].toUpperCase() + b.slice(1)].hidden = b !== book; });
-    if (book !== currentBook) el.pageL.scrollTop = 0;
     if (name !== "plate" && name !== "plates") shown = null; // a mature image is covered again once the visitor moves on
     currentView = name;
     currentBook = book;
@@ -1104,8 +1380,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.book.toggleAttribute("data-solo", !!v[2]);
     el.arChapter.textContent = BOOKS[book];
     Array.prototype.forEach.call(el.tabs.children, function (t) { if (t.dataset.book === book) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current"); });
-    el.book.scrollTop = 0;
-    el.pageR.scrollTop = 0;
+    el.bookScroll.scrollTop = 0;
     setHash();
   }
 
@@ -1236,8 +1511,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
 
-  // The About page: name, epithet, portrait, and rows of particulars and sections the keeper can add, move and remove
-  var FACT_HINTS = [["Race", "Dracthyr"], ["Age", ""], ["Height", ""], ["Eyes", ""], ["Home", ""]];
+  // The About page: names, portrait, the Total RP 3 fields, and rows the keeper can add, move and remove: additional
+  // information, personality traits, glances and the description's sections
+  var FACT_HINTS = [["Motto", ""], ["Pronouns", ""], ["Voice", ""]];
   function rowTools() {
     return h("span", { class: "row-tools" },
       h("button", { class: "icon-btn", type: "button", "data-act": "up", "aria-label": "Move up", title: "Move up", text: "↑" }),
@@ -1247,15 +1523,38 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function factRow(f, i) {
     var hint = FACT_HINTS[i] || ["", ""];
     return h("div", { class: "row row-fact" },
-      h("input", { class: "input", "data-k": "label", "aria-label": "Particular", maxlength: 40, autocomplete: "off", placeholder: hint[0] || "Particular", value: f.label }),
-      h("input", { class: "input", "data-k": "value", "aria-label": "Its value", maxlength: 160, autocomplete: "off", placeholder: hint[1], value: f.value }),
+      h("input", { class: "input", "data-k": "label", "aria-label": "Label", list: "fact-labels", maxlength: 40, autocomplete: "off", placeholder: hint[0] || "Label", value: f.label }),
+      h("input", { class: "input", "data-k": "value", "aria-label": "Its value", maxlength: 400, autocomplete: "off", placeholder: hint[1], value: f.value }),
       rowTools());
+  }
+  // a trait: its two opposites and a slider between them, 0 (all the left one) to 20 (all the right one)
+  function traitRow(t) {
+    var range = h("input", { class: "range", type: "range", min: 0, max: 20, step: 1, "data-k": "value", "aria-label": "Leaning", value: t.value == null ? 10 : t.value });
+    var row = h("div", { class: "row row-trait" },
+      h("input", { class: "input", "data-k": "left", "aria-label": "Left trait", maxlength: 40, autocomplete: "off", placeholder: "Chaotic", value: t.left }),
+      range,
+      h("input", { class: "input", "data-k": "right", "aria-label": "Right trait", maxlength: 40, autocomplete: "off", placeholder: "Lawful", value: t.right }),
+      rowTools());
+    function say() {
+      var v = Number(range.value), d = Math.abs(v - 10);
+      var l = row.querySelector('[data-k="left"]').value || "the left", r = row.querySelector('[data-k="right"]').value || "the right";
+      range.setAttribute("aria-valuetext", v === 10 ? "Evenly between " + l + " and " + r : (d <= 3 ? "Slightly " : d <= 6 ? "Fairly " : d < 10 ? "Strongly " : "Entirely ") + (v < 10 ? l : r));
+    }
+    row.addEventListener("input", say);
+    say();
+    return row;
+  }
+  function glanceRow(g) {
+    return h("div", { class: "row row-glance" },
+      h("input", { class: "input", "data-k": "title", "aria-label": "What is noticed", maxlength: 80, autocomplete: "off", placeholder: "Scales", value: g.title }),
+      rowTools(),
+      h("textarea", { class: "input", "data-k": "text", "aria-label": "What anyone would see", maxlength: 1000, placeholder: "Obsidian, dulled at the edges." }, g.text));
   }
   function sectionRow(x, i) {
     return h("div", { class: "row row-section" },
-      h("input", { class: "input", "data-k": "heading", "aria-label": "Heading", maxlength: 80, autocomplete: "off", placeholder: ["Appearance", "Manner", "History"][i] || "Heading", value: x.heading }),
+      h("input", { class: "input", "data-k": "heading", "aria-label": "Heading", maxlength: 120, autocomplete: "off", placeholder: STANDARD_SECTIONS[i] || "Heading", value: x.heading }),
       rowTools(),
-      h("textarea", { class: "input", "data-k": "body", "aria-label": "Text", maxlength: 6000, placeholder: i ? "" : "What others see and hear of him." }, x.body));
+      h("textarea", { class: "input", "data-k": "body", "aria-label": "Text", maxlength: 40000, placeholder: i ? "" : "Write it here, or paste his description from Total RP 3." }, x.body));
   }
   function rowsOf(box, keys) {
     return Array.prototype.map.call(box.children, function (row) {
@@ -1286,49 +1585,103 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     update();
     if (b.isConnected && !b.disabled) b.focus();
   }
+  // each list of rows: its box, its add button, its limit and how a new row is made
+  var ROWS = [
+    [el.abfFacts, el.abfAddFact, MAX.facts, function () { return factRow({ label: "", value: "" }, el.abfFacts.children.length); }],
+    [el.abfTraits, el.abfAddTrait, MAX.traits, function () { return traitRow({ left: "", right: "", value: 10 }); }],
+    [el.abfGlances, el.abfAddGlance, MAX.glances, function () { return glanceRow({ title: "", text: "" }); }],
+    [el.abfSections, el.abfAddSection, MAX.sections, function () { return sectionRow({ heading: "", body: "" }, el.abfSections.children.length); }]
+  ];
   function updateRows() {
-    el.abfAddFact.disabled = el.abfFacts.children.length >= MAX.facts;
-    el.abfAddSection.disabled = el.abfSections.children.length >= MAX.sections;
-    rowButtons(el.abfFacts, 0);
-    rowButtons(el.abfSections, 0);
+    ROWS.forEach(function (r) { r[1].disabled = r[0].children.length >= r[2]; rowButtons(r[0], 0); });
+    el.abfStdTraits.disabled = el.abfTraits.children.length >= MAX.traits;
+    el.abfStdSections.disabled = el.abfSections.children.length >= MAX.sections;
   }
+  ROWS.forEach(function (r) {
+    r[1].addEventListener("click", function () {
+      if (r[0].children.length >= r[2]) return;
+      var row = r[3]();
+      r[0].append(row); updateRows(); row.querySelector("input").focus();
+    });
+  });
+  el.aboutForm.addEventListener("click", function (e) {
+    rowAction(e, updateRows, function (box) { return ROWS.find(function (r) { return r[0] === box; })[1]; });
+  });
+  // TRP3's eleven standard traits, each once, at the middle
+  el.abfStdTraits.addEventListener("click", function () {
+    var have = rowsOf(el.abfTraits, ["left", "right"]).map(function (t) { return (t.left + "|" + t.right).toLowerCase(); }), first = null;
+    STANDARD_TRAITS.forEach(function (t) {
+      if (el.abfTraits.children.length >= MAX.traits || have.indexOf((t[0] + "|" + t[1]).toLowerCase()) >= 0) return;
+      var row = traitRow({ left: t[0], right: t[1], value: 10 });
+      el.abfTraits.append(row);
+      first = first || row;
+    });
+    updateRows();
+    if (first) first.querySelector(".range").focus();
+  });
+  // TRP3's three sections (physical description, personality, history): empty rows take the headings first
+  el.abfStdSections.addEventListener("click", function () {
+    var have = rowsOf(el.abfSections, ["heading"]).map(function (x) { return x.heading.toLowerCase(); });
+    var want = STANDARD_SECTIONS.filter(function (x) { return have.indexOf(x.toLowerCase()) < 0; });
+    Array.prototype.forEach.call(el.abfSections.children, function (row) {
+      var head = row.querySelector('[data-k="heading"]');
+      if (want.length && !head.value.trim() && !row.querySelector('[data-k="body"]').value.trim()) head.value = want.shift();
+    });
+    want.forEach(function (x) { if (el.abfSections.children.length < MAX.sections) el.abfSections.append(sectionRow({ heading: x, body: "" }, el.abfSections.children.length)); });
+    updateRows();
+  });
+  DIRECTORY.forEach(function (d) {
+    el.abfDirectory.append(h("div", { class: "field" },
+      h("label", { for: "abf-" + d[0], text: d[1] }),
+      h("input", { class: "input", id: "abf-" + d[0], name: d[0], maxlength: d[3], autocomplete: "off", placeholder: d[2] || null })));
+  });
+  fill(el.factLabels, FACT_LABELS.map(function (l) { return h("option", { value: l }); }));
+  el.abfEyeOn.addEventListener("change", function () { el.abfEyeColor.disabled = !el.abfEyeOn.checked; });
+
+  var aboutWas = ""; // the form as it opened, so Escape can tell whether anything would be lost
   function openAboutForm() {
     var p = state.profile, ab = state.about;
     el.abfName.value = p.name;
     el.abfEpithet.value = p.epithet;
+    ["title", "currently", "ooc"].forEach(function (k) { el["abf" + k[0].toUpperCase() + k.slice(1)].value = ab[k]; });
+    DIRECTORY.forEach(function (d) { byId("abf-" + d[0]).value = ab[d[0]]; });
+    el.abfEyeOn.checked = !!ab.eyeColor;
+    el.abfEyeColor.value = ab.eyeColor || "#e3a13a";
+    el.abfEyeColor.disabled = !ab.eyeColor;
     fill(el.abfPortrait, [h("option", { value: "", text: "None" })].concat(state.art.map(function (a, i) {
       return a.versions[0].mature ? null : h("option", { value: a.id, text: roman(i + 1) + ". " + (a.title || "Untitled") }); // never a mature image
     }).filter(Boolean)));
     el.abfPortrait.value = ab.portrait;
     fill(el.abfFacts, (ab.facts.length ? ab.facts : [{ label: "", value: "" }]).map(factRow));
+    fill(el.abfTraits, ab.traits.map(traitRow));
+    fill(el.abfGlances, ab.glances.map(glanceRow));
     fill(el.abfSections, (ab.sections.length ? ab.sections : [{ heading: "", body: "" }]).map(sectionRow));
     updateRows();
     el.abfError.hidden = true;
     showView("aboutForm");
-    setTimeout(function () { el.abfName.focus(); }, 40);
+    aboutWas = JSON.stringify(aboutFromForm());
+    setTimeout(function () { el.abfTitle.focus(); }, 40);
   }
-  el.aboutForm.addEventListener("click", function (e) {
-    rowAction(e, updateRows, function (box) { return box === el.abfFacts ? el.abfAddFact : el.abfAddSection; });
-  });
-  el.abfAddFact.addEventListener("click", function () {
-    var row = factRow({ label: "", value: "" }, el.abfFacts.children.length);
-    el.abfFacts.append(row); updateRows(); row.querySelector("input").focus();
-  });
-  el.abfAddSection.addEventListener("click", function () {
-    var row = sectionRow({ heading: "", body: "" }, el.abfSections.children.length);
-    el.abfSections.append(row); updateRows(); row.querySelector("input").focus();
-  });
-  function aboutNow() {
-    var p = state.profile, ab = state.about;
-    return { name: p.name, epithet: p.epithet, portrait: ab.portrait, facts: ab.facts, sections: ab.sections };
+  function aboutFromForm() {
+    var body = {
+      name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(), portrait: el.abfPortrait.value,
+      title: el.abfTitle.value.trim(), currently: el.abfCurrently.value.trim(), ooc: el.abfOoc.value.trim(),
+      eyeColor: el.abfEyeOn.checked ? el.abfEyeColor.value : "",
+      facts: rowsOf(el.abfFacts, ["label", "value"]),
+      traits: rowsOf(el.abfTraits, ["left", "right", "value"]).map(function (t) { t.value = traitValue(t.value); return t; }),
+      glances: rowsOf(el.abfGlances, ["title", "text"]),
+      sections: rowsOf(el.abfSections, ["heading", "body"])
+    };
+    DIRECTORY.forEach(function (d) { body[d[0]] = byId("abf-" + d[0]).value.trim(); });
+    return body;
   }
+  function aboutChanged() { return currentView === "aboutForm" && JSON.stringify(aboutFromForm()) !== aboutWas; }
+  // the whole page as it is now, for a change made elsewhere (the portrait, from a plate)
+  function aboutNow() { return Object.assign({ name: state.profile.name, epithet: state.profile.epithet }, state.about); }
   el.aboutForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (busy || !canPost()) return;
-    save("PUT", "api/about", {
-      name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(), portrait: el.abfPortrait.value,
-      facts: rowsOf(el.abfFacts, ["label", "value"]), sections: rowsOf(el.abfSections, ["heading", "body"])
-    }, function () { showView("about"); }, el.abfSubmit, "Saving…", "The page is amended.");
+    save("PUT", "api/about", aboutFromForm(), function () { showView("about"); }, el.abfSubmit, "Saving…", "The page is amended.");
   });
   el.abfCancel.addEventListener("click", leaveCurrentForm);
   el.abfBack.addEventListener("click", leaveCurrentForm);
@@ -2493,7 +2846,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!el.gate.hidden) { e.preventDefault(); closeGate(); }
     else if (!el.lightbox.hidden) { e.preventDefault(); closeLightbox(); }
     else if (!el.seal.hidden) { e.preventDefault(); closeSeal(true); }
-    else if (FORMS[currentView]) { e.preventDefault(); leaveCurrentForm(); }
+    else if (FORMS[currentView]) {
+      e.preventDefault();
+      if (aboutChanged()) toast("There are unsaved changes. Save the page, or press Cancel to let them go.");
+      else leaveCurrentForm();
+    }
   });
   el.archive.addEventListener("keydown", function (e) {
     if (el.lightbox.hidden || !el.gate.hidden) return;

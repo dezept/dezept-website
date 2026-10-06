@@ -2,29 +2,29 @@
 
 A one-page RP site for a Dracthyr character. The landing page is nothing but his construct (the *Eternal Gladiator's Chalice*, an archival construct bought from a Shadowlands broker) floating on a dark stage. It is rendered from the game's own 3D model and turns to aim its gem at the cursor. Clicking the gem locks on and sweeps a teal scan line down the screen and over the model. The construct then rises and projects three choices beneath it: **About**, **Art** and **Character Knowledge**.
 
-Each choice opens its chapter of the archive, an old leather-bound tome in the style of the game's books and journals, with index tabs on its top edge to move between chapters:
+Each choice opens its chapter of the archive: a single parchment page in a leather binding, in the style of the game's books and journals, with index tabs on its top edge to move between chapters. Each chapter reads down one centred column; there is no two-page spread.
 
-- **About:** his portrait on the left leaf, with his name and epithet; particulars (label and value) and sections of text on the right.
-- **Art:** the plates (pictures of him) as a list on the left, the chosen plate on the right, and a full-size view on a dark ground. A plate is one or more images: its main image and alternate versions. Any image can be flagged **mature**: it stays covered, and is not even loaded, until a visitor says they are 18 or older, and it is covered again once they move on.
-- **Character Knowledge:** his records, as before: the most recent on the left, and a chaptered index of everything he has re-learned since waking on the right.
+- **About:** laid out like a Total RP 3 profile. His portrait beside his title, name and full title; then Currently and OOC, the directory (race, class, age, eyes …), additional information, personality traits, at first glance, and the description in sections. The description keeps TRP3's markup, so a TRP profile can be pasted in.
+- **Art:** the plates (pictures of him) as a list; a plate opens on its own page, and a full-size view shows it on a dark ground. A plate is one or more images: its main image and alternate versions. Any image can be flagged **mature**: it stays covered, and is not even loaded, until a visitor says they are 18 or older, and it is covered again once they move on.
+- **Character Knowledge:** his records: the most recent first, then a chaptered index of everything he has re-learned since waking.
 
 - **Self-hosted** on the owner's VPS: Cloudflare in front, then Caddy, then a small Node server (`server/server.mjs`, no dependencies) that serves the page and the model, stores the records, and checks the keeper's word. **`deploy/README.md` is the step-by-step setup.**
-- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check.
+- **Preview:** the claude.ai Artifact https://claude.ai/artifact/UFSgUToU7a4ZhuMdXe6ZWh is now the preview. After every change, publish `dist/preview.html` to it (see [Previewing changes](#previewing-changes-on-claudeai)) so the owner can see the change before deploying it. Version 13 is the first preview build; version 14 adds the hub and the About and Art chapters; version 15 adds alternate versions, mature images and the age check; version 16 is the single-page layout with the TRP-style About.
   - Before the move, its data (no records, no word) matched `src/seed.json`, so nothing needed migrating.
 
 ## Status
 
 | Area | State |
 |---|---|
-| Landing (the construct alone, no text), scan animation, archive tome, record detail | Done |
+| Landing (the construct alone, no text), scan animation, archive (one page per chapter), record detail | Done |
 | **Hub** (About, Art, Character Knowledge beneath the construct after the scan, no other text) and the tome's chapter tabs | Done |
-| **About** page: portrait, name, epithet, particulars, sections; amended by the keeper | Done, through the server's API |
+| **About** page, as a Total RP 3 profile: portrait, title, name, full title, currently and OOC, directory, additional information, personality traits, at first glance, description with TRP markup; amended by the keeper | Done, through the server's API |
 | **Art**: plates uploaded from the keeper's browser, ordered, captioned, shown full size, one chosen as the portrait | Done, through the server's API |
 | **Alternate versions** (up to 12 images per plate) and **mature** images behind an age check | Done |
 | Addresses: `#about`, `#art`, `#knowledge`, `#art/<plate>` and `#knowledge/<record>` open there at once | Done |
 | Inscribe / revise / remove record, remove examples | Done, through the server's API |
 | **Keeper's seal** | **Done.** A brass clasp on the tome's edge opens a small panel. The keeper's word is checked on the server and gives a session; **Seal it again** ends it. The word is set on the VPS with `set-password` and can be changed from the panel. |
-| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (113 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's; its per-route body limits were checked again with Caddy 2.10.2. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
+| Server, Caddy, Cloudflare, firewall, systemd | Written and tested here. The server is covered by `tools/smoke.js` (120 checks, including the preview). The Caddyfile was run with Caddy 2.10.2 in front of the server, with test certificates standing in for Cloudflare's; its per-route body limits were checked again with Caddy 2.10.2. The systemd unit passes `systemd-analyze verify`, but this container has no systemd to run it. |
 | Profile (name, epithet, construct name and note) | The name and epithet are shown on the About page and amended there. The construct's name and note are kept in the data but not shown. |
 | **Construct** | **Done.** The real in-game model (M2 → GLB) at the game's full detail, drawn with three.js and the game's own shading, animation and glow. It aims its gem at the cursor. The screenshot cutout remains as the fallback. |
 | Preview on claude.ai | Done. The Artifact shows the current build with an in-page stand-in for the server (version 14). |
@@ -124,7 +124,7 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 | `PUT /api/records/:id` | keeper | revise → `{archive, id}` |
 | `DELETE /api/records/:id` | keeper | remove → `{archive}` |
 | `POST /api/records/clear-examples` | keeper | remove example records → `{archive}` |
-| `PUT /api/about` | keeper | `{name, epithet, portrait, facts, sections}` → `{archive}` |
+| `PUT /api/about` | keeper | the whole page: `{name, epithet, portrait, title, currently, ooc, race, class, age, eyes, eyeColor, height, build, birthplace, residence, facts, traits, glances, sections}` → `{archive}` |
 | `POST /api/uploads` | keeper | an image's raw bytes, sent with its type (PNG, JPEG or WebP, at most 8 MiB) → `{file, width, height}` |
 | `POST /api/art` | keeper | new plate `{title, artist, link, date, note, versions: [{file, thumb, label, mature}]}` → `{archive, id}`; it goes first |
 | `PUT /api/art/:id` | keeper | revise; `versions` (if sent) lists every image in its new order: `{id, label, mature}` keeps one of the plate's images, `{file, thumb, label, mature}` adds an uploaded one → `{archive, id}` |
@@ -134,7 +134,7 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 - **Keeper-only routes** need the session cookie, an `X-CSRF-Token` header equal to the session's token and an `Origin` equal to `PUBLIC_ORIGIN`. Bodies must be a JSON object (`Content-Type: application/json`, at most 64 KiB; 256 KiB for the About page), except uploads.
 - **Server-side cleaning:** ids, `added` and `example` are set by the server. Text is trimmed, stripped of control characters and capped:
   - records: title 120, domain 60, note 4000, source 160. Unknown states become `fragment`, bad dates become today, an empty domain becomes "Unsorted".
-  - About: name 60, epithet 280, up to 16 particulars (label 40, value 160) and 12 sections (heading 80, text 6000). Empty rows are dropped. A portrait that names no plate is cleared.
+  - About: name 60, epithet (the full title) 280, title 60, currently and OOC 1000 each, directory fields 60 (birthplace and residence 120). The eye colour must be `#rrggbb` or is dropped. Up to 24 lines of additional information (label 40, value 400), 24 traits (each pole 40; the value is rounded into 0–20, anything else becomes 10), 5 glances (title 80, text 1000) and 24 sections (heading 120, text 40 000; the 256 KiB body is the real limit, about 250 000 characters in all, and a longer page is refused with a message that says so). Empty rows are dropped. Unknown fields are dropped. A portrait that names no plate is cleared. Section text keeps TRP markup as plain text; only the page reads it.
   - plates: title 120, artist 80, note 1000, at most 500 plates of 1 to 12 images each, image labels 60. Only `"mature": true` flags an image. A link must be `http(s)` (a bare `artstation.com/x` becomes `https://artstation.com/x`); anything else, `javascript:` included, is dropped. Width and height come from the image file, never from the request.
   - the portrait: a plate whose main image is mature can't be the portrait, and flagging the portrait's main image as mature clears it.
 - **Uploads:** the type is read from the bytes and must match the `Content-Type` (PNG, JPEG or WebP; never SVG or HTML). At most 8 MiB and 10000 pixels on a side. The file is stored as `DATA_DIR/art/<first 32 hex digits of its SHA-256>.<png|jpg|webp>`, so the same image is stored once.
@@ -153,8 +153,14 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
   "profile": { "name": "", "epithet": "", "construct": "", "constructNote": "" },
   "about": {
     "portrait": "",           // a plate's id, or ""
-    "facts": [{ "label": "Race", "value": "Dracthyr" }],
-    "sections": [{ "heading": "Appearance", "body": "" }]
+    "title": "",              // shown above the name, e.g. "Archivist"
+    "currently": "", "ooc": "",
+    "race": "", "class": "", "age": "", "eyes": "", "eyeColor": "",   // "#rrggbb" or ""
+    "height": "", "build": "", "birthplace": "", "residence": "",
+    "facts": [{ "label": "Motto", "value": "" }],                     // additional information
+    "traits": [{ "left": "Chaotic", "right": "Lawful", "value": 10 }], // 0 = all left, 20 = all right
+    "glances": [{ "title": "", "text": "" }],                         // at first glance, at most 5
+    "sections": [{ "heading": "Physical description", "body": "" }]   // the description; body keeps TRP markup
   },
   "art": [{                   // in the keeper's order; a new plate goes first
     "id": "a…",               // set by the server: "a" + 12 random base64url characters
@@ -198,13 +204,17 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 
 - **Two worlds, one token set** (`:root` of `ca-style`): the landing and the hub are the dark void (navy grounds, teal light, copper). The archive is the tome (leather, parchment, sepia ink, red rubric ink, brass, and the game's red-and-gold buttons). The full-size plate goes back to the dark ground. It is a single deliberate look, not light and dark themes.
 - **The hub** (`#hub`, inside `.core`): after the scan, `.has-hub` on the stage lifts the construct 56 px and three choices appear beneath it, each a glyph (a slit-pupilled eye, a framed picture, an open book) and its label: About, Art, Character Knowledge. There is no other text. They are dark panes with teal corner brackets like the scan's lock, and they flicker in one after another as the beam reaches the bottom. On short landscape screens they stand beside the construct instead. A scan started from the keyboard moves the focus to the first. The hub stays once shown; closing the tome returns the focus to the choice that opened it.
-- **Chapter tabs** (`#tabs`): leather index tabs on the tome's top edge; the open chapter's tab is a parchment leaf. While a form is open, they only say to finish or cancel it, so nothing written is lost.
-- **Views:** each view lives on the right leaf and belongs to a chapter, whose own left leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`) shows beside it (`VIEWS` in `ca-app`). `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`.
-- **About:** the portrait is the plate's thumbnail in an oval inside a parchment mount, the way old books print a frontispiece; a click shows it full size. Without one, a dashed oval says "No likeness yet". The name has the record title's rule and red dot beneath it. On the right, the particulars are a two-column list, and each section has a red rubric heading; the first section's text opens with a red drop capital. The keeper's form has rows for particulars and sections, each with ↑, ↓ and × buttons, and a list to choose the portrait.
-- **Art:** the plates are mounted thumbnails of their main image, cropped to 4 : 5 and numbered with roman numerals in the keeper's order; a plate of several images says how many. The chosen plate shows on the right at its own shape, with its number (and the image's label), title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. Beneath the image, a strip of small thumbnails switches between the plate's images. The keeper can revise it, make it the portrait, move it earlier or later, or remove it.
+- **Chapter tabs** (`#tabs`): leather index tabs on the tome's top edge; the open chapter's tab is a parchment leaf. While a form is open, they only say to finish or cancel it, so nothing written is lost. Escape leaves the About form only while nothing in it has changed; otherwise it says there are unsaved changes.
+- **Views:** each view belongs to a chapter and shows below that chapter's own leaf (`#leaf-about`, `#leaf-art`, `#leaf-knowledge`) in one column (`VIEWS` in `ca-app`). The DOM still has the two `#page-l` and `#page-r` sections, but they are stacked: `#page-l` holds the chapter's leaf, `#page-r` the view. `.book` carries `data-book`, `data-view` and, for a record, a plate or a form, `data-solo`, which hides the chapter's leaf so the record, plate or form has the page to itself. In Art, the list of plates (`data-view="plates"`) shows alone, and a plate opens on its own with "← Return to the plates".
+- **About** (a Total RP 3 profile):
+  - **Header:** the portrait is the plate's thumbnail in an oval inside a parchment mount, the way old books print a frontispiece; a click shows it full size. Without one, a dashed oval says "No likeness yet". Beside it, the title in red small capitals, the name with the record title's rule and red dot beneath it, and the full title (the `epithet`) in italic. On phones they stack, centred.
+  - **Below it**, each part only when it has something in it: Currently and Out of character in a note box; the **Directory** (two columns of label and value; the eyes get a colour swatch); **Additional information** (the old particulars, one column); **Personality traits** (each a bar between its two poles with a brass marker; the pole it leans toward is darker, and screen readers hear "fairly Lawful"); **At first glance** (up to five cards); then the **description**'s sections, each with a red rubric heading. The first plain paragraph of the description, if longer than 120 characters, opens with a red drop capital.
+  - **TRP markup** (`trp()` in `ca-app`) is turned into elements, never parsed as HTML: `{h1}`…`{/h1}` to `{h3}` (as h5 and h6) with `:c`/`:r`, `{p:c}`/`{p:r}`, `{col:rrggbb}`…`{/col}`, the game's `|cAARRGGBB`…`|r`, and `{link*url*text}` (a link only for `http(s)://`, opened in a new tab with `noopener noreferrer`). `{icon:…}`, `{img:…}` and `|T…|t` are game files and are dropped. A blank line starts a paragraph; a single line break stays a line break. TRP colours are chosen for dark frames, so `ink()` keeps each colour's hue but darkens it until it has 4.5:1 contrast with the parchment; white and pale greys become the sepia ink. Colours are set through `el.style`, which the CSP allows.
+  - **The keeper's form:** title, name, full title, portrait, currently and OOC, the directory with an optional eye colour, then rows with ↑, ↓ and × buttons for additional information (with suggested labels), traits (two poles and a 0–20 slider; **Add TRP's standard traits** adds TRP3's eleven pairs at the middle), glances, and the description's sections (**Add TRP's three sections**: Physical description, Personality, History). A collapsible note lists the markup. "Make it the portrait" on a plate sends the whole page back with the new portrait (`aboutNow()`), so nothing else changes.
+- **Art:** the plates are mounted thumbnails of their main image, cropped to 4 : 5 and numbered with roman numerals in the keeper's order; a plate of several images says how many. The chosen plate shows on its own page at its own shape, with its number (and the image's label), title, "by" the artist (a link to their page when there is one, opened with `noopener noreferrer`), date and note. Beneath the image, a strip of small thumbnails switches between the plate's images. The keeper can revise it, make it the portrait, move it earlier or later, or remove it.
 - **The plate form** has a row per image, in order (the first is the main image): its thumbnail, a label, a **Mature (18+)** box, and ↑ ↓ × buttons. **+ Add an image** adds a row with a file input. To change an image, add the new one and remove the old.
 - **Mature images and the age check:**
-  - A mature image shows only a cover (`.spoiler`: a dark hatched panel with a red **18+** seal and "Mature"), in the list, in the strip, on the right leaf and in the full-size view. The image itself is not loaded until it is shown, so its pixels never reach the browser before then.
+  - A mature image shows only a cover (`.spoiler`: a dark hatched panel with a red **18+** seal and "Mature"), in the list, in the strip, on the plate's page and in the full-size view. The image itself is not loaded until it is shown, so its pixels never reach the browser before then.
   - Selecting a cover (or a plate in the list whose main image is mature) opens the age check (`#gate`): "How old are you?" with a number. 18 or older shows the image; under 18 says mature images are only for those 18 or older and keeps it covered.
   - The answer is kept for the browser tab (`sessionStorage`, in memory where storage is blocked), so later covers open on a click without asking again, and someone under 18 is not asked again.
   - Whatever the answer, a mature image is covered again as soon as another image takes its place, the visitor goes back to the plates or another chapter, or the tome closes (`shown` in `ca-app` holds the one image on view). In the full-size view, stepping onto a mature image shows its cover.
@@ -212,12 +222,11 @@ The server computes SHA-256 hashes of `ca-app` and `ca-style` at startup and put
 - **Full-size plate** (`#lightbox`, inside the dialog): the image on the dark ground with its number, title, label and artist in the game's gold; the game's round red buttons step through every image of every plate in order (arrow keys too) and close it. It shows the thumbnail at once and swaps in the full image when it has loaded. While it is open, the tome is `inert`; Escape closes only it. On narrow screens the step buttons sit at the bottom.
 - **Addresses:** the open chapter is written into the address with `history.replaceState` (`#about`, `#art/<plate>`, `#knowledge/<record>`), so it can be copied and shared. Opening such an address goes straight to it, without the scan, and so does changing the hash.
 - **Fonts:** Cinzel (titles, buttons, the game's inscriptional capitals), IM Fell English (the book's text, an 18th-century typeface with old-style numerals) and IM Fell English SC (labels and dates).
-- **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon in the gutter.
-  - **Pages:** two parchment leaves either side of a shadowed spine (`.book`, `#page-l`, `#page-r`). The paper is fine SVG grain plus a stretched low-frequency stain (`--grain`, `--mottle`); a tiled stain showed a seam. Stacked page edges show beneath.
-  - **Left leaf:** the keeper's buttons (Inscribe record, and Remove examples while any exist; shown only during the keeper's session), then "Recent accessions", the latest six records with date, state and the start of the note.
-  - **Right leaf:** the "Index of knowledge" as a table of contents. Domains are numbered chapters with roman numerals, and each entry runs to its state on dotted leaders. A record or a form opens on this leaf. A record has a red drop capital and its sources as marginalia. Forms are written on ruled lines.
+- **The tome:** a leather binding (`.tome`, SVG noise as the hide) with brass corner fittings (`--corner`, an inline SVG) and a red silk ribbon hanging out below the page.
+  - **The page:** one parchment page (`.book`) with a printed double rule, at most 800 px of text column centred on it. The paper is fine SVG grain plus a stretched low-frequency stain (`--grain`, `--mottle`); a tiled stain showed a seam. Stacked page edges show beneath. The page keeps its height; its contents scroll inside `#book-scroll`, fading out at the rules.
+  - **Character Knowledge:** the keeper's buttons (Inscribe record, and Remove examples while any exist; shown only during the keeper's session), then "Recent accessions", the latest six records with date, state and the start of the note, then the "Index of knowledge" as a table of contents. Domains are numbered chapters with roman numerals, and each entry runs to its state on dotted leaders. A record or a form has the page to itself. A record has a red drop capital and its sources as marginalia. Forms are written on ruled lines.
   - **Game styling:** buttons copy the game's red panel buttons (gold text, brass rim). The close button is the round red one, and notices are dark tooltips with gold text.
-  - **Narrow screens (≤ 860 px):** one leaf at a time. Opening a record, a plate or a form hides the left leaf (`.book[data-solo]`), so it is not buried below it. In Art, the list of plates shows alone, and a plate opens on its own with "← Return to the plates".
+  - **Narrow screens (≤ 860 px):** the same page with a thinner binding and narrower margins; form rows stack. At 560 px and below, the About header stacks too.
 - **Landing:** only the construct, centred on the dark stage, with its ambient light (below). There is no visible text and no ring until the scan reveals the hub. The character's name is in a visually hidden `<h1>`, the button's accessible name ("Scan the archive of …") and the archive's hidden heading, and visibly on the About page.
 - **Not shown anywhere:** the construct's name and note from the profile, the state-of-knowledge ledger and filters, and "Example" tags. The removed pieces are gone from the code, not hidden. The `example` flag stays in the data so **Remove examples** still works.
 - **Float (cutout fallback only):** three nested wrappers with different periods, so the motion never visibly loops: `.fx-x` 13 s drift, `.fx-y` 5.6 s bob, `.fx-tilt` 9 s tilt. In 3D mode they stop: the model hovers on its own, and the canvas must stay put under the cursor it aims at.
@@ -313,7 +322,8 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
   - try a wrong word, then the right one, confirming the cookie stays invisible to scripts;
   - inscribe a record containing markup, which must stay text;
   - reload, still unsealed, then revise and remove the record;
-  - amend the About page, moving a particular up, with markup that must stay text;
+  - amend the About page in TRP terms: title, a directory field, lines of additional information (one moved up), TRP's standard traits with one slid, a glance with markup, and a description with TRP markup (a centred heading, a white and a gold colour, a `javascript:` and an https link, an icon) and an `<img>`; check that Escape keeps the unsaved form, that the colours are darkened, that only the https link is a link and that the HTML stays text;
+  - after making a plate the portrait, check the rest of the About page is still there;
   - upload a plate of two images, the second flagged mature (re-encoded to WebP in the browser, then served under the CSP), with a `javascript:` link that must be dropped;
   - check the mature image is covered and not loaded; answer the age check (0 is refused, 30 shows it); see it covered again back at the plates, and open without a second question; see it covered in the full-size view;
   - in a second browser, answer 15: the image stays covered for the visit and is never requested;
@@ -323,7 +333,7 @@ It starts the real server twice with throwaway data under `tools/.smoke/`:
 - **Preview checks** load `dist/preview.html` inside the Artifact skeleton, under a CSP like the viewer's, with no network requests allowed. They check that:
   - the model and the example plates load from the page itself, and the plate flagged mature shows only its cover;
   - the age check works where the page has no storage;
-  - the About page shows its examples;
+  - the About page shows its example profile, and can be amended;
   - the seal panel names the preview word;
   - only `preview` unseals;
   - a record can be inscribed, and a plate uploaded and shown from memory;
@@ -343,6 +353,6 @@ node smoke.js
 
 - **Deploy:** follow `deploy/README.md`. Replace `archive.example.com` in the Caddyfile and in `PUBLIC_ORIGIN` in the unit.
 - **Set the keeper's word on the VPS** with `set-password` (step 3). Don't share it in chats or files.
-- **Write the About page and add art** once deployed: open About or Art, unseal with the clasp, then **Amend this page** or **Add a plate**. Credit artists in the Artist field and link their page.
+- **Write the About page and add art** once deployed: open About or Art, unseal with the clasp, then **Amend this page** or **Add a plate**. The TRP description can be pasted into a section as it is; its markup carries over. Credit artists in the Artist field and link their page.
 - **When updating an existing deployment**, copy the new `deploy/Caddyfile` too: uploads need its larger body limit for `/api/uploads`.
 - **Preview:** the claude.ai Artifact stays private until you share it from its Share menu. It is for you to check changes; the real site is the VPS.
