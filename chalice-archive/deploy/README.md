@@ -51,7 +51,9 @@ sudo -u chalice env DATA_DIR=/var/lib/chalice-archive node /opt/dezept-website/c
 - It asks twice and shows nothing while you type, so the word stays out of shell history and logs.
 - Use at least 12 characters, and a phrase you use nowhere else.
 - Only a salted scrypt hash is stored (`auth.json`, mode 0600).
-- Running it again replaces the word and signs every session out. This is also how to recover a forgotten word.
+- The word also locks the key that encrypts the encounters' private sections. The key is made on the first login and stored in `auth.json` only wrapped by a second key derived from the word, so nothing on disk can read the private sections without the word.
+- Running it again replaces the word and signs every session out. Once there are private sections, it asks for the current word a third time, to carry the key over to the new word. Changing the word from the page does the same.
+- **A forgotten word:** run `set-password --forget-private` instead. The archive opens again with the new word, but the private sections written so far can never be read again, by anyone. Everything else is untouched.
 
 ## 4. Cloudflare
 
@@ -122,9 +124,9 @@ journalctl -u chalice-archive -n 20         # "Chalice Archive listening on http
 
 Then open the site:
 
-1. Click the gem. After the scan, choose About, Art or Character Knowledge beneath the construct.
+1. Click the gem. Once it has drawn the light in, choose About, Art, Character Knowledge or Encounters beneath the construct.
 2. Click the small brass clasp on the tome's right edge and speak the word.
-3. The editing tools appear: **Amend this page** in About, **Add a plate** in Art, **Inscribe record** in Character Knowledge.
+3. The editing tools appear: **Amend this page** in About, **Add a plate** in Art, **Inscribe record** in Character Knowledge, **Record an encounter** in Encounters.
 
 ## Day to day
 
@@ -147,6 +149,7 @@ Then open the site:
   - The images are in `/var/lib/chalice-archive/art/`. An image stays there while the archive or any of those 50 backups uses it, so restoring a backup finds its images.
   - Copy the whole `/var/lib/chalice-archive` directory off the VPS now and then.
   - To restore, stop the service, copy a backup over `archive.json`, then start the service.
+  - The encounters' private sections are encrypted in `archive.json` and every backup. Keep `auth.json` with them: its wrapped key and your word are what read them. A copy of the directory without the word is a copy without the private sections.
 - **Removing a picture for good**: removing its plate stops the server serving it at once. Cloudflare keeps its copy for up to a day; to clear it sooner, purge the image's address under Caching → Configuration → Custom Purge.
 - **Logs**:
   - The server logs only startup messages and unexpected errors, to the journal.

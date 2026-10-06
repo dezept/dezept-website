@@ -16,18 +16,23 @@ Checks:
      token, and non-JSON bodies; the session cookie's flags; field validation and size limits; stored markup
      cannot end the page's data block; backups; the About page's cleaning; image uploads (type sniffed from the
      bytes, size, dimensions), plates, their order and links, art served only while used, the sweep of unused
-     uploads; plates of several images, flagged mature one by one, never a mature portrait; plates saved before
+     uploads; plates of several images, flagged mature one by one; encounters, whose private sections are stored
+     encrypted, never reach visitors, and need the session and its CSRF token; plates saved before
      they had several images; the password file; changing the word signs other sessions out; failed logins are
      throttled per IP.
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
-     the gem starts the scan, which reveals the three choices; a wrong word is refused; the right word shows the
-     tools; records can be inscribed, revised and removed, and markup in them stays text; the About page can be
+     the gem wakes the construct, which reveals the three choices; a wrong word is refused; the right word shows the
+     tools; records can be inscribed, revised and removed, and markup in them stays text; an encounter with a private
+     section can be recorded, a record can name it and link to it, and the private section shows only while unsealed; the About page can be
      amended in Total RP 3's terms (directory, standard traits, glances, a description whose TRP markup becomes
      headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved writing, and
-     making a plate the portrait keeps the rest of the page; a plate of two images, one mature, can be uploaded, shown full size, made the portrait, linked to
+     the page has no portrait; a plate of two images, one mature, can be uploaded, shown full size, linked to
      and removed; a mature image stays covered and unloaded until a visitor says they are 18 or older, is covered
      again once they move on, and stays covered for someone under 18; the session survives a reload; the word can
      be changed from the page; sealing it again hides the tools.
+  1c. The private sections across server restarts: still readable with the word, carried over to a new word set from
+     the command line (which needs the current word), unreadable when moved onto another encounter, and gone after
+     set-password --forget-private.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model and the example plates load from the page, the stand-in server accepts
      only "preview", the About page can be amended and records and plates added, and a reload forgets them. The real page carries no trace
@@ -71,11 +76,13 @@ function run(args, env, input) {
   });
 }
 
-async function startServer(name, env, prepare) {
+async function startServer(name, env, prepare, keep) {
   const dataDir = path.join(OUT, 'data-' + name);
-  fs.rmSync(dataDir, { recursive: true, force: true });
-  const set = await run(['set-password'], { DATA_DIR: dataDir }, `${WORD}\n${WORD}\n`);
-  if (set.code !== 0) throw new Error('set-password failed: ' + set.out);
+  if (!keep) { // a fresh data directory, with the word set; or, with keep, the one a stopped server left
+    fs.rmSync(dataDir, { recursive: true, force: true });
+    const set = await run(['set-password'], { DATA_DIR: dataDir }, `${WORD}\n${WORD}\n`);
+    if (set.code !== 0) throw new Error('set-password failed: ' + set.out);
+  }
   if (prepare) prepare(dataDir);
   const proc = spawn(process.execPath, [SERVER], { env: { ...process.env, DATA_DIR: dataDir, PORT: '0', ...env } });
   let log = '';
@@ -214,20 +221,20 @@ async function apiChecks() {
     const evil = '</script><script>alert(1)</script><img src=x onerror=alert(2)>';
     const made = await write('POST', '/api/records', {
       title: evil + 'x'.repeat(300), domain: 'Wars & catastrophes', status: 'admin', date: '2020-13-45', note: 'line one\nline\u0000 two\u0007',
-      source: 'A book', id: '../../etc', example: true, added: 1, extra: 'ignored',
+      source: 'A book', encounter: 'no-such-encounter', id: '../../etc', example: true, added: 1, extra: 'ignored',
     });
     const rec = made.json && made.json.archive.records.find((r) => r.id === made.json.id);
-    check(made.status === 200 && rec && rec.title.length === 120 && rec.status === 'fragment' && /^\d{4}-\d{2}-\d{2}$/.test(rec.date) && rec.date !== '2020-13-45' &&
+    check(made.status === 200 && rec && rec.title.length === 120 && !('status' in rec) && !('domain' in rec) && rec.date === '' && rec.encounter === '' &&
       rec.note === 'line one\nline two' && rec.example === false && rec.id !== '../../etc' && !('extra' in rec) && rec.added > 1,
-      'a new record is cleaned: lengths capped, unknown status and bad date replaced, control characters stripped, id and flags set by the server');
+      'a new record is cleaned: lengths capped, no state or domain, a bad date and an unknown encounter left empty, control characters stripped, id and flags set by the server');
     check((await write('POST', '/api/records', { title: '   ' })).status === 400, 'a record without a title is refused');
     check((await write('POST', '/api/records', { title: 'x', note: 'y'.repeat(70 * 1024) })).status === 413, 'a body over 64 KB is refused (413)');
     check((await call('POST', '/api/records', { headers: { Cookie: cookie, Origin: ORIGIN, 'X-CSRF-Token': csrf }, body: '{"title":' })).status === 400, 'malformed JSON is refused');
     check((await write('PUT', '/api/records/nope', { title: 'x' })).status === 404 && (await write('PUT', '/api/records/..%2f..%2fx', { title: 'x' })).status === 404,
       'revising a missing or malformed id is refused');
-    const revised = await write('PUT', '/api/records/' + rec.id, { title: 'Revised', status: 'relearned', date: '2026-01-02' });
+    const revised = await write('PUT', '/api/records/' + rec.id, { title: 'Revised', date: '2026-01-02' });
     const rev = revised.json && revised.json.archive.records.find((r) => r.id === rec.id);
-    check(revised.status === 200 && rev.title === 'Revised' && rev.status === 'relearned' && rev.added === rec.added, 'a record can be revised and keeps its id and accession time');
+    check(revised.status === 200 && rev.title === 'Revised' && rev.date === '2026-01-02' && rev.added === rec.added, 'a record can be revised and keeps its id and accession time');
     await write('PUT', '/api/records/' + rec.id, { title: evil });
     const shown = await call('GET', '/');
     const data = shown.text.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/)[1];
@@ -235,6 +242,42 @@ async function apiChecks() {
       "stored markup is escaped in the page's data block and comes back intact as text");
     const del = await write('DELETE', '/api/records/' + rec.id);
     check(del.status === 200 && !del.json.archive.records.some((r) => r.id === rec.id), 'a record can be removed');
+    // encounters, and their private sections
+    const secret = 'Only for the keeper: ' + crypto.randomBytes(8).toString('hex');
+    check((await call('POST', '/api/encounters', { headers: { Origin: ORIGIN }, body: { title: 'x' } })).status === 401, 'an encounter cannot be recorded without a session');
+    const encMade = await write('POST', '/api/encounters', { title: 'Smoke encounter ' + evil, date: 'not a date', text: '{h1}What happened{/h1}', private: secret, id: '../x', extra: 1 });
+    const enc = encMade.json && encMade.json.archive.encounters.find((e) => e.id === encMade.json.id);
+    check(encMade.status === 200 && enc && enc.title.startsWith('Smoke encounter </script>') && enc.date === '' && enc.text === '{h1}What happened{/h1}' &&
+      !('private' in enc) && !('extra' in enc) && /^e[\w-]{12}$/.test(enc.id), 'an encounter is cleaned, and the answer carries no private section');
+    check((await write('POST', '/api/encounters', { title: ' ' })).status === 400 && (await write('POST', '/api/encounters', { title: 'x', text: 'y'.repeat(170 * 1024) })).status === 413,
+      'an encounter without a title, or over 160 KB, is refused');
+    const rawArchive = fs.readFileSync(path.join(s.dataDir, 'archive.json'), 'utf8');
+    const stored = JSON.parse(rawArchive).encounters.find((e) => e.id === enc.id);
+    check(!rawArchive.includes(secret) && stored.private && Buffer.from(stored.private.iv, 'base64').length === 12 && Buffer.from(stored.private.tag, 'base64').length === 16 &&
+      Buffer.from(stored.private.data, 'base64').length === Buffer.byteLength(secret), 'the private section is stored encrypted (AES-256-GCM): archive.json holds no trace of its text');
+    const authNow = fs.readFileSync(path.join(s.dataDir, 'auth.json'), 'utf8'), wrapped = JSON.parse(authNow).key;
+    check(wrapped && Buffer.from(wrapped.salt, 'base64').length === 16 && Buffer.from(wrapped.data, 'base64').length === 32 && !authNow.includes(secret),
+      'the key that encrypts it is stored only wrapped, by a key derived from the word');
+    const seenPage = await call('GET', '/'), seenApi = await call('GET', '/api/archive');
+    check(!seenPage.text.includes(secret) && !seenPage.text.includes(stored.private.data) && !seenApi.text.includes(stored.private.data) &&
+      !archiveIn(seenPage.text).encounters.some((e) => 'private' in e), 'visitors get neither the private section nor its ciphertext, from the page or the API');
+    check((await call('GET', '/api/private')).status === 401 && (await call('GET', '/api/private', { headers: { Cookie: cookie } })).status === 403,
+      'reading the private sections needs the session and its CSRF token');
+    const readPrivate = (c, t) => call('GET', '/api/private', { headers: { Cookie: c, 'X-CSRF-Token': t } }).then((r) => r.json && r.json.encounters);
+    const priv = await call('GET', '/api/private', { headers: { Cookie: cookie, 'X-CSRF-Token': csrf } });
+    check(priv.status === 200 && priv.json.encounters[enc.id] === secret && priv.headers['cache-control'] === 'no-store', 'the keeper reads it back, never cached');
+    await write('PUT', '/api/encounters/' + enc.id, { title: 'Smoke encounter', text: 'Revised.' });
+    check((await readPrivate(cookie, csrf))[enc.id] === secret, 'revising an encounter without sending its private section keeps it');
+    const linked = await write('POST', '/api/records', { title: 'Learned there', encounter: enc.id });
+    check(linked.json.archive.records.find((r) => r.id === linked.json.id).encounter === enc.id, 'a record can name an encounter as its source');
+    const spare = await write('POST', '/api/encounters', { title: 'Spare', private: 'gone soon' });
+    await write('PUT', '/api/encounters/' + spare.json.id, { title: 'Spare', private: '' });
+    check(!(spare.json.id in (await readPrivate(cookie, csrf))), 'an empty private section removes it');
+    const spareRec = await write('POST', '/api/records', { title: 'From the spare', encounter: spare.json.id });
+    const goneEnc = await write('DELETE', '/api/encounters/' + spare.json.id);
+    check(goneEnc.status === 200 && !goneEnc.json.archive.encounters.some((e) => e.id === spare.json.id) &&
+      goneEnc.json.archive.records.find((r) => r.id === spareRec.json.id).encounter === '', 'removing an encounter unlinks the records that named it');
+
     const backups = fs.readdirSync(path.join(s.dataDir, 'backups')).filter((f) => f.endsWith('.json'));
     const archiveMode = fs.statSync(path.join(s.dataDir, 'archive.json')).mode & 0o777;
     check(backups.length >= 3 && archiveMode === 0o600, `each change keeps a backup of the previous archive (${backups.length} so far), and archive.json is 0600`);
@@ -246,14 +289,14 @@ async function apiChecks() {
       facts: [{ label: 'Motto', value: 'v' }, { label: ' ', value: '' }, ...Array.from({ length: 30 }, (_, i) => ({ label: 'L' + i, value: 'v' }))],
       traits: [{ left: 'Chaotic', right: 'Lawful', value: 99 }, { left: 'A', right: 'B', value: -4 }, { left: 'C', right: 'D', value: 'x' }, { left: 'E', right: 'F', value: 7.6 }, { left: '', right: '' }],
       glances: Array.from({ length: 8 }, (_, i) => ({ title: 'Glance ' + i, text: 't' })),
-      sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000) }, 'junk', null, { heading: '', body: '' }],
+      sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000), color: 'red; background: url(x)' }, 'junk', null, { heading: '', body: '' }],
     });
     const ab = about.json && about.json.archive;
-    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && ab.about.portrait === '' &&
+    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && !('portrait' in ab.about) &&
       ab.about.facts.length === 24 && ab.about.facts[0].label === 'Motto' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 40000 &&
-      ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
+      ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.sections[0].color === '' && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
       ab.about.currently === 'line one\nline two' && ab.about.traits.map((t) => t.value).join() === '20,0,10,8' && ab.about.glances.length === 5 && !('admin' in ab.about),
-      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and an unknown portrait cleared, TRP markup kept as text');
+      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and a portrait dropped, TRP markup kept as text');
     const aboutPage = await call('GET', '/');
     check(!aboutPage.text.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/)[1].includes('<') && archiveIn(aboutPage.text).profile.name.startsWith('Smoke </script>'),
       "markup in the About page is escaped in the page's data block");
@@ -311,7 +354,6 @@ async function apiChecks() {
       "a plate's image is served with its type, nosniff, the CSP and a long cache lifetime");
     check((await call('HEAD', '/art/' + upJ.json.file)).headers['content-type'] === 'image/jpeg' && (await call('GET', '/art/' + upA.json.file.replace('.png', '.webp'))).status === 404 &&
       (await call('GET', '/art/..%2fauth.json')).status === 404, 'only the exact names in use are served');
-    check((await write('PUT', '/api/about', { name: 'Smoke', portrait: pb.id })).json.archive.about.portrait === '', 'a plate whose main image is mature cannot be the portrait');
     const revisedPlate = await write('PUT', '/api/art/' + pa.id, { title: 'Revised plate', artist: 'An artist' });
     const rp = revisedPlate.json && revisedPlate.json.archive.art.find((a) => a.id === pa.id);
     check(revisedPlate.status === 200 && rp.title === 'Revised plate' && rp.versions.length === 1 && rp.versions[0].id === va.id && rp.versions[0].file === upA.json.file && rp.added === pa.added,
@@ -327,15 +369,10 @@ async function apiChecks() {
       'a new order must name every plate once');
     const ordered = await write('POST', '/api/art/order', { ids: [pa.id, pb.id] });
     check(ordered.status === 200 && ordered.json.archive.art.map((a) => a.id).join() === [pa.id, pb.id].join(), 'the plates can be put in a new order');
-    const withPortrait = await write('PUT', '/api/about', { name: 'Smoke', portrait: pa.id });
-    check(withPortrait.json.archive.about.portrait === pa.id, 'a plate can be made the portrait');
-    const flagged = await write('PUT', '/api/art/' + pa.id, { versions: [{ id: va.id, mature: true }] });
-    check(flagged.json.archive.about.portrait === '', "flagging the portrait's image as mature takes it off the About page");
-    await write('PUT', '/api/about', { name: 'Smoke', portrait: pb.id }); // its main image is no longer mature
     const removedPlate = await write('DELETE', '/api/art/' + pb.id);
-    check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pb.id) && removedPlate.json.archive.about.portrait === '' &&
+    check(removedPlate.status === 200 && !removedPlate.json.archive.art.some((a) => a.id === pb.id) &&
       (await call('GET', '/art/' + upB.json.file)).status === 404 && (await call('GET', '/art/' + upC.json.file)).status === 404 && (await call('GET', '/art/' + upA.json.file)).status === 200,
-      'removing a plate clears it as the portrait and stops serving the images only it used');
+      'removing a plate stops serving the images only it used');
     const old = new Date(Date.now() - 2 * 24 * 3600e3);
     fs.utimesSync(path.join(s.dataDir, 'art', upD.json.file), old, old);
     fs.utimesSync(path.join(s.dataDir, 'art', upB.json.file), old, old);
@@ -353,6 +390,7 @@ async function apiChecks() {
     const [old1, old2, now] = await Promise.all([cookie, other, cookie2].map((c) => call('GET', '/api/session', { headers: { Cookie: c } })));
     check(old1.json.owner === false && old2.json.owner === false && now.json.owner === true, 'every older session is signed out');
     check((await login({ Origin: ORIGIN })).status === 401 && (await login({ Origin: ORIGIN }, { password: NEW_WORD })).status === 200, 'only the new word unlocks');
+    check((await readPrivate(cookie2, changed.json.csrf))[enc.id] === secret, 'the private sections stay readable under the new word');
 
     // logging out
     const csrf2 = changed.json.csrf;
@@ -375,6 +413,55 @@ async function apiChecks() {
   }
 }
 
+// ---------- 1c. the private sections across restarts, a new word and a forgotten one ----------
+async function privateChecks() {
+  const env = { COOKIE_SECURE: 'false' };
+  const login = async (s, word) => {
+    const r = await request(s.port, 'POST', '/api/login', { headers: { Origin: `http://127.0.0.1:${s.port}` }, body: { password: word } });
+    const k = { cookie: cookieOf(r), csrf: r.json && r.json.csrf, ok: r.status === 200 };
+    k.write = (method, p, body) => request(s.port, method, p, { headers: { Cookie: k.cookie, Origin: `http://127.0.0.1:${s.port}`, 'X-CSRF-Token': k.csrf }, body });
+    k.read = () => request(s.port, 'GET', '/api/private', { headers: { Cookie: k.cookie, 'X-CSRF-Token': k.csrf } }).then((r) => (r.json && r.json.encounters) || {});
+    return k;
+  };
+  const secret = 'Only for the keeper: ' + crypto.randomBytes(8).toString('hex');
+  let s = await startServer('private', env), a, b;
+  const dir = s.dataDir;
+  try {
+    const k = await login(s, WORD);
+    a = (await k.write('POST', '/api/encounters', { title: 'A', private: secret })).json.id;
+    b = (await k.write('POST', '/api/encounters', { title: 'B', private: 'what B keeps' })).json.id;
+  } finally { s.stop(); }
+  const files = ['archive.json', 'auth.json', ...fs.readdirSync(path.join(dir, 'backups')).map((f) => path.join('backups', f))];
+  check(files.every((f) => !fs.readFileSync(path.join(dir, f), 'utf8').includes(secret)), 'no file in the data directory, backups included, holds a private section as text');
+  // A's ciphertext copied onto B: each is bound to its own encounter, so there it does not decrypt
+  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'archive.json'), 'utf8'));
+  saved.encounters.find((e) => e.id === b).private = saved.encounters.find((e) => e.id === a).private;
+  fs.writeFileSync(path.join(dir, 'archive.json'), JSON.stringify(saved));
+  s = await startServer('private', env, null, true);
+  try {
+    const seen = await (await login(s, WORD)).read();
+    check(seen[a] === secret, 'after a restart, the word unlocks the private sections again');
+    check(seen[b] === null, 'a private section copied onto another encounter cannot be decrypted there');
+  } finally { s.stop(); }
+  const NEXT = 'a third long smoke-test passphrase', LOST = 'a fourth long smoke-test passphrase';
+  check((await run(['set-password'], { DATA_DIR: dir }, `${NEXT}\n${NEXT}\n`)).code !== 0 &&
+    (await run(['set-password'], { DATA_DIR: dir }, `${NEXT}\n${NEXT}\nnot the current word\n`)).code !== 0, 'set-password will not let go of the private key without the current word');
+  check((await run(['set-password'], { DATA_DIR: dir }, `${NEXT}\n${NEXT}\n${WORD}\n`)).code === 0, 'with the current word, set-password carries the private key over');
+  s = await startServer('private', env, null, true);
+  try {
+    const k = await login(s, NEXT);
+    check(k.ok && (await k.read())[a] === secret, 'the new word reads the same private sections');
+  } finally { s.stop(); }
+  check((await run(['set-password', '--forget-private'], { DATA_DIR: dir }, `${LOST}\n${LOST}\n`)).code === 0, 'set-password --forget-private replaces a lost word');
+  s = await startServer('private', env, null, true);
+  try {
+    const k = await login(s, LOST);
+    check((await k.read())[a] === null, 'after that, the private sections written before can no longer be read');
+    await k.write('PUT', '/api/encounters/' + a, { title: 'A', private: 'written anew' });
+    check((await k.read())[a] === 'written anew', 'and new ones can be written');
+  } finally { s.stop(); }
+}
+
 // ---------- 1b. an archive saved before plates had several images ----------
 async function legacyChecks() {
   const png = makePng(20, 10);
@@ -383,21 +470,21 @@ async function legacyChecks() {
     fs.mkdirSync(path.join(dir, 'art'), { recursive: true, mode: 0o700 });
     fs.writeFileSync(path.join(dir, 'art', name), png);
     fs.writeFileSync(path.join(dir, 'archive.json'), JSON.stringify({
-      profile: { name: 'Old' }, records: [], about: { portrait: 'aold', facts: [], sections: [] },
+      profile: { name: 'Old' }, records: [], about: { portrait: 'aold', facts: [], sections: [] }, // portraits are no longer kept
       art: [{ id: 'aold', file: name, thumb: name, width: 20, height: 10, title: 'Old plate', date: '2026-01-01', added: 1 }],
     }));
   });
   try {
     const a = archiveIn((await request(s.port, 'GET', '/')).text);
     const v = a.art[0] && a.art[0].versions && a.art[0].versions[0];
-    check(v && v.file === name && v.width === 20 && v.mature === false && v.id === 'v' + name.slice(0, 12) && a.about.portrait === 'aold' &&
-      (await request(s.port, 'GET', '/art/' + name)).status === 200, 'a plate saved with one image becomes a plate of one image, still the portrait and still served');
+    check(v && v.file === name && v.width === 20 && v.mature === false && v.id === 'v' + name.slice(0, 12) && !('portrait' in a.about) &&
+      (await request(s.port, 'GET', '/art/' + name)).status === 200, 'a plate saved with one image becomes a plate of one image and is still served; an old portrait is dropped');
   } finally {
     s.stop();
   }
 }
 
-// The construct by keyboard (which always scans), then a chapter from the hub
+// The construct by keyboard (which always wakes it), then a chapter from the hub
 async function enter(page, book) {
   await page.waitForSelector('.core.is-3d', { timeout: 30000 });
   await page.focus('#construct');
@@ -432,7 +519,7 @@ async function browserChecks() {
     const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
     await page.mouse.click(cx, cy - box.height * .3); // the frame between the horns, above the gem
     await page.waitForTimeout(2500);
-    check(!(await page.$('#archive[open]')), 'a click on the construct away from the gem does not scan');
+    check(!(await page.$('#archive[open]')), 'a click on the construct away from the gem does nothing');
     // Walk down the centre line until the pointer is over the gem, then click it. The construct keeps turning
     // toward the pointer, and software rendering is slow, so settle first and try the walk up to three times.
     let gem = null, opened = false;
@@ -451,13 +538,13 @@ async function browserChecks() {
       if (!opened) await page.mouse.move(cx - box.width, cy);
     }
     check(!!gem, 'pointing at the gem shows the hand cursor');
-    check(opened && !(await page.$('#archive[open]')) && (await page.$$eval('.hub-opt', (n) => n.map((x) => x.textContent.trim()).join('|'))) === 'About|Art|Character Knowledge',
-      'clicking the gem reveals the three choices, About, Art and Character Knowledge, with no other text');
+    check(opened && !(await page.$('#archive[open]')) && (await page.$$eval('.hub-opt', (n) => n.map((x) => x.textContent.trim()).join('|'))) === 'About|Art|Character Knowledge|Encounters',
+      'clicking the gem reveals the four choices, About, Art, Character Knowledge and Encounters, with no other text');
     if (!opened) throw new Error('the hub did not appear');
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, 'hub.png') });
     await page.click('.hub-opt[data-book="knowledge"]');
-    check(await page.waitForSelector('#archive[open] #view-overview:not([hidden])', { timeout: 4000 }).then(() => true, () => false) &&
+    check(await page.waitForSelector('#archive[open] #records', { timeout: 4000 }).then(() => true, () => false) &&
       await page.evaluate(() => location.hash === '#knowledge'), 'Knowledge opens the tome at the index, and the address names the chapter');
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, 'archive.png') });
@@ -489,8 +576,8 @@ async function browserChecks() {
     await page.goto(s.url); // without the address of the record
     await enter(page, 'knowledge');
     check(await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 5000 }).then(() => true, () => false), 'after a reload the keeper is still unsealed');
-    check(await page.$$eval('#index .topic-title', (n) => n.some((x) => x.textContent === 'Smoke record')), 'the record is in the index after a reload');
-    await page.click('#index .topic');
+    check(await page.$$eval('#records .entry-title', (n) => n.some((x) => x.textContent === 'Smoke record')), 'the record is in the list after a reload');
+    await page.click('#records .entry');
     await page.click('#det-edit');
     await page.fill('#f-title', 'Smoke record, revised');
     await page.click('#f-submit');
@@ -498,8 +585,55 @@ async function browserChecks() {
     check((await page.textContent('#det-title')) === 'Smoke record, revised', 'a record can be revised');
     await page.click('#det-delete');
     await page.click('#det-delete'); // confirm
-    await page.waitForSelector('#view-overview:not([hidden])', { timeout: 10000 });
-    check(!(await page.$$eval('#index .topic-title', (n) => n.some((x) => x.textContent.startsWith('Smoke record')))), 'a record can be removed');
+    await page.waitForSelector('#records', { timeout: 10000 });
+    check(!(await page.$$eval('#records .entry-title', (n) => n.some((x) => x.textContent.startsWith('Smoke record')))), 'a record can be removed');
+
+    // an encounter with a private section, and a record that learned from it
+    const secret = 'Only for the keeper: ' + Date.now();
+    await page.click('.tab[data-book="encounters"]');
+    await page.click('#btn-add-encounter');
+    await page.fill('#ef-title', 'An encounter with a druid');
+    await page.fill('#ef-text', '{h2:c}By the pools{/h2}\nShe spoke of the Dream. ' + xss);
+    await page.fill('#ef-private', secret);
+    await page.click('#ef-submit');
+    await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 10000 });
+    await page.waitForSelector('#enc-private:not([hidden])', { timeout: 10000 }).catch(() => {});
+    check((await page.textContent('#enc-title')) === 'An encounter with a druid' && (await page.textContent('#enc-text h6')) === 'By the pools' &&
+      (await page.textContent('#enc-private-text')).includes(secret) && await page.evaluate(() => !window.__xss && !document.querySelector('#archive img')),
+      'an encounter can be recorded; its text takes TRP markup, HTML in it stays text, and the keeper sees its private section');
+    const encHash = await page.evaluate(() => location.hash);
+    await page.click('.tab[data-book="knowledge"]');
+    await page.click('#btn-inscribe');
+    await page.fill('#f-title', 'Druids');
+    await page.selectOption('#f-encounter', { label: 'An encounter with a druid' });
+    await page.click('#f-submit');
+    await page.waitForSelector('#view-detail:not([hidden])', { timeout: 10000 });
+    check((await page.textContent('#det-date')) === '' && (await page.textContent('#det-source .link-to')) === 'An encounter with a druid', 'a record needs no date, and can name an encounter');
+    await page.click('#det-source .link-to');
+    check(await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 5000 }).then(() => true, () => false) &&
+      (await page.textContent('#enc-records')).includes('Druids'), "the record's link opens the encounter, which lists what he learned from it");
+    await page.screenshot({ path: path.join(OUT, 'encounter.png') });
+
+    // sealed, the private section leaves the page; a visitor never receives it
+    await page.click('#clasp');
+    await page.click('#seal-lock');
+    await page.waitForFunction(() => !document.querySelector('#clasp.is-open'), null, { timeout: 10000 }).catch(() => {});
+    check(await page.$('#enc-private[hidden]') !== null && !(await page.content()).includes(secret), 'sealing it again takes the private section off the page');
+    const visitorCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const visitor = await visitorCtx.newPage();
+    const visitorSaw = [];
+    visitor.on('response', (r) => { if (r.url().startsWith(s.url)) r.text().then((t) => visitorSaw.push(t), () => {}); });
+    await visitor.goto(s.url + encHash);
+    await visitor.waitForSelector('#archive[open] #view-encounter:not([hidden])', { timeout: 20000 });
+    await visitor.waitForTimeout(500);
+    check((await visitor.textContent('#enc-title')) === 'An encounter with a druid' && await visitor.$('#enc-private[hidden]') !== null &&
+      visitorSaw.length > 0 && !visitorSaw.some((t) => t.includes(secret)), 'a visitor reads the encounter but receives nothing of its private section');
+    await visitorCtx.close();
+    await page.click('#clasp');
+    await page.fill('#seal-word', WORD);
+    await page.click('#seal-go');
+    await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 15000 }).catch(() => {});
+    await page.click('.tab[data-book="knowledge"]');
 
     // the About page
     await page.click('.tab[data-book="about"]');
@@ -518,7 +652,8 @@ async function browserChecks() {
     await page.$eval('#abf-traits .range', (r) => { r.value = '3'; r.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.click('#abf-add-glance');
     await page.fill('#abf-glances .row >> nth=0 >> [data-k="title"]', 'Scales ' + xss);
-    await page.fill('#abf-sections .row >> nth=0 >> [data-k="heading"]', 'Appearance');
+    await page.fill('#abf-sections .row >> nth=0 >> [data-k="heading"]', '“Appearance”');
+    await page.$eval('#abf-sections [data-k="color"]', (c) => { c.value = '#1d6a61'; c.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.fill('#abf-sections .row >> nth=0 >> [data-k="body"]', '{h2:c}Smoke heading{/h2}\nScales the colour of old copper, in {col:ffffff}white{/col} ink and |cffffd100gold|r. ' +
       xss + '\n\n{link*javascript:alert(1)*bad link} and {link*https://example.com/*good link}{icon:inv_misc_book_09:20}');
     await page.keyboard.press('Escape');
@@ -528,20 +663,22 @@ async function browserChecks() {
     await page.waitForSelector('#view-about:not([hidden])', { timeout: 10000 });
     const aboutSeen = await page.evaluate(() => {
       const out = document.getElementById('ab-sections');
-      return { heading: (out.querySelector('h6.al-c') || {}).textContent, text: out.textContent, img: !!document.querySelector('#view-about img, #leaf-about .ab-titles img'),
+      return { heading: (out.querySelector('h6.al-c') || {}).textContent, text: out.textContent, img: !!document.querySelector('#view-about img, #leaf-about img'),
         colours: [...out.querySelectorAll('.trp span')].map((n) => getComputedStyle(n).color), links: [...out.querySelectorAll('a')].map((a) => a.getAttribute('href')),
-        xss: !!window.__xss, lean: (document.querySelector('#ab-traits .is-lean') || {}).textContent, traits: document.querySelectorAll('#ab-traits .trait').length };
+        xss: !!window.__xss, lean: (document.querySelector('#ab-traits .is-lean') || {}).textContent, traits: document.querySelectorAll('#ab-traits .trait').length,
+        head: (() => { const n = out.querySelector('.ab-heading > span'), c = n && getComputedStyle(n); return n && [n.textContent, c.textAlign, c.color].join('|'); })() };
     });
     check((await page.textContent('#ab-name')) === 'Smoke ' + xss && (await page.textContent('#ab-title')) === 'Archivist' && (await page.textContent('#ab-dir')).includes('Dracthyr') &&
       (await page.$$eval('#ab-facts dt', (n) => n.map((x) => x.textContent).join())) === 'Pronouns,Motto' && aboutSeen.traits === 11 && aboutSeen.lean === 'Chaotic' &&
       (await page.textContent('#ab-glances')).includes(xss) && !aboutSeen.img && !aboutSeen.xss,
       'the About page can be amended in TRP terms, rows keep the order they were moved to, and markup stays text');
     check(aboutSeen.heading === 'Smoke heading' && aboutSeen.text.includes('old copper') && aboutSeen.text.includes(xss) && aboutSeen.text.includes('bad link') && !aboutSeen.text.includes('{') &&
-      aboutSeen.links.join() === 'https://example.com/' && aboutSeen.colours.length === 2 && aboutSeen.colours.every((c) => c !== 'rgb(255, 255, 255)' && c !== 'rgb(255, 209, 0)'),
-      'TRP markup in the description becomes headings, colours darkened for parchment and http(s) links only');
+      aboutSeen.links.join() === 'https://example.com/' && aboutSeen.colours.length === 2 && aboutSeen.colours.every((c) => c !== 'rgb(255, 255, 255)' && c !== 'rgb(255, 209, 0)') &&
+      aboutSeen.head === 'Appearance|center|rgb(29, 106, 97)',
+      "TRP markup in the description becomes headings, colours darkened for parchment and http(s) links only; a section's heading is centred in its chosen colour, without doubled quotes");
     await page.screenshot({ path: path.join(OUT, 'about.png') });
 
-    // a plate of two images, the second mature: uploaded from the keeper's browser, shown, linked to, made the portrait, removed
+    // a plate of two images, the second mature: uploaded from the keeper's browser, shown, linked to, removed
     const requested = [];
     page.on('request', (r) => requested.push(r.url()));
     await page.click('.tab[data-book="art"]');
@@ -602,7 +739,7 @@ async function browserChecks() {
     const minorSeen = [];
     minor.on('request', (r) => minorSeen.push(r.url()));
     await minor.goto(s.url + plate.hash);
-    await minor.waitForSelector('#archive[open] #view-plate:not([hidden])', { timeout: 10000 });
+    await minor.waitForSelector('#archive[open] #view-plate:not([hidden])', { timeout: 20000 });
     await minor.click('#pl-versions .ver-btn >> nth=1');
     await minor.waitForSelector('#gate:not([hidden])', { timeout: 3000 });
     await minor.fill('#gate-age', '15');
@@ -614,24 +751,20 @@ async function browserChecks() {
     check(/18 or older/.test(refusedText) && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
       'under 18, the mature image stays covered for the visit and is never loaded');
     await minorCtx.close();
-    await page.click('#pl-portrait');
-    await page.waitForFunction(() => document.getElementById('pl-portrait').textContent.startsWith('Stop'), null, { timeout: 10000 }).catch(() => {});
     const plateHash = plate.hash;
     await page.goto(s.url + '#about');
     await page.reload();
     await page.waitForSelector('#archive[open] #view-about:not([hidden])', { timeout: 10000 });
-    check(await page.waitForFunction(() => { const i = document.querySelector('#frontis-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).then(() => true, () => false),
-      'an address with #about opens the About page at once, with the plate as its portrait');
-    check((await page.$$('#ab-traits .trait')).length === 11 && (await page.textContent('#ab-sections')).includes('old copper') && (await page.textContent('#ab-title')) === 'Archivist',
-      'making a plate the portrait keeps the rest of the About page');
+    check((await page.$$('#ab-traits .trait')).length === 11 && (await page.textContent('#ab-sections')).includes('old copper') && (await page.textContent('#ab-title')) === 'Archivist' &&
+      !(await page.$('#leaf-about img, #view-about img')), 'an address with #about opens the About page at once, with no portrait on it');
     await page.goto(s.url + plateHash);
     check(await page.waitForFunction(() => document.getElementById('pl-title').textContent === 'Smoke plate' && !document.getElementById('view-plate').hidden, null, { timeout: 10000 }).then(() => true, () => false),
       "a plate's own address opens it");
     await page.click('#pl-delete');
     await page.click('#pl-delete'); // confirm
     await page.waitForFunction(() => !document.getElementById('pl-empty').hidden, null, { timeout: 10000 }).catch(() => {});
-    await page.click('.tab[data-book="about"]');
-    check(await page.$('#frontis-open[hidden]') !== null && await page.$('#frontis-empty:not([hidden])') !== null, 'removing the plate clears the portrait');
+    check(await page.waitForFunction(() => !document.querySelector('#plates .plate-btn'), null, { timeout: 10000 }).then(() => true, () => false),
+      'the plate can be removed');
     await page.click('.tab[data-book="knowledge"]');
 
     // change the word from the page, then seal it again
@@ -667,7 +800,7 @@ async function browserChecks() {
 // ---------- 3. the claude.ai Artifact preview ----------
 async function previewChecks() {
   const index = fs.readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8');
-  check(!/ca-preview|CA_PREVIEW =|ca-model|ca-files/.test(index), 'the real page carries no preview stand-in, no embedded model and no example images');
+  check(!/ca-preview|CA_PREVIEW =|ca-model|ca-files|ca-private/.test(index), 'the real page carries no preview stand-in, no embedded model, no example images and no example private text');
   const html = ARTIFACT_SKELETON + fs.readFileSync(path.join(ROOT, 'dist', 'preview.html'), 'utf8') + '</body></html>';
   const server = http.createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html); });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -692,7 +825,7 @@ async function previewChecks() {
     check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false),
       'preview: the age check works without storage');
     await page.click('.tab[data-book="about"]');
-    check((await page.textContent('#ab-dir')).includes('Dracthyr') && await page.$('#frontis-open img') !== null && (await page.$$('#ab-traits .trait')).length > 0 &&
+    check((await page.textContent('#ab-dir')).includes('Dracthyr') && !(await page.$('#leaf-about img')) && (await page.$$('#ab-traits .trait')).length > 0 &&
       (await page.$$('#ab-sections h6')).length > 0, 'preview: the About page shows its example profile');
     await page.click('.tab[data-book="knowledge"]');
     await page.click('#clasp');
@@ -709,6 +842,10 @@ async function previewChecks() {
     await page.click('#abf-submit');
     check(await page.waitForFunction(() => document.getElementById('ab-title').textContent === 'Preview title' && !document.getElementById('view-about').hidden, null, { timeout: 5000 }).then(() => true, () => false) &&
       (await page.$$('#ab-traits .trait')).length > 0, 'preview: the About page can be amended');
+    await page.click('.tab[data-book="encounters"]');
+    await page.click('#encounters .entry >> nth=0');
+    check(await page.waitForSelector('#enc-private:not([hidden])', { timeout: 5000 }).then(() => true, () => false) &&
+      (await page.textContent('#enc-private-text')).includes('example private section'), "preview: the example encounter's private section shows once unsealed");
     await page.click('.tab[data-book="knowledge"]');
     await page.click('#btn-inscribe');
     await page.fill('#f-title', 'Preview record');
@@ -730,7 +867,7 @@ async function previewChecks() {
     await page.reload();
     await open();
     await page.waitForTimeout(500);
-    check(await page.$('#btn-inscribe[hidden]') !== null && !(await page.$$eval('#index .topic-title', (n) => n.some((x) => x.textContent === 'Preview record'))) &&
+    check(await page.$('#btn-inscribe[hidden]') !== null && !(await page.$$eval('#records .entry-title', (n) => n.some((x) => x.textContent === 'Preview record'))) &&
       (await page.textContent('#ab-title')) === 'Archivist', 'preview: a reload forgets the changes and seals the archive again');
     check(errors.length === 0, `preview: no console errors or CSP violations${errors.length ? ': ' + errors.join(' | ') : ''}`);
   } finally {
@@ -749,7 +886,7 @@ function launch() {
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  for (const [name, fn] of [['API checks', apiChecks], ['older archive checks', legacyChecks], ['browser checks', browserChecks], ['preview checks', previewChecks]]) {
+  for (const [name, fn] of [['API checks', apiChecks], ['private section checks', privateChecks], ['older archive checks', legacyChecks], ['browser checks', browserChecks], ['preview checks', previewChecks]]) {
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }
   console.log(failures.length ? `\n${failures.length} check(s) failed` : '\nall checks passed');

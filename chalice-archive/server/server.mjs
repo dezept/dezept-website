@@ -4,7 +4,10 @@
    beyond Node's own modules.
 
      node server/server.mjs                 serve the archive
-     node server/server.mjs set-password    set or replace the keeper's word (asks twice; or two lines on stdin)
+     node server/server.mjs set-password    set or replace the keeper's word (asks twice, then for the current word once
+                                           there are private sections; or those lines on stdin)
+     node server/server.mjs set-password --forget-private
+                                           replace a forgotten word; the private sections written so far are lost
 
    Environment:
      PORT=8080, HOST=127.0.0.1             where to listen. Keep it on loopback, behind Caddy.
@@ -24,6 +27,8 @@
      - Writes need that session, its CSRF token in a header, a JSON body (or, for art, a PNG, JPEG or WebP image
        whose bytes match its type) and an Origin equal to PUBLIC_ORIGIN.
      - Failed logins are throttled per client IP (rising waits) and overall.
+     - The encounters' private sections are encrypted at rest with a key that only the keeper's word unwraps, and
+       are never sent to visitors.
      - Every field is validated and capped here; the page renders all of it as text.
      - Every response carries a strict Content-Security-Policy built from hashes of the page's own inline
        script and style, so no other inline code can run.
@@ -56,8 +61,9 @@ const CONFIG = {
 const SCRYPT = { N: 2 ** 17, r: 8, p: 1, keylen: 64, maxmem: 256 * 1024 * 1024 };
 const WORD = { min: 12, max: 1024 };
 const LIMIT = {
-  body: 64 * 1024, aboutBody: 256 * 1024, upload: 8 * 1024 * 1024, records: 5000, sessions: 50,
-  title: 120, domain: 60, note: 4000, source: 160,
+  body: 64 * 1024, aboutBody: 256 * 1024, encounterBody: 160 * 1024, upload: 8 * 1024 * 1024, records: 5000, encounters: 2000, sessions: 50,
+  story: 20000, private: 20000,
+  title: 120, note: 4000, source: 160,
   art: 500, versions: 12, files: 2000, side: 10000, artist: 80, link: 300, caption: 1000, label: 60,
   facts: 24, factLabel: 40, factValue: 400, sections: 24, heading: 120, section: 40000,
   traits: 24, pole: 40, glances: 5, glanceTitle: 80, glanceText: 1000,
@@ -67,7 +73,6 @@ const ABOUT_TEXT = {
   title: 60, currently: 1000, ooc: 1000,
   race: 60, class: 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120,
 };
-const STATUSES = ["remembered", "superseded", "relearned", "fragment", "sought"];
 // Art is stored as uploaded, under the first 32 hex digits of its SHA-256, so its name changes with its content
 const IMAGE_TYPES = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
 const ART_TYPES = { webp: "image/webp", jpg: "image/jpeg", png: "image/png" };
@@ -143,6 +148,56 @@ async function checkWord(word, auth) {
   return Boolean(auth) && key.length === expected.length && crypto.timingSafeEqual(key, expected);
 }
 
+// ---------- the private key ----------
+// The encounters' private sections are encrypted (AES-256-GCM) with one random 256-bit key. On disk that key exists
+// only wrapped, in auth.json, by a second key derived from the keeper's word with scrypt; unwrapped, it lives only
+// in memory, with each of the keeper's sessions. Whoever copies the data directory, backups included, gets
+// ciphertext they can read only by guessing the word. A forgotten word takes the private sections with it.
+const b64 = (buf) => buf.toString("base64");
+const validBox = (b) => Boolean(b) && typeof b === "object" && ["iv", "tag", "data"].every((k) => typeof b[k] === "string")
+  && Buffer.from(b.iv, "base64").length === 12 && Buffer.from(b.tag, "base64").length === 16;
+const box = (b) => ({ iv: b.iv, tag: b.tag, data: b.data });
+function encrypt(key, plain, aad) {
+  const iv = crypto.randomBytes(12), c = crypto.createCipheriv("aes-256-gcm", key, iv);
+  c.setAAD(Buffer.from(aad, "utf8"));
+  const data = Buffer.concat([c.update(plain), c.final()]);
+  return { iv: b64(iv), tag: b64(c.getAuthTag()), data: b64(data) };
+}
+// Throws if the key is wrong or the box was altered
+function decrypt(key, b, aad) {
+  const d = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(b.iv, "base64"));
+  d.setAAD(Buffer.from(aad, "utf8"));
+  d.setAuthTag(Buffer.from(b.tag, "base64"));
+  return Buffer.concat([d.update(Buffer.from(b.data, "base64")), d.final()]);
+}
+// Each private text is bound to its encounter's id, so it cannot be moved onto another encounter
+const sealPrivate = (key, id, text) => encrypt(key, Buffer.from(text, "utf8"), "encounter:" + id);
+function openPrivate(key, id, b) {
+  try { return decrypt(key, b, "encounter:" + id).toString("utf8"); } catch { return null; }
+}
+const wordKey = (word, salt) => oneAtATime(() => scrypt(String(word).normalize("NFC"), salt, 32, SCRYPT));
+async function wrapKey(word, key) {
+  const salt = crypto.randomBytes(16);
+  return { salt: b64(salt), ...encrypt(await wordKey(word, salt), key, "archive key") };
+}
+async function unwrapKey(word, wrapped) {
+  return decrypt(await wordKey(word, Buffer.from(wrapped.salt, "base64")), wrapped, "archive key");
+}
+// The key for a new session: unwrapped with the word just checked, or made on the first login if there is none
+// yet. One at a time, so two first logins cannot make two keys.
+let keyChain = Promise.resolve();
+function keeperKey(word) {
+  const run = keyChain.then(async () => {
+    const auth = readAuth();
+    if (auth.key) return unwrapKey(word, auth.key);
+    const key = crypto.randomBytes(32);
+    writeAtomic(FILES.auth, JSON.stringify({ ...auth, key: await wrapKey(word, key) }, null, 2) + "\n");
+    return key;
+  });
+  keyChain = run.catch(() => {});
+  return run;
+}
+
 function validWord(word) {
   if (typeof word !== "string" || word.length < WORD.min) return `Use at least ${WORD.min} characters.`;
   if (word.length > WORD.max) return `Use at most ${WORD.max} characters.`;
@@ -155,21 +210,50 @@ const today = () => new Date().toISOString().slice(0, 10);
 const validDate = (d) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d + "T00:00:00Z"));
 const validId = (id) => typeof id === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(id);
 
-function cleanRecord(input, prev) {
+// A record of something he knows: a title, his note, and where he learned it, in his own words, from one of the
+// encounters (its id), or both. The date is optional.
+function cleanRecord(input, prev, encounters = archive.encounters) {
   if (!input || typeof input !== "object") throw new HttpError(400, "The record is malformed.");
   const title = str(input.title, LIMIT.title);
   if (!title) throw new HttpError(400, "Give the record a title.");
   return {
     id: prev ? prev.id : "r" + crypto.randomBytes(9).toString("base64url"),
     title,
-    domain: str(input.domain, LIMIT.domain) || "Unsorted",
-    status: STATUSES.includes(input.status) ? input.status : "fragment",
     note: str(input.note, LIMIT.note),
     source: str(input.source, LIMIT.source),
-    date: validDate(input.date) ? input.date : today(),
+    encounter: typeof input.encounter === "string" && encounters.some((e) => e.id === input.encounter) ? input.encounter : "",
+    date: validDate(input.date) ? input.date : "",
     added: prev ? prev.added : Date.now(),
     example: false,
   };
+}
+
+// ---------- encounters ----------
+// An encounter: what happened, for everyone, and a private section only the keeper can read. The private text is
+// encrypted before it is stored (sealPrivate, below), so archive.json and its backups hold only ciphertext, and
+// visitors never receive it, not even encrypted (publicArchive).
+function cleanEncounter(input, prev) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "The encounter is malformed.");
+  const title = str(input.title, LIMIT.title);
+  if (!title) throw new HttpError(400, "Give the encounter a title.");
+  return {
+    id: prev ? prev.id : "e" + crypto.randomBytes(9).toString("base64url"),
+    title,
+    date: validDate(input.date) ? input.date : "",
+    text: str(input.text, LIMIT.story), // keeps TRP markup as text; only the page reads it
+    added: prev ? prev.added : Date.now(),
+    example: false,
+  };
+}
+// A private text as sent: undefined keeps what was there, "" removes it, anything else replaces it, encrypted
+function withPrivate(enc, text, prevBox, key) {
+  if (text === undefined) return prevBox ? { ...enc, private: prevBox } : enc;
+  const plain = str(text, LIMIT.private);
+  return plain ? { ...enc, private: sealPrivate(key, enc.id, plain) } : enc;
+}
+// Everything visitors may see: the archive without the encounters' private sections
+function publicArchive() {
+  return { ...archive, encounters: archive.encounters.map(({ private: _, ...e }) => e) };
 }
 
 // ---------- the art ----------
@@ -268,18 +352,17 @@ function cleanArt(input, prev, check) {
   };
 }
 
-// The About page, laid out like a Total RP 3 profile: a plate's main image as its portrait, a short title, what he is
+// The About page, laid out like a Total RP 3 profile: a short title, what he is
 // doing now and an OOC note, the directory (race, class, age …), additional information (the particulars, label
 // and value), personality traits (two opposites and a value from 0, all left, to 20, all right), up to five things
 // seen at first glance, and the description in sections. Section text keeps TRP's markup; the page renders it.
-function cleanAbout(input, art) {
+function cleanAbout(input) {
   const a = input && typeof input === "object" ? input : {};
   const list = (v) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === "object");
-  const out = {
-    portrait: typeof a.portrait === "string" && art.some((x) => x.id === a.portrait && !x.versions[0].mature) ? a.portrait : "", // never a mature image
-  };
+  const color = (c) => (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : "");
+  const out = {};
   for (const [key, max] of Object.entries(ABOUT_TEXT)) out[key] = str(a[key], max);
-  out.eyeColor = typeof a.eyeColor === "string" && /^#[0-9a-f]{6}$/i.test(a.eyeColor) ? a.eyeColor.toLowerCase() : "";
+  out.eyeColor = color(a.eyeColor);
   out.facts = list(a.facts).map((f) => ({ label: str(f.label, LIMIT.factLabel), value: str(f.value, LIMIT.factValue) }))
     .filter((f) => f.label || f.value).slice(0, LIMIT.facts);
   out.traits = list(a.traits).map((t) => {
@@ -288,7 +371,8 @@ function cleanAbout(input, art) {
   }).filter((t) => t.left || t.right).slice(0, LIMIT.traits);
   out.glances = list(a.glances).map((g) => ({ title: str(g.title, LIMIT.glanceTitle), text: str(g.text, LIMIT.glanceText) }))
     .filter((g) => g.title || g.text).slice(0, LIMIT.glances);
-  out.sections = list(a.sections).map((x) => ({ heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section) }))
+  // a section's heading may have its own colour; "" is TRP's gold
+  out.sections = list(a.sections).map((x) => ({ heading: str(x.heading, LIMIT.heading), body: str(x.body, LIMIT.section), color: color(x.color) }))
     .filter((x) => x.heading || x.body).slice(0, LIMIT.sections);
   return out;
 }
@@ -302,11 +386,13 @@ function cleanProfile(p, prev = {}) {
 
 function cleanArchive(raw) {
   const p = (raw && raw.profile) || {};
+  const encounters = (Array.isArray(raw && raw.encounters) ? raw.encounters : []).filter((e) => e && validId(e.id) && str(e.title, LIMIT.title)).slice(0, LIMIT.encounters)
+    .map((e) => ({ ...cleanEncounter(e, { id: e.id, added: Number(e.added) || 0 }), example: Boolean(e.example), ...(validBox(e.private) ? { private: box(e.private) } : {}) }));
   const records = (Array.isArray(raw && raw.records) ? raw.records : []).filter((r) => r && validId(r.id) && str(r.title, LIMIT.title)).slice(0, LIMIT.records)
-    .map((r) => ({ ...cleanRecord(r, { id: r.id, added: Number(r.added) || 0 }), example: Boolean(r.example) }));
+    .map((r) => ({ ...cleanRecord(r, { id: r.id, added: Number(r.added) || 0 }, encounters), example: Boolean(r.example) }));
   const art = (Array.isArray(raw && raw.art) ? raw.art : []).filter((a) => a && validId(a.id)).slice(0, LIMIT.art)
     .map((a) => ({ ...cleanArt(a, { id: a.id, added: Number(a.added) || 0 }, false), example: Boolean(a.example) })).filter((a) => a.versions.length);
-  return { profile: cleanProfile(p), about: cleanAbout(raw && raw.about, art), art, records };
+  return { profile: cleanProfile(p), about: cleanAbout(raw && raw.about), art, records, encounters };
 }
 
 let archive = null;
@@ -354,17 +440,17 @@ function sweepArt() {
 }
 
 // ---------- sessions ----------
-const sessions = new Map(); // sha256(token) -> { csrf, expires, generation }
+const sessions = new Map(); // sha256(token) -> { csrf, expires, generation, privateKey (in memory only) }
 const COOKIE = CONFIG.secureCookie ? "__Host-ca_session" : "ca_session";
 const sha256 = (s) => crypto.createHash("sha256").update(s).digest("base64url");
 
-function createSession(auth) {
+function createSession(auth, key) {
   const now = Date.now();
   for (const [k, s] of sessions) if (s.expires <= now) sessions.delete(k);
   while (sessions.size >= LIMIT.sessions) sessions.delete(sessions.keys().next().value); // oldest first
   const token = crypto.randomBytes(32).toString("base64url");
   const csrf = crypto.randomBytes(32).toString("base64url");
-  sessions.set(sha256(token), { csrf, expires: now + CONFIG.sessionMs, generation: auth.generation });
+  sessions.set(sha256(token), { csrf, expires: now + CONFIG.sessionMs, generation: auth.generation, privateKey: key });
   return { token, csrf };
 }
 
@@ -538,7 +624,7 @@ async function login(req, res) {
     throw new HttpError(401, "The seal does not yield.", secs ? { "Retry-After": String(secs) } : undefined);
   }
   failures.delete(ip);
-  const { token, csrf } = createSession(auth);
+  const { token, csrf } = createSession(auth, await keeperKey(word));
   sendJson(req, res, 200, { owner: true, csrf }, { "Set-Cookie": sessionCookie(token, CONFIG.sessionMs) });
 }
 
@@ -554,10 +640,10 @@ async function changeWord(req, res, session) {
   }
   const problem = validWord(body.next);
   if (problem) throw new HttpError(400, problem);
-  const next = await hashWord(body.next);
+  const next = { ...(await hashWord(body.next)), key: await wrapKey(body.next, session.privateKey) }; // the same private key, under the new word
   writeAtomic(FILES.auth, JSON.stringify(next, null, 2) + "\n");
   sessions.clear(); // every session, here and elsewhere, is signed out
-  const fresh = createSession(next);
+  const fresh = createSession(next, session.privateKey);
   sendJson(req, res, 200, { owner: true, csrf: fresh.csrf }, { "Set-Cookie": sessionCookie(fresh.token, CONFIG.sessionMs) });
 }
 
@@ -608,7 +694,7 @@ async function handle(req, res) {
 
   if (req.method === "GET" || req.method === "HEAD") {
     if (pathname === "/" || pathname === "/index.html") {
-      const html = SITE.before + scriptJson(archive) + SITE.after;
+      const html = SITE.before + scriptJson(publicArchive()) + SITE.after;
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Length": Buffer.byteLength(html) });
       return res.end(req.method === "HEAD" ? undefined : html);
     }
@@ -620,7 +706,17 @@ async function handle(req, res) {
       const s = sessionOf(req);
       return sendJson(req, res, 200, { owner: Boolean(s), csrf: s ? s.csrf : "" });
     }
-    if (pathname === "/api/archive") return sendJson(req, res, 200, { archive });
+    if (pathname === "/api/archive") return sendJson(req, res, 200, { archive: publicArchive() });
+    // The encounters' private sections, decrypted, only for the keeper's session (and its CSRF token, so no other
+    // page can make the browser fetch them). A section that cannot be decrypted comes back as null.
+    if (pathname === "/api/private") {
+      const s = sessionOf(req);
+      if (!s) throw new HttpError(401, "Unlock the archive first.");
+      if (!csrfOk(req, s)) throw new HttpError(403, "The request was refused.");
+      const out = {};
+      for (const e of archive.encounters) if (e.private) out[e.id] = openPrivate(s.privateKey, e.id, e.private);
+      return sendJson(req, res, 200, { encounters: out });
+    }
     const art = pathname.match(/^\/art\/([^/]+)$/);
     if (art && ART_FILE.test(art[1])) return sendArt(req, res, art[1]);
     return sendJson(req, res, 404, { error: "Not found." });
@@ -645,25 +741,27 @@ async function handle(req, res) {
     if (archive.records.length >= LIMIT.records) throw new HttpError(413, "The archive is full.");
     const rec = cleanRecord(await readJson(req));
     commit({ ...archive, records: [...archive.records, rec] });
-    return sendJson(req, res, 200, { archive, id: rec.id });
+    return sendJson(req, res, 200, { archive: publicArchive(), id: rec.id });
   }
-  if (req.method === "POST" && pathname === "/api/records/clear-examples") {
-    commit({ ...archive, records: archive.records.filter((r) => !r.example) });
-    return sendJson(req, res, 200, { archive });
+  if (req.method === "POST" && pathname === "/api/records/clear-examples") { // the example records and encounters
+    const encounters = archive.encounters.filter((e) => !e.example);
+    const records = archive.records.filter((r) => !r.example).map((r) => (encounters.some((e) => e.id === r.encounter) ? r : { ...r, encounter: "" }));
+    commit({ ...archive, records, encounters });
+    return sendJson(req, res, 200, { archive: publicArchive() });
   }
   if (req.method === "PUT" && pathname === "/api/about") {
     const body = await readJson(req, LIMIT.aboutBody).catch((e) => {
       throw e.status === 413 ? new HttpError(413, `The About page is too long to keep: ${LIMIT.aboutBody / 1024} KB in all.`) : e;
     });
-    commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body, archive.art) });
-    return sendJson(req, res, 200, { archive });
+    commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body) });
+    return sendJson(req, res, 200, { archive: publicArchive() });
   }
   if (req.method === "POST" && pathname === "/api/uploads") return upload(req, res);
   if (req.method === "POST" && pathname === "/api/art") {
     if (archive.art.length >= LIMIT.art) throw new HttpError(413, "There is no room for more plates.");
     const plate = cleanArt(await readJson(req), null, true);
-    commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first; it cannot be the portrait yet
-    return sendJson(req, res, 200, { archive, id: plate.id });
+    commit({ ...archive, art: [plate, ...archive.art] }); // the newest plate comes first
+    return sendJson(req, res, 200, { archive: publicArchive(), id: plate.id });
   }
   if (req.method === "POST" && pathname === "/api/art/order") {
     const ids = (await readJson(req)).ids;
@@ -672,7 +770,7 @@ async function handle(req, res) {
       throw new HttpError(409, "The plates have changed. Reload and try again.");
     }
     commit({ ...archive, art: ids.map((id) => byId.get(id)) });
-    return sendJson(req, res, 200, { archive });
+    return sendJson(req, res, 200, { archive: publicArchive() });
   }
   const pm = pathname.match(/^\/api\/art\/([^/]+)$/);
   if (pm && validId(pm[1])) {
@@ -681,15 +779,38 @@ async function handle(req, res) {
     if (req.method === "PUT") {
       const plate = cleanArt(await readJson(req), prev, true);
       const art = archive.art.map((a) => (a.id === prev.id ? plate : a));
-      commit({ ...archive, art, about: cleanAbout(archive.about, art) }); // a portrait whose main image became mature is cleared
+      commit({ ...archive, art });
       sweepArt();
-      return sendJson(req, res, 200, { archive, id: plate.id });
+      return sendJson(req, res, 200, { archive: publicArchive(), id: plate.id });
     }
     if (req.method === "DELETE") {
       const art = archive.art.filter((a) => a.id !== prev.id);
-      commit({ ...archive, art, about: cleanAbout(archive.about, art) }); // a removed frontispiece is cleared
+      commit({ ...archive, art });
       sweepArt();
-      return sendJson(req, res, 200, { archive });
+      return sendJson(req, res, 200, { archive: publicArchive() });
+    }
+  }
+  if (req.method === "POST" && pathname === "/api/encounters") {
+    if (archive.encounters.length >= LIMIT.encounters) throw new HttpError(413, "There is no room for more encounters.");
+    const body = await readJson(req, LIMIT.encounterBody);
+    const enc = withPrivate(cleanEncounter(body), body.private, null, session.privateKey);
+    commit({ ...archive, encounters: [...archive.encounters, enc] });
+    return sendJson(req, res, 200, { archive: publicArchive(), id: enc.id });
+  }
+  const em = pathname.match(/^\/api\/encounters\/([^/]+)$/);
+  if (em && validId(em[1])) {
+    const prev = archive.encounters.find((e) => e.id === em[1]);
+    if (!prev) throw new HttpError(404, "That encounter is gone.");
+    if (req.method === "PUT") {
+      const body = await readJson(req, LIMIT.encounterBody);
+      const enc = withPrivate(cleanEncounter(body, prev), body.private, prev.private, session.privateKey);
+      commit({ ...archive, encounters: archive.encounters.map((e) => (e.id === prev.id ? enc : e)) });
+      return sendJson(req, res, 200, { archive: publicArchive(), id: enc.id });
+    }
+    if (req.method === "DELETE") { // records that named it keep their own words, without the link
+      commit({ ...archive, encounters: archive.encounters.filter((e) => e.id !== prev.id),
+        records: archive.records.map((r) => (r.encounter === prev.id ? { ...r, encounter: "" } : r)) });
+      return sendJson(req, res, 200, { archive: publicArchive() });
     }
   }
   const m = pathname.match(/^\/api\/records\/([^/]+)$/);
@@ -699,11 +820,11 @@ async function handle(req, res) {
     if (req.method === "PUT") {
       const rec = cleanRecord(await readJson(req), prev);
       commit({ ...archive, records: archive.records.map((r) => (r.id === prev.id ? rec : r)) });
-      return sendJson(req, res, 200, { archive, id: rec.id });
+      return sendJson(req, res, 200, { archive: publicArchive(), id: rec.id });
     }
     if (req.method === "DELETE") {
       commit({ ...archive, records: archive.records.filter((r) => r.id !== prev.id) });
-      return sendJson(req, res, 200, { archive });
+      return sendJson(req, res, 200, { archive: publicArchive() });
     }
   }
   throw new HttpError(404, "Not found.");
@@ -762,22 +883,42 @@ function readHidden(question) {
   });
 }
 
-async function readWords() {
-  if (process.stdin.isTTY) return [await readHidden("Keeper's word: "), await readHidden("The word again: ")];
+// The new word twice, then, while there is a private key to carry over, the current word. On stdin: one per line.
+async function readWords(withCurrent) {
+  if (process.stdin.isTTY) {
+    const words = [await readHidden("Keeper's word: "), await readHidden("The word again: ")];
+    if (withCurrent) words.push(await readHidden("The current word, to keep the private sections readable: "));
+    return words;
+  }
   let text = "";
   for await (const chunk of process.stdin) text += chunk;
   const lines = text.split(/\r?\n/);
-  return [lines[0] || "", lines.length > 1 && lines[1] !== "" ? lines[1] : lines[0] || ""];
+  return [lines[0] || "", lines.length > 1 && lines[1] !== "" ? lines[1] : lines[0] || "", lines[2] || ""];
 }
 
+// Sets the word. The private key is carried over to the new word, which needs the current one; with
+// --forget-private it is let go instead, and the private sections written so far can no longer be read.
 async function setPassword() {
   ensureDataDir();
-  const [word, again] = await readWords();
+  const prev = readAuth(), forget = process.argv.includes("--forget-private"), carry = Boolean(prev && prev.key) && !forget;
+  const [word, again, current] = await readWords(carry);
   const problem = validWord(word);
   if (problem) { console.error(problem); process.exit(1); }
   if (word !== again) { console.error("The two words don't match."); process.exit(1); }
-  writeAtomic(FILES.auth, JSON.stringify(await hashWord(word), null, 2) + "\n");
-  console.log(`The keeper's word is set (${FILES.auth}). Every existing session is signed out.`);
+  const next = await hashWord(word);
+  if (carry) {
+    let key = null;
+    if (await checkWord(current, prev)) key = await unwrapKey(current, prev.key).catch(() => null);
+    if (!key) {
+      console.error("That is not the current word, so the private sections could not be carried over. Nothing was changed.\n" +
+        "If the word is lost, run set-password --forget-private: the encounters' private sections written so far will no longer be readable.");
+      process.exit(1);
+    }
+    next.key = await wrapKey(word, key);
+  }
+  writeAtomic(FILES.auth, JSON.stringify(next, null, 2) + "\n");
+  console.log(`The keeper's word is set (${FILES.auth}). Every existing session is signed out.` +
+    (forget && prev && prev.key ? " The old private key is gone: private sections written before can no longer be read." : ""));
 }
 
 if (process.argv[2] === "set-password") await setPassword();

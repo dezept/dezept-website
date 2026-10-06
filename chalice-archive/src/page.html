@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
 <style id="ca-style">
-/* Layout: one dark stage where the construct is the only bright object. Scanning its gem projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
+/* Layout: one dark stage where the construct is the only bright object. A click on its gem draws in the light drifting around it and projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
 :root {
   --void: #0a0e1a;
   --void-2: #10172a;
@@ -47,6 +47,7 @@
   --ink-verdigris: #1d6a61;
   --ink-copper: #8a4a1d;
   --ink-ochre: #8f620b;
+  --ink-gold: #705c00; /* TRP's gold, {col:ffd100}, as ink() darkens it for parchment */
   --sepia-rgb: 47 31 16;
   --brass-rgb: 196 154 69;
   --umber-rgb: 16 9 4;
@@ -95,7 +96,7 @@ button, input, textarea { font: inherit; color: inherit; }
 
 .core { --size: min(58vmin, 460px); position: relative; display: grid; place-items: center; }
 .construct { position: relative; width: var(--size); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: none; cursor: inherit; -webkit-tap-highlight-color: transparent; }
-.stage.on-gem { cursor: pointer; } /* only the gem starts a scan */
+.stage.on-gem { cursor: pointer; } /* only the gem wakes it */
 .fx { position: absolute; inset: 0; display: block; }
 .fx-x { animation: drift-x 13s ease-in-out infinite alternate; }
 .fx-y { animation: bob 5.6s ease-in-out infinite; }
@@ -111,26 +112,19 @@ button, input, textarea { font: inherit; color: inherit; }
 .gem { position: absolute; left: 50%; top: 80.2%; width: 34%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; background: radial-gradient(circle, rgb(var(--teal-rgb) / .55) 0%, rgb(var(--teal-rgb) / .16) 34%, transparent 66%); animation: gem 3.4s ease-in-out infinite; transition: opacity .8s; }
 @keyframes gem { 0%, 100% { opacity: .5; scale: .9; } 50% { opacity: 1; scale: 1.08; } }
 .construct:hover .construct-img, .construct:focus-visible .construct-img { filter: drop-shadow(0 0 30px rgb(var(--teal-rgb) / .34)) drop-shadow(0 24px 26px rgb(var(--shade-rgb) / .85)); }
-.lock { position: absolute; inset: -10%; pointer-events: none; opacity: 0; transition: opacity .25s, inset .5s cubic-bezier(.2, .8, .2, 1); }
-.lock i { position: absolute; width: 20px; height: 20px; border: 0 solid var(--teal); filter: drop-shadow(0 0 6px rgb(var(--teal-rgb) / .6)); }
-.lock i:nth-child(1) { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
-.lock i:nth-child(2) { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
-.lock i:nth-child(3) { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
-.lock i:nth-child(4) { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
-.is-scanning .lock { opacity: 1; inset: -2%; }
-.is-scanning .gem { animation: flare 1.9s ease-out forwards; }
+.is-drawing .gem { animation: flare 1.9s ease-out forwards; }
 @keyframes flare { 0% { opacity: .8; scale: 1; } 18% { opacity: 1; scale: 2.6; } 100% { opacity: .9; scale: 1.3; } }
-.is-scanning .fx-y, .is-scanning .fx-x, .is-scanning .fx-tilt { animation-play-state: paused; }
+.is-drawing .fx-y, .is-drawing .fx-x, .is-drawing .fx-tilt { animation-play-state: paused; }
 /* The 3D model: the canvas is twice the button so the construct can turn far toward the cursor without clipping. The cutout stays underneath until the first frame is drawn. */
 .construct-gl { position: absolute; left: -50%; top: -50%; width: 200%; height: 200%; pointer-events: none; opacity: 0; transition: opacity .8s; }
 .is-3d .construct-gl { opacity: 1; }
-.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-scanning .gem, whose flare would bring the overlay back */
+.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-drawing .gem, whose flare would bring the overlay back */
 .core { --lift: .5; }
 .core.is-3d .fx { animation: none; } /* the model hovers on its own, and the canvas must not drift under the cursor it aims at */
 .is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); } /* both follow the model's hover */
 .is-3d .pool { animation: none; opacity: calc(.9 - .45 * var(--lift)); scale: calc(1 - .2 * var(--lift)); }
 
-/* ---------- The hub: three choices the scan projects beneath the construct ---------- */
+/* ---------- The hub: three choices the construct projects beneath it once it has drawn the light in ---------- */
 .core { transition: translate .9s cubic-bezier(.2, .8, .2, 1); }
 .stage.has-hub .core { translate: 0 -56px; } /* the construct rises to make room */
 .hub { position: absolute; z-index: 2; top: calc(100% + 30px); left: 50%; translate: -50% 0; display: flex; justify-content: center; gap: clamp(8px, 1.8vw, 18px); width: max-content; max-width: calc(100vw - 32px); }
@@ -146,7 +140,12 @@ button, input, textarea { font: inherit; color: inherit; }
 .hub.show .hub-opt { animation: hub-in .8s cubic-bezier(.2, .8, .2, 1) both; }
 .hub.show .hub-opt:nth-child(2) { animation-delay: .12s; }
 .hub.show .hub-opt:nth-child(3) { animation-delay: .24s; }
+.hub.show .hub-opt:nth-child(4) { animation-delay: .36s; }
 @keyframes hub-in { 0% { opacity: 0; translate: 0 12px; filter: blur(6px) brightness(2.2); } 35% { opacity: .6; } 45% { opacity: .25; } 60% { opacity: 1; filter: blur(0) brightness(1.5); } 100% { opacity: 1; translate: 0 0; filter: none; } }
+@media (max-width: 620px) { /* two by two */
+  .hub { flex-wrap: wrap; width: min(380px, calc(100vw - 32px)); }
+  .hub-opt { width: calc(50% - clamp(8px, 1.8vw, 18px) / 2); }
+}
 @media (max-width: 520px) {
   .hub-opt { padding: 13px 6px 12px; }
   .hub-label { font-size: 13px; letter-spacing: .1em; text-indent: .1em; }
@@ -157,20 +156,6 @@ button, input, textarea { font: inherit; color: inherit; }
   .hub-opt { width: 200px; padding: 10px 12px; grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 12px; text-align: left; }
   .hub-label { text-indent: 0; }
 }
-
-/* ---------- Scan overlay ---------- */
-.scan { position: fixed; inset: 0; z-index: 50; overflow: hidden; pointer-events: none; }
-.scan::before { content: ""; position: absolute; inset: 0; background: rgb(var(--teal-rgb) / .05); opacity: 0; }
-.scan-grid { position: absolute; inset: 0; clip-path: inset(0 0 100% 0); background-image: linear-gradient(rgb(var(--teal-rgb) / .09) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--teal-rgb) / .09) 1px, transparent 1px); background-size: 34px 34px; background-position: center; }
-.scan-beam { position: absolute; left: 0; right: 0; top: 0; height: 140px; transform: translateY(-140px); background: linear-gradient(to bottom, transparent, rgb(var(--teal-rgb) / .12) 88%, rgb(var(--teal-rgb) / .35)); }
-.scan-beam::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--teal); box-shadow: 0 0 18px 3px rgb(var(--teal-rgb) / .7), 0 0 60px 8px rgb(var(--teal-rgb) / .25); }
-.scan.run::before { animation: tint 1.9s ease-out forwards; }
-.scan.run .scan-grid { animation: grid-reveal 1.45s cubic-bezier(.55, 0, .35, 1) forwards, grid-fade .5s 1.4s ease-out forwards; }
-.scan.run .scan-beam { animation: beam 1.45s cubic-bezier(.55, 0, .35, 1) forwards; }
-@keyframes tint { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes grid-reveal { to { clip-path: inset(0 0 0 0); } }
-@keyframes grid-fade { to { opacity: 0; } }
-@keyframes beam { to { transform: translateY(calc(100vh - 138px)); opacity: .2; } }
 
 /* ---------- The archive: an old tome ---------- */
 .archive { width: min(980px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--sepia); overflow: visible; font-family: var(--font-book); }
@@ -197,7 +182,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .ribbon { position: absolute; z-index: 0; left: 84px; bottom: -30px; width: 14px; height: 80px; pointer-events: none; background: linear-gradient(90deg, #4a0805, #7e130b 50%, #5a0a06); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%); filter: drop-shadow(0 3px 3px rgb(0 0 0 / .5)); } /* hangs out below the page */
 
 /* The open book: one parchment page with a printed double rule, the page edges stacked below. It reads down one
-   centred column: the chapter's own leaf first (the About page's portrait and names, the plates, the recent
+   centred column: the chapter's own leaf first (the About page's names, the plates, the recent
    records), then the open view. A record, a plate or a form has the page to itself (data-solo). */
 .book { position: relative; z-index: 1; height: min(860px, calc(100vh - 116px)); height: min(860px, calc(100dvh - 116px)); border-radius: 3px;
   background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment);
@@ -210,8 +195,9 @@ button, input, textarea { font: inherit; color: inherit; }
 .page-r { padding-top: 36px; padding-bottom: clamp(36px, 4.4vw, 56px); }
 .book[data-solo] .page-l { display: none; }
 .book[data-solo] .page-r { padding-top: clamp(34px, 4.4vw, 54px); }
-.book[data-view="plates"] .page-r { display: none; } /* the list of plates alone; a plate opens on its own */
-.book[data-view="plates"] .page-l { padding-bottom: clamp(36px, 4.4vw, 56px); }
+/* the lists alone (plates, records, encounters); each opens on a page of its own */
+.book[data-view="plates"] .page-r, .book[data-view="overview"] .page-r, .book[data-view="encounters"] .page-r { display: none; }
+.book[data-view="plates"] .page-l, .book[data-view="overview"] .page-l, .book[data-view="encounters"] .page-l { padding-bottom: clamp(36px, 4.4vw, 56px); }
 
 /* The keeper's clasp: a small brass keyhole on the fore-edge. The word it asks for shows or hides the editing tools. */
 .clasp { position: absolute; z-index: 4; right: -11px; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 22px; height: 52px; padding: 0; border: 1px solid var(--leather-dark); border-radius: 4px; cursor: pointer; color: var(--leather-dark); background: linear-gradient(90deg, #6a4714, var(--brass) 35%, var(--brass-light) 55%, #8a6420); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5); }
@@ -242,44 +228,19 @@ button, input, textarea { font: inherit; color: inherit; }
 .back { justify-self: start; }
 .back:hover { color: var(--rubric); text-decoration-color: currentColor; }
 
-.glyph { flex: none; box-sizing: border-box; width: 9px; height: 9px; rotate: 45deg; border: 1.5px solid var(--c); background: var(--c); }
-[data-s="remembered"] { --c: var(--ink-copper); }
-[data-s="superseded"] { --c: var(--rubric); }
-[data-s="relearned"] { --c: var(--ink-verdigris); }
-[data-s="fragment"] { --c: var(--ink-ochre); }
-[data-s="sought"] { --c: var(--sepia-faint); }
-.glyph[data-s="fragment"] { background: linear-gradient(135deg, var(--c) 50%, transparent 50%); }
-.glyph[data-s="sought"] { background: transparent; }
-.glyph[data-s="superseded"] { background: linear-gradient(transparent 36%, var(--c) 36% 64%, transparent 64%); }
-
-
-/* the views: the index, or a record, or a form */
-#view-overview { display: grid; gap: 34px; }
-.recent { margin: 0; padding: 0; list-style: none; }
-.recent li + li { border-top: 1px solid rgb(var(--sepia-rgb) / .15); }
-.rec-btn { display: grid; grid-template-columns: 9px minmax(0, 1fr); column-gap: 14px; row-gap: 1px; width: 100%; padding: 10px 4px 11px 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; }
-.rec-btn .glyph { grid-row: 1; margin-top: 6px; }
-.rec-date { font-family: var(--font-book-sc); font-size: 15px; color: var(--sepia-faint); }
-.rec-title { grid-column: 2; font-size: 21px; line-height: 1.2; color: var(--sepia); }
-.rec-note { grid-column: 2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
-.rec-btn:hover .rec-title, .topic:hover .topic-title { color: var(--rubric); }
-
-.index { display: grid; gap: 22px; }
-.domain { margin: 0; }
-.domain-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; font-family: var(--font-title); font-size: 17px; font-weight: 700; line-height: 1.25; color: var(--sepia); }
-.domain-head .numeral { flex: none; min-width: 2.2em; color: var(--rubric); }
-.domain-head .name { flex: 1; min-width: 0; }
-.domain-count { flex: none; font-family: var(--font-book); font-size: 15px; font-weight: 400; font-style: italic; color: var(--sepia-faint); }
-.topics { margin: 0; padding: 0 0 0 calc(2.2em * 17 / 18 + 10px); list-style: none; }
-.topic { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 5px 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; }
-.topic .glyph { align-self: center; }
-.topic-title { min-width: 0; font-size: 18px; line-height: 1.3; color: var(--sepia); }
-.leader { flex: 1 1 24px; min-width: 24px; border-bottom: 2px dotted rgb(var(--sepia-rgb) / .38); translate: 0 -.3em; }
-.topic-status { flex: none; font-family: var(--font-book-sc); font-size: 15px; color: var(--c); }
+/* the lists of records and encounters: newest first, each a title with its date and the start of its text */
+.entries { margin: 0; padding: 0; list-style: none; }
+.entries li + li { border-top: 1px solid rgb(var(--sepia-rgb) / .15); }
+.entry { display: grid; gap: 1px; width: 100%; padding: 11px 4px 12px 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; }
+.entry-meta { font-family: var(--font-book-sc); font-size: 15px; color: var(--sepia-faint); }
+.entry-meta:empty { display: none; }
+.entry-title { font-size: 21px; line-height: 1.2; color: var(--sepia); overflow-wrap: anywhere; }
+.entry-note { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
+.entry:hover .entry-title { color: var(--rubric); }
 
 .detail { max-width: 36rem; }
+.det-meta:empty { display: none; }
 .det-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 18px 0 8px; font-family: var(--font-book-sc); font-size: 15px; color: var(--sepia-faint); }
-.det-status { display: inline-flex; align-items: center; gap: 8px; color: var(--c); }
 .det-title { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 3vw, 38px); line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
 .det-title::after { content: ""; display: block; width: 120px; height: 9px; margin-top: 12px; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
 .det-note { margin: 18px 0 0; max-width: 60ch; font-size: 19px; line-height: 1.6; white-space: pre-line; color: var(--sepia); }
@@ -288,26 +249,25 @@ button, input, textarea { font: inherit; color: inherit; }
 .det-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 18px; margin: 24px 0 0; padding-top: 14px; border-top: 1px solid rgb(var(--sepia-rgb) / .2); font-size: 17px; }
 .det-facts dt { font-family: var(--font-book-sc); color: var(--rubric); }
 .det-facts dd { margin: 0; font-style: italic; color: var(--sepia-soft); }
+.link-to { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: var(--rubric); text-decoration: underline; text-decoration-color: rgb(142 29 18 / .45); text-underline-offset: 3px; }
+.link-to:hover { text-decoration-color: currentColor; }
+.enc-text { margin-top: 20px; }
+/* an encounter's private section: only for the keeper, never sent to anyone else */
+.private { margin-top: 30px; padding: 16px 20px 18px; border: 1px dashed rgb(var(--sepia-rgb) / .5); border-radius: 2px; background: rgb(var(--sepia-rgb) / .06); }
+.private-head { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-family: var(--font-book-sc); font-size: 16px; font-weight: 400; color: var(--rubric); }
+.private-head svg { flex: none; width: 11px; height: 15px; }
+.private .trp { font-size: 18px; }
+.private .empty { padding: 0; }
+.learned { margin-top: 34px; }
 .owner-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 
-/* About, laid out like a Total RP 3 profile: the portrait and his names head the page; beneath them what he is doing
+/* About, laid out like a Total RP 3 profile: his names head the page; beneath them what he is doing
    now, the directory, additional information, personality traits, at first glance, and the description */
-.ab-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px clamp(22px, 4vw, 44px); }
-.frontis { display: grid; justify-items: center; gap: 8px; margin: 0; }
-.mount { display: block; box-sizing: border-box; padding: 6px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: linear-gradient(160deg, var(--parchment), var(--parchment-deep)); box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 2px 7px rgb(var(--sepia-rgb) / .35); }
-button.mount { cursor: zoom-in; color: inherit; font: inherit; }
-.mount img { display: block; background: var(--void); }
-.mount.is-missing img { visibility: hidden; }
-.mount.is-missing { background: repeating-linear-gradient(45deg, rgb(var(--sepia-rgb) / .08) 0 6px, transparent 6px 12px), var(--parchment-deep); }
-.frontis-open { padding: 11px; }
-.frontis-open img { width: clamp(132px, 21vw, 186px); height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 22%; border-radius: 50%; box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .6), 0 0 0 5px var(--parchment), 0 0 0 6px rgb(var(--sepia-rgb) / .45); }
-.frontis-empty { display: grid; place-items: center; box-sizing: border-box; width: clamp(120px, 19vw, 160px); aspect-ratio: 4 / 5; padding: 16px; border: 1.5px dashed rgb(var(--sepia-rgb) / .35); border-radius: 50%; font-size: 15px; font-style: italic; text-align: center; color: var(--sepia-faint); }
-.frontis-credit { max-width: 190px; margin: 0; font-size: 14px; font-style: italic; line-height: 1.3; text-align: center; color: var(--sepia-faint); }
-.ab-titles { display: grid; justify-items: start; gap: 4px; min-width: 0; }
+.ab-head { display: grid; justify-items: center; gap: 4px; text-align: center; }
 .ab-title { margin: 0; font-family: var(--font-book-sc); font-size: 18px; letter-spacing: .06em; color: var(--rubric); }
 .ab-name { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 4vw, 44px); line-height: 1.08; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
-.ab-name::after { content: ""; display: block; width: 120px; height: 9px; margin-top: 12px; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
-.ab-epithet { margin: 2px 0 0; max-width: 42ch; font-size: 19px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
+.ab-name::after { content: ""; display: block; width: 120px; height: 9px; margin: 12px auto 0; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
+.ab-epithet { margin: 2px auto 0; max-width: 42ch; font-size: 19px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
 #leaf-about .ar-tools { margin-top: 8px; }
 #view-about { display: grid; gap: 38px; }
 
@@ -342,6 +302,16 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 
 /* the description: TRP markup made into headings, paragraphs, colours and links */
 .ab-sections { display: grid; gap: 40px; }
+/* A section's heading is set like a pull quote: large italic in curly quotes, centred between two flourishes that
+   fade out from a small diamond, in its own colour (TRP's gold unless the keeper picks another) */
+.ab-heading { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 20px); margin: 0 0 .8em; font-family: var(--font-book); font-size: clamp(24px, 3vw, 30px); font-style: italic; font-weight: 400; line-height: 1.2; color: var(--ink-gold); }
+.ab-heading > span { flex: 0 1 auto; min-width: 0; max-width: 80%; text-align: center; text-wrap: balance; overflow-wrap: anywhere; }
+.ab-heading > span::before { content: "\201C"; opacity: .6; }
+.ab-heading > span::after { content: "\201D"; opacity: .6; }
+.flourish { position: relative; flex: 1 1 0; min-width: 24px; height: 1px; background: linear-gradient(to right, transparent, currentColor); opacity: .7; }
+.flourish + span + .flourish { background: linear-gradient(to left, transparent, currentColor); }
+.flourish::after { content: ""; position: absolute; top: 50%; right: 0; width: 6px; height: 6px; translate: 0 -50%; rotate: 45deg; background: currentColor; }
+.flourish + span + .flourish::after { right: auto; left: 0; }
 .ab-sections:empty { display: none; }
 .trp { font-size: 19px; line-height: 1.62; overflow-wrap: anywhere; }
 .trp p { margin: 0 0 .8em; }
@@ -359,6 +329,11 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .trp .dropcap::first-letter { float: left; margin: .05em .09em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.4em; line-height: .8; color: var(--rubric); }
 
 /* Art: a list of plates facing the plate itself; a click shows it full size */
+.mount { display: block; box-sizing: border-box; padding: 6px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: linear-gradient(160deg, var(--parchment), var(--parchment-deep)); box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 2px 7px rgb(var(--sepia-rgb) / .35); }
+button.mount { cursor: zoom-in; color: inherit; font: inherit; }
+.mount img { display: block; background: var(--void); }
+.mount.is-missing img { visibility: hidden; }
+.mount.is-missing { background: repeating-linear-gradient(45deg, rgb(var(--sepia-rgb) / .08) 0 6px, transparent 6px 12px), var(--parchment-deep); }
 .plates { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px 14px; margin: 0; padding: 0; list-style: none; }
 .plates .plates-empty { grid-column: 1 / -1; }
 .plate-btn { display: grid; gap: 7px; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
@@ -448,6 +423,7 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .field > label, .field > legend { padding: 0; font-family: var(--font-book-sc); font-size: 16px; color: var(--rubric); }
 .field > legend { margin-bottom: 6px; }
 .help { margin: 0; font-size: 15px; font-style: italic; color: var(--sepia-faint); }
+.opt { font-family: var(--font-book); font-style: italic; color: var(--sepia-faint); }
 .input { box-sizing: border-box; width: 100%; min-height: 40px; padding: 6px 2px; border: 0; border-bottom: 1px solid rgb(var(--sepia-rgb) / .55); border-radius: 0; background: transparent; color: var(--sepia); font-family: var(--font-book); font-size: 19px; color-scheme: light; }
 .input::placeholder { color: rgb(var(--sepia-rgb) / .38); font-style: italic; }
 textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding-top: 0; border: 0; background-image: linear-gradient(transparent 29px, rgb(var(--sepia-rgb) / .28) 29px); background-size: 100% 30px; background-attachment: local; }
@@ -463,14 +439,17 @@ textarea.input { min-height: 160px; resize: vertical; line-height: 30px; padding
 .form-error { margin: 0; font-size: 16px; font-style: italic; color: var(--rubric); }
 .form-actions { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 4px; }
 textarea.input.short { min-height: 90px; }
+textarea.input.long { min-height: 220px; max-height: 70vh; field-sizing: content; }
 select.input { appearance: none; padding-right: 26px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--sepia-soft) 50%), linear-gradient(135deg, var(--sepia-soft) 50%, transparent 50%); background-position: calc(100% - 13px) 55%, calc(100% - 8px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
 .input[type="file"] { min-height: 0; padding: 6px 0; border: 0; font-size: 16px; cursor: pointer; }
 .input[type="file"]::file-selector-button { margin-right: 12px; min-height: 32px; padding: 0 14px; border: 1px solid #2a0302; border-radius: 4px; cursor: pointer; font-family: var(--font-title); font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--wow-gold); text-shadow: 0 1px 1px #000; background: linear-gradient(180deg, #b3241a 0%, var(--wow-red) 48%, var(--wow-red-dark) 100%); box-shadow: inset 0 0 0 1px rgb(var(--brass-rgb) / .95); }
 .rows { display: grid; gap: 12px; }
 .row { display: grid; gap: 2px 12px; align-items: end; }
 .row-fact { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; }
-.row-section { grid-template-columns: minmax(0, 1fr) auto; padding-bottom: 8px; border-bottom: 1px dotted rgb(var(--sepia-rgb) / .3); }
+.row-section { grid-template-columns: minmax(0, 1fr) auto auto; padding-bottom: 8px; border-bottom: 1px dotted rgb(var(--sepia-rgb) / .3); }
 .row-section textarea { grid-column: 1 / -1; min-height: 160px; max-height: 70vh; field-sizing: content; }
+.head-input { font-size: 22px !important; font-style: italic; color: var(--ink-gold); }
+.head-color { align-self: center; width: 38px; height: 30px; padding: 1px 2px; border: 1px solid rgb(var(--sepia-rgb) / .5); border-radius: 2px; background: rgb(255 248 225 / .4); cursor: pointer; }
 .row-trait { grid-template-columns: minmax(0, 1fr) minmax(90px, 1.2fr) minmax(0, 1fr) auto; align-items: center; }
 .row-trait [data-k="left"] { text-align: right; }
 .row-trait .row-tools { padding-bottom: 0; }
@@ -549,9 +528,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   .seal { right: 50%; translate: 50% -50%; }
 }
 @media (max-width: 560px) {
-  .ab-head { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
-  .ab-titles { justify-items: center; }
-  .ab-name::after { margin-inline: auto; }
   .page { padding-inline: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -567,14 +543,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   <canvas class="motes" id="motes" aria-hidden="true"></canvas>
   <h1 class="sr-only">The archive of <span id="pf-name">Unnamed Dracthyr</span></h1>
   <div class="core" id="core">
-    <button class="construct" id="construct" type="button" aria-label="Scan the archive" aria-haspopup="dialog">
+    <button class="construct" id="construct" type="button" aria-label="Open the archive" aria-haspopup="dialog">
       <span class="fx fx-x"><span class="fx fx-y"><span class="fx fx-tilt">
         <span class="halo"></span>
         <img class="construct-img" src="__FRONT__" alt="" width="364" height="410" draggable="false">
         <span class="gem"></span>
         <canvas class="construct-gl" id="construct-gl" aria-hidden="true"></canvas>
       </span></span></span>
-      <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     </button>
     <span class="pool" aria-hidden="true"></span>
     <nav class="hub" id="hub" aria-label="The archive" hidden>
@@ -590,18 +565,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 8.5C11.2 6.4 7.4 5.6 3 6v15c4.4-.4 8.2.4 11 2.5 2.8-2.1 6.6-2.9 11-2.5V6c-4.4-.4-8.2.4-11 2.5z"></path><path d="M14 8.5v15"></path></svg>
         <span class="hub-label">Character Knowledge</span>
       </button>
+      <button class="hub-opt" type="button" data-book="encounters" aria-haspopup="dialog">
+        <svg class="hub-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="9.5" cy="9" r="3.3"></circle><path d="M3.5 23c0-4.4 2.7-7.4 6-7.4s6 3 6 7.4"></path><circle cx="19" cy="10.5" r="2.9"></circle><path d="M16.4 16.6c.8-.5 1.6-.7 2.6-.7 3 0 5.5 2.8 5.5 7.1"></path></svg>
+        <span class="hub-label">Encounters</span>
+      </button>
     </nav>
   </div>
 </main>
-<div class="scan" id="scan" hidden aria-hidden="true">
-  <div class="scan-grid"></div>
-  <div class="scan-beam"></div>
-</div>
 <dialog class="archive" id="archive" aria-labelledby="ar-title">
   <nav class="tabs" id="tabs" aria-label="Chapters">
     <button class="tab" type="button" data-book="about">About</button>
     <button class="tab" type="button" data-book="art">Art</button>
     <button class="tab" type="button" data-book="knowledge">Character Knowledge</button>
+    <button class="tab" type="button" data-book="encounters">Encounters</button>
   </nav>
   <div class="tome" id="tome">
     <i class="corner tl" aria-hidden="true"></i><i class="corner tr" aria-hidden="true"></i><i class="corner bl" aria-hidden="true"></i><i class="corner br" aria-hidden="true"></i>
@@ -640,28 +616,27 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
               <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
               <button class="btn" id="btn-clear-examples" type="button" hidden>Remove examples</button>
             </div>
-            <section aria-labelledby="recent-title">
-              <h3 class="rubric" id="recent-title">Recent accessions <span id="recent-count"></span></h3>
-              <ol class="recent" id="recent"></ol>
-            </section>
+            <h3 class="sr-only">The records</h3>
+            <ol class="entries" id="records"></ol>
           </div>
 
           <div class="leaf" id="leaf-about" hidden>
             <header class="ab-head">
-              <figure class="frontis">
-                <button class="mount frontis-open" id="frontis-open" type="button" aria-label="View the portrait full size" hidden></button>
-                <div class="frontis-empty" id="frontis-empty">No likeness yet</div>
-                <figcaption class="frontis-credit" id="frontis-credit" hidden></figcaption>
-              </figure>
-              <div class="ab-titles">
-                <p class="ab-title" id="ab-title" hidden></p>
-                <h3 class="ab-name" id="ab-name"></h3>
-                <p class="ab-epithet" id="ab-epithet"></p>
-                <div class="ar-tools">
-                  <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
-                </div>
+              <p class="ab-title" id="ab-title" hidden></p>
+              <h3 class="ab-name" id="ab-name"></h3>
+              <p class="ab-epithet" id="ab-epithet"></p>
+              <div class="ar-tools">
+                <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
               </div>
             </header>
+          </div>
+
+          <div class="leaf" id="leaf-encounters" hidden>
+            <div class="ar-tools">
+              <button class="btn" id="btn-add-encounter" type="button" hidden>Record an encounter</button>
+            </div>
+            <h3 class="sr-only">The encounters</h3>
+            <ol class="entries" id="encounters"></ol>
           </div>
 
           <div class="leaf" id="leaf-art" hidden>
@@ -676,25 +651,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         </section>
 
         <section class="page page-r" id="page-r">
-          <section id="view-overview">
-            <section aria-labelledby="index-title">
-              <h3 class="rubric" id="index-title">Index of knowledge <span id="index-count"></span></h3>
-              <div class="index" id="index"></div>
-            </section>
-          </section>
+          <section id="view-overview"></section>
 
           <section class="detail" id="view-detail" hidden>
-            <button class="back" id="det-back" type="button">← Return to the index</button>
-            <div class="det-meta">
-              <span class="det-status" id="det-status"><span class="glyph" id="det-glyph"></span><span id="det-status-label"></span></span>
-              <span id="det-domain"></span>
-              <time id="det-date"></time>
-            </div>
+            <button class="back" id="det-back" type="button">← Return to Character Knowledge</button>
+            <div class="det-meta"><time id="det-date"></time></div>
             <h3 class="det-title" id="det-title"></h3>
             <p class="det-note" id="det-note"></p>
             <dl class="det-facts">
               <dt>Learned from</dt><dd id="det-source"></dd>
-              <dt>State</dt><dd id="det-state"></dd>
             </dl>
             <div class="owner-row" id="det-tools" hidden>
               <button class="btn" id="det-edit" type="button">Revise</button>
@@ -710,25 +675,18 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                 <label for="f-title">Title</label>
                 <input class="input" id="f-title" name="title" maxlength="120" autocomplete="off" placeholder="The Sundering">
               </div>
-              <div class="row-2">
-                <div class="field">
-                  <label for="f-domain">Domain</label>
-                  <input class="input" id="f-domain" name="domain" list="domain-list" maxlength="60" autocomplete="off" placeholder="Wars &amp; catastrophes">
-                  <datalist id="domain-list"></datalist>
-                </div>
-                <div class="field">
-                  <label for="f-date">Date</label>
-                  <input class="input" id="f-date" name="date" type="date">
-                </div>
+              <div class="field">
+                <label for="f-date">Date <span class="opt">(optional)</span></label>
+                <input class="input" id="f-date" name="date" type="date">
               </div>
-              <fieldset class="field">
-                <legend>What he knows</legend>
-                <div class="status-pick" id="status-pick"></div>
-                <p class="help" id="f-status-desc"></p>
-              </fieldset>
               <div class="field">
                 <label for="f-note">Record</label>
                 <textarea class="input" id="f-note" name="note" maxlength="4000" placeholder="What he learned, in his own words."></textarea>
+              </div>
+              <div class="field">
+                <label for="f-encounter">Learned in an encounter</label>
+                <select class="input" id="f-encounter" name="encounter"></select>
+                <p class="help">The record then links to the encounter, which tells what happened.</p>
               </div>
               <div class="field">
                 <label for="f-source">Learned from</label>
@@ -782,11 +740,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
               <div class="field">
                 <label for="abf-epithet">Full title</label>
                 <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280" placeholder="A line or two beneath his name"></textarea>
-              </div>
-              <div class="field">
-                <label for="abf-portrait">Portrait</label>
-                <select class="input" id="abf-portrait" name="portrait"></select>
-                <p class="help">One of the plates in the Art chapter, shown beside his name.</p>
               </div>
               <div class="row-2">
                 <div class="field">
@@ -855,6 +808,55 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
             </form>
           </section>
 
+          <section class="detail" id="view-encounter" hidden>
+            <button class="back" id="enc-back" type="button">← Return to the encounters</button>
+            <div class="det-meta"><time id="enc-date"></time></div>
+            <h3 class="det-title" id="enc-title"></h3>
+            <div class="trp enc-text" id="enc-text"></div>
+            <section class="private" id="enc-private" aria-labelledby="enc-private-title" hidden>
+              <h4 class="private-head" id="enc-private-title"><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Private: only you can see this</h4>
+              <div class="trp" id="enc-private-text"></div>
+            </section>
+            <section class="learned" id="enc-learned" aria-labelledby="enc-learned-title" hidden>
+              <h4 class="rubric" id="enc-learned-title">What he learned from it</h4>
+              <ul class="entries" id="enc-records"></ul>
+            </section>
+            <div class="owner-row" id="enc-tools" hidden>
+              <button class="btn" id="enc-edit" type="button">Revise</button>
+              <button class="btn" id="enc-delete" type="button">Remove encounter</button>
+            </div>
+          </section>
+
+          <section id="view-encounter-form" hidden>
+            <form class="form" id="encounter-form" novalidate>
+              <button class="back" id="ef-back" type="button">← Return without saving</button>
+              <h3 id="ef-heading">Record an encounter</h3>
+              <div class="field">
+                <label for="ef-title">Title</label>
+                <input class="input" id="ef-title" name="title" maxlength="120" autocomplete="off" placeholder="An encounter with a druid">
+              </div>
+              <div class="field">
+                <label for="ef-date">Date <span class="opt">(optional)</span></label>
+                <input class="input" id="ef-date" name="date" type="date">
+              </div>
+              <div class="field">
+                <label for="ef-text">What happened</label>
+                <textarea class="input long" id="ef-text" name="text" maxlength="20000" placeholder="What happened, as anyone may read it."></textarea>
+                <p class="help">Everyone can read this. Total RP 3's markup works here, as on the About page.</p>
+              </div>
+              <div class="field">
+                <label for="ef-private">Private</label>
+                <textarea class="input long" id="ef-private" name="private" maxlength="20000" placeholder="What only you should know."></textarea>
+                <p class="help" id="ef-private-help">Only you can see this, and only while the archive is unsealed. It is encrypted before it is stored, with a key that only your word unlocks.</p>
+              </div>
+              <p class="form-error" id="ef-error" role="alert" hidden></p>
+              <div class="form-actions">
+                <button class="btn" id="ef-submit" type="submit">Save the encounter</button>
+                <button class="btn" id="ef-cancel" type="button">Cancel</button>
+              </div>
+            </form>
+          </section>
+
           <section class="plate-view" id="view-plate" hidden>
             <button class="back narrow-only" id="pl-back" type="button">← Return to the plates</button>
             <p class="empty" id="pl-empty" hidden>The plates will be shown here.</p>
@@ -870,7 +872,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
             </figure>
             <div class="owner-row" id="pl-tools" hidden>
               <button class="btn" id="pl-edit" type="button">Revise</button>
-              <button class="btn" id="pl-portrait" type="button">Make it the portrait</button>
               <button class="btn" id="pl-earlier" type="button">Move earlier</button>
               <button class="btn" id="pl-later" type="button">Move later</button>
               <button class="btn" id="pl-delete" type="button">Remove plate</button>
@@ -952,16 +953,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 <script id="ca-app">
 (function () {
   "use strict";
-  var STATUS = {
-    remembered: { label: "Remembered", desc: "Known before the slumber and still true." },
-    superseded: { label: "Superseded", desc: "Known before the slumber, but no longer true." },
-    relearned: { label: "Re-learned", desc: "Learned since waking." },
-    fragment: { label: "Fragmentary", desc: "Heard of, not yet understood." },
-    sought: { label: "Sought", desc: "A gap he means to fill." }
-  };
-  var ORDER = Object.keys(STATUS);
-  var SUGGESTED_DOMAINS = ["Dragonkind & the Aspects", "Peoples & factions", "Wars & catastrophes", "Places", "Cosmology & the beyond"];
-  var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge" };
+  var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge", encounters: "Encounters" };
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
   var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * 1024 * 1024 };
   // The About page follows a Total RP 3 profile: the directory, additional information, personality traits, at first
@@ -999,11 +991,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function normalize(raw) {
     raw = raw || {};
     var profile = Object.assign({ name: "Unnamed Dracthyr", epithet: "", construct: "Eternal Gladiator's Chalice", constructNote: "" }, raw.profile || {});
+    // encounters, and records of what he knows, which may name an encounter as where he learned it
+    var encounters = (Array.isArray(raw.encounters) ? raw.encounters : []).filter(function (e) { return e && e.id && e.title; }).map(function (e) {
+      return { id: String(e.id), title: String(e.title), date: isDate(e.date) ? e.date : "", text: String(e.text || ""), added: Number(e.added) || 0, example: !!e.example };
+    });
     var records = (Array.isArray(raw.records) ? raw.records : []).filter(function (r) { return r && r.id && r.title; }).map(function (r) {
       return {
-        id: String(r.id), title: String(r.title), domain: String(r.domain || "Unsorted"),
-        status: STATUS[r.status] ? r.status : "fragment", note: String(r.note || ""), source: String(r.source || ""),
-        date: isDate(r.date) ? r.date : today(), added: Number(r.added) || 0, example: !!r.example
+        id: String(r.id), title: String(r.title), note: String(r.note || ""), source: String(r.source || ""),
+        encounter: encounters.some(function (e) { return e.id === r.encounter; }) ? r.encounter : "",
+        date: isDate(r.date) ? r.date : "", added: Number(r.added) || 0, example: !!r.example
       };
     });
     // a plate is one or more images (versions): the first is its main image, the others its alternates
@@ -1025,15 +1021,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       return (Array.isArray(v) ? v : []).filter(Boolean).map(function (x) { var o = {}; keys.forEach(function (k) { o[k] = String(x[k] || ""); }); return o; });
     }
     var about = {
-      portrait: art.some(function (a) { return a.id === ab.portrait && !a.versions[0].mature; }) ? ab.portrait : "", // never a mature image
       eyeColor: /^#[0-9a-f]{6}$/i.test(ab.eyeColor) ? ab.eyeColor : "",
       facts: list(ab.facts, ["label", "value"]),
       traits: list(ab.traits, ["left", "right"]).map(function (t, i) { t.value = traitValue(ab.traits[i].value); return t; }),
       glances: list(ab.glances, ["title", "text"]),
-      sections: list(ab.sections, ["heading", "body"])
+      sections: list(ab.sections, ["heading", "body", "color"]).map(function (x) { if (!/^#[0-9a-f]{6}$/i.test(x.color)) x.color = ""; return x; })
     };
     ABOUT_TEXT.forEach(function (k) { about[k] = typeof ab[k] === "string" ? ab[k] : ""; });
-    return { profile: profile, about: about, art: art, records: records };
+    return { profile: profile, about: about, art: art, records: records, encounters: encounters };
   }
   function loadState() {
     try { return normalize(JSON.parse(byId("ca-data").textContent || "{}")); } catch (e) { return normalize({}); }
@@ -1071,23 +1066,24 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       .forEach(function (p) { while (n >= p[0]) { out += p[1]; n -= p[0]; } });
     return out;
   }
-  function glyph(s) { return h("span", { class: "glyph", "data-s": s, "aria-hidden": "true" }); }
   function find(id) { return state.records.find(function (r) { return r.id === id; }); }
   function findArt(id) { return state.art.find(function (a) { return a.id === id; }); }
-  function sorted() {
-    return state.records.slice().sort(function (a, b) {
-      return b.date.localeCompare(a.date) || (b.added - a.added) || a.title.localeCompare(b.title);
-    });
+  function findEnc(id) { return state.encounters.find(function (e) { return e.id === id; }); }
+  // Newest first: by date, and those without one by when they were added
+  function newest(list) {
+    function key(x) { return x.date || new Date(x.added).toISOString().slice(0, 10); }
+    return list.slice().sort(function (a, b) { return key(b).localeCompare(key(a)) || (b.added - a.added) || a.title.localeCompare(b.title); });
   }
-  function domains() {
-    var seen = {};
-    state.records.forEach(function (r) { seen[r.domain] = true; });
-    var list = Object.keys(seen);
-    return list.sort(function (a, b) {
-      var ia = SUGGESTED_DOMAINS.indexOf(a), ib = SUGGESTED_DOMAINS.indexOf(b);
-      if (ia < 0) ia = 99; if (ib < 0) ib = 99;
-      return ia - ib || a.localeCompare(b);
-    });
+  // A list entry: its date and source, its title, and the start of its text; it opens on a page of its own
+  function entry(title, meta, note, open) {
+    return h("li", null, h("button", { class: "entry", type: "button", onclick: open },
+      h("span", { class: "entry-meta", text: meta }), h("span", { class: "entry-title", text: title }), note ? h("span", { class: "entry-note", text: note }) : null));
+  }
+  // TRP markup without the markup, for a list's excerpt: each block's text, a space between.
+  function plain(text) {
+    var out = [];
+    trp(text).childNodes.forEach(function (n) { var t = n.textContent.replace(/\s+/g, " ").trim(); if (t) out.push(t); });
+    return out.join(" ");
   }
   function plateNo(a) { return "Plate " + roman(state.art.indexOf(a) + 1) + "."; }
   // One image of a plate. width and height only give the browser its shape before it loads.
@@ -1182,7 +1178,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function renderLanding() {
     var name = state.profile.name || "Unnamed Dracthyr";
     el.pfName.textContent = name;
-    el.construct.setAttribute("aria-label", "Scan the archive of " + name);
+    el.construct.setAttribute("aria-label", "Open the archive of " + name);
   }
 
   // ---------- The archive: one tome, three chapters ----------
@@ -1190,58 +1186,32 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var detailId = null, editingId = null, plateId = null, versionId = null, artEditing = null;
   var busy = false;
 
-  function renderAll() { renderLanding(); renderArchive(); renderAbout(); renderArt(); renderOwnerUI(); }
+  function renderAll() { renderLanding(); renderArchive(); renderEncounters(); renderAbout(); renderArt(); renderOwnerUI(); }
 
-  // Knowledge: recent accessions on the left, the index on the right
+  // Character Knowledge: his records, newest first
   function renderArchive() {
-    var p = state.profile, total = state.records.length;
+    var p = state.profile;
     el.arName.textContent = p.name || "Unnamed Dracthyr";
-
-    // the owner can clear the example records in one go while any remain
-    var ex = state.records.filter(function (r) { return r.example; }).length;
+    // the owner can clear the example records and encounters in one go while any remain
+    var ex = state.records.filter(function (r) { return r.example; }).length + state.encounters.filter(function (e) { return e.example; }).length;
     el.btnClearExamples.hidden = !(ex && canPost());
     if (!el.btnClearExamples.dataset.armed) el.btnClearExamples.textContent = "Remove " + ex + " example" + (ex === 1 ? "" : "s");
-
-    // recent accessions
-    var recent = sorted().slice(0, 6);
-    el.recentCount.textContent = total ? "the latest " + recent.length : "";
-    el.recent.replaceChildren();
-    if (!recent.length) {
-      el.recent.append(h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." })));
-    }
-    recent.forEach(function (r) {
-      el.recent.append(h("li", null, h("button", { class: "rec-btn", type: "button", "data-s": r.status, onclick: function () { showDetail(r.id); } },
-        glyph(r.status),
-        h("span", { class: "rec-date" }, h("time", { datetime: r.date, text: fmtDate(r.date) }), " · " + STATUS[r.status].label),
-        h("span", { class: "rec-title", text: r.title }),
-        r.note ? h("span", { class: "rec-note", text: r.note }) : null
-      )));
-    });
-
-    // knowledge index
-    el.index.replaceChildren();
-    var shown = 0;
-    domains().forEach(function (d, chapter) {
-      var items = state.records.filter(function (r) { return r.domain === d; });
-      if (!items.length) return;
-      items.sort(function (a, b) { return ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || a.title.localeCompare(b.title); });
-      shown += items.length;
-      var all = state.records.filter(function (r) { return r.domain === d; });
-      var learned = all.filter(function (r) { return r.status === "relearned" || r.status === "remembered"; }).length;
-      el.index.append(h("section", { class: "domain" },
-        h("h4", { class: "domain-head" }, h("span", { class: "numeral", text: roman(chapter + 1) + "." }), h("span", { class: "name", text: d }),
-          h("span", { class: "domain-count", text: learned + " of " + all.length + " known" })),
-        h("ul", { class: "topics" }, items.map(function (r) {
-          return h("li", null, h("button", { class: "topic", type: "button", "data-s": r.status, onclick: function () { showDetail(r.id); } },
-            glyph(r.status), h("span", { class: "topic-title", text: r.title }), h("span", { class: "leader", "aria-hidden": "true" }), h("span", { class: "topic-status", text: STATUS[r.status].label })));
-        }))
-      ));
-    });
-    el.indexCount.textContent = total ? "in " + domains().length + (domains().length === 1 ? " chapter" : " chapters") : "";
-    if (!shown) el.index.append(h("p", { class: "empty", text: "Records appear here, gathered into chapters by domain." }));
+    fill(el.records, state.records.length ? newest(state.records).map(function (r) {
+      var e = r.encounter && findEnc(r.encounter), from = e ? e.title : r.source;
+      return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), r.note, function () { showDetail(r.id); });
+    }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." }))]);
   }
 
-  // About: his portrait and names at the head of the page, then the profile as in Total RP 3
+  // Encounters: newest first; each tells what happened, and, to the keeper alone, its private section
+  function renderEncounters() {
+    fill(el.encounters, state.encounters.length ? newest(state.encounters).map(function (e) {
+      var n = state.records.filter(function (r) { return r.encounter === e.id; }).length;
+      return entry(e.title, [e.date ? fmtDate(e.date) : "", n ? n + (n === 1 ? " record" : " records") : ""].filter(Boolean).join(" · "), plain(e.text), function () { showEncounter(e.id); });
+    }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No encounters yet. Record the first." : "No encounters yet." }))]);
+    if (currentView === "encounter") renderEncounter();
+  }
+
+  // About: his names at the head of the page, then the profile as in Total RP 3
   function trait(t) {
     var v = t.value / 20, lean = t.value < 10 ? t.left : t.value > 10 ? t.right : "", d = Math.abs(t.value - 10);
     var fill = h("i", { class: "t-fill" }), mark = h("i", { class: "t-mark" });
@@ -1255,18 +1225,20 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       h("span", { class: "t-pole t-right" + (t.value > 10 ? " is-lean" : ""), text: t.right }),
       h("span", { class: "sr-only", text: ": " + words }));
   }
+  var QUOTES = /^["'“”‘’„«»]+|["'“”‘’„«»]+$/g; // the heading's own quotes, which its style adds
+  // a section's heading, in quotes between two flourishes, in its colour made readable on parchment (TRP's gold by default)
+  function sectionHeading(x) {
+    var head = h("h4", { class: "ab-heading" }, h("i", { class: "flourish", "aria-hidden": "true" }), h("span", { text: x.heading.replace(QUOTES, "") || x.heading }), h("i", { class: "flourish", "aria-hidden": "true" }));
+    if (x.color) head.style.color = ink(x.color.slice(1));
+    return head;
+  }
   function renderAbout() {
-    var p = state.profile, ab = state.about, por = ab.portrait ? findArt(ab.portrait) : null;
+    var p = state.profile, ab = state.about;
     el.abTitle.textContent = ab.title;
     el.abTitle.hidden = !ab.title;
     el.abName.textContent = p.name || "Unnamed Dracthyr";
     el.abEpithet.textContent = p.epithet;
     el.abEpithet.hidden = !p.epithet;
-    el.frontisOpen.hidden = !por;
-    el.frontisEmpty.hidden = !!por;
-    el.frontisCredit.textContent = por && por.artist ? "After a likeness by " + por.artist : "";
-    el.frontisCredit.hidden = !el.frontisCredit.textContent;
-    fill(el.frontisOpen, por ? [verImg(por.versions[0], "thumb", por.title || "A likeness of " + el.abName.textContent)] : []);
     fill(el.abNow, [
       ab.currently ? h("div", null, h("h4", { class: "now-label", text: "Currently" }), h("p", { text: ab.currently })) : null,
       ab.ooc ? h("div", { class: "is-ooc" }, h("h4", { class: "now-label", text: "Out of character" }), h("p", { text: ab.ooc })) : null
@@ -1287,7 +1259,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     fill(el.abGlances, ab.glances.map(function (g) { return h("li", { class: "glance" }, g.title ? h("h5", { text: g.title }) : null, g.text ? h("p", { text: g.text }) : null); }));
     el.abGlancesWrap.hidden = !ab.glances.length;
     fill(el.abSections, ab.sections.map(function (x) {
-      return h("section", { class: "ab-section" }, x.heading ? h("h4", { class: "rubric", text: x.heading }) : null, h("div", { class: "trp" }, trp(x.body)));
+      return h("section", { class: "ab-section" }, x.heading ? sectionHeading(x) : null, h("div", { class: "trp" }, trp(x.body)));
     }));
     // a red capital opens the first plain paragraph of the description, if it is long enough to wrap around it
     var first = el.abSections.querySelector(".trp > p:not(.al-c):not(.al-r)");
@@ -1346,17 +1318,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.plNote.hidden = !a.note;
     el.plEarlier.disabled = i === 0;
     el.plLater.disabled = i === state.art.length - 1;
-    el.plPortrait.textContent = state.about.portrait === a.id ? "Stop using as portrait" : "Make it the portrait";
-    el.plPortrait.hidden = a.versions[0].mature; // a mature image is never the portrait
   }
 
   // The editing tools show only while the server says this browser holds the keeper's session
   function renderOwnerUI() {
     var on = canPost();
-    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = !on;
+    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = el.btnAddEncounter.hidden = el.encTools.hidden = !on;
     el.plTools.hidden = !(on && findArt(plateId));
     el.clasp.classList.toggle("is-open", on);
-    var ex = state.records.some(function (r) { return r.example; });
+    var ex = state.records.some(function (r) { return r.example; }) || state.encounters.some(function (e) { return e.example; });
     el.btnClearExamples.hidden = !(ex && on);
   }
 
@@ -1365,9 +1335,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var VIEWS = {
     overview: ["viewOverview", "knowledge"], detail: ["viewDetail", "knowledge", 1], form: ["viewForm", "knowledge", 1],
     about: ["viewAbout", "about"], aboutForm: ["viewAboutForm", "about", 1],
-    plates: ["viewPlate", "art"], plate: ["viewPlate", "art", 1], artForm: ["viewArtForm", "art", 1]
+    plates: ["viewPlate", "art"], plate: ["viewPlate", "art", 1], artForm: ["viewArtForm", "art", 1],
+    encounters: ["viewEncounter", "encounters"], encounter: ["viewEncounter", "encounters", 1], encounterForm: ["viewEncounterForm", "encounters", 1]
   };
-  var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError" };
+  var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError", encounterForm: "efError" };
   function showView(name) {
     var v = VIEWS[name], book = v[1];
     Object.keys(VIEWS).forEach(function (k) { el[VIEWS[k][0]].hidden = VIEWS[k][0] !== v[0]; });
@@ -1386,7 +1357,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   // The address names the open chapter, and the open record or plate, so it can be shared: #art/a1b2c3
   function setHash() {
-    var id = currentView === "detail" ? detailId : currentView === "plate" ? plateId : "";
+    var id = currentView === "detail" ? detailId : currentView === "plate" ? plateId : currentView === "encounter" ? encounterId : "";
     var want = el.archive.open ? "#" + currentBook + (id ? "/" + id : "") : "";
     if (want === location.hash) return;
     try { history.replaceState(null, "", want || location.pathname + location.search); } catch (e) {}
@@ -1406,6 +1377,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function openBook(book, id) {
     if (book === "about") showView("about");
     else if (book === "art") { if (id && findArt(id)) showPlate(id); else showPlates(); }
+    else if (book === "encounters") { if (id && findEnc(id)) showEncounter(id); else showView("encounters"); }
     else if (id && find(id)) showDetail(id);
     else showView("overview");
   }
@@ -1414,21 +1386,47 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var r = find(id);
     if (!r) { showView("overview"); return; }
     detailId = id;
-    el.detStatus.setAttribute("data-s", r.status);
-    el.detGlyph.setAttribute("data-s", r.status);
-    el.detStatusLabel.textContent = STATUS[r.status].label;
-    el.detDomain.textContent = r.domain;
-    el.detDate.textContent = fmtDate(r.date);
+    el.detDate.textContent = r.date ? fmtDate(r.date) : "";
     el.detDate.setAttribute("datetime", r.date);
     el.detTitle.textContent = r.title;
     el.detNote.textContent = r.note || "Nothing inscribed beyond the title yet.";
     el.detNote.classList.toggle("is-empty", !r.note);
-    el.detSource.textContent = r.source || "Not recorded";
-    el.detState.textContent = STATUS[r.status].desc;
+    // where he learned it: the encounter, as a link to it, and his own words
+    var e = r.encounter && findEnc(r.encounter);
+    fill(el.detSource, [
+      e ? h("button", { class: "link-to", type: "button", text: e.title, onclick: function () { showEncounter(e.id); } }) : null,
+      e && r.source ? "; " : null, r.source || null, !e && !r.source ? "Not recorded" : null
+    ].filter(Boolean));
     disarm(el.detDelete);
     renderOwnerUI();
     showView("detail");
   }
+  // An encounter: what happened; the private section only for the keeper, once it has been fetched; and what he
+  // learned from it
+  var encounterId = null, encEditing = null;
+  function renderEncounter() {
+    var e = findEnc(encounterId);
+    if (!e) return;
+    el.encDate.textContent = e.date ? fmtDate(e.date) : "";
+    el.encDate.setAttribute("datetime", e.date);
+    el.encTitle.textContent = e.title;
+    fill(el.encText, e.text ? [trp(e.text)] : [h("p", { class: "empty", text: "Nothing is written about it yet." })]);
+    var priv = owner && Object.prototype.hasOwnProperty.call(privates, e.id) ? privates[e.id] : undefined;
+    el.encPrivate.hidden = priv === undefined;
+    fill(el.encPrivateText, priv === null ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })] : priv ? [trp(priv)] : []);
+    var learned = newest(state.records.filter(function (r) { return r.encounter === e.id; }));
+    el.encLearned.hidden = !learned.length;
+    fill(el.encRecords, learned.map(function (r) { return entry(r.title, r.date ? fmtDate(r.date) : "", r.note, function () { showDetail(r.id); }); }));
+  }
+  function showEncounter(id) {
+    if (!findEnc(id)) { showView("encounters"); return; }
+    encounterId = id;
+    renderEncounter();
+    disarm(el.encDelete);
+    renderOwnerUI();
+    showView("encounter");
+  }
+
   // Back to the list of plates: every mature image is covered again
   function showPlates() { shown = null; renderArt(); showView("plates"); }
   // A plate, at one of its images (the main one by default). A mature image stays shown only while it is the one
@@ -1461,34 +1459,24 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (currentView === "form") leaveForm();
     else if (currentView === "aboutForm") showView("about");
     else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing); else showPlates(); }
+    else if (currentView === "encounterForm") { if (findEnc(encEditing)) showEncounter(encEditing); else showView("encounters"); }
   }
 
   // A record
-  ORDER.forEach(function (s) {
-    el.statusPick.append(h("label", { class: "status-opt", "data-s": s },
-      h("input", { type: "radio", name: "f-status", id: "f-s-" + s, value: s }), glyph(s), STATUS[s].label));
-  });
-  el.statusPick.addEventListener("change", updateStatusDesc);
-  function selectedStatus() { var i = el.statusPick.querySelector("input:checked"); return i ? i.value : "relearned"; }
-  function updateStatusDesc() { el.fStatusDesc.textContent = STATUS[selectedStatus()].desc; }
-
   function openForm(id) {
     var r = id ? find(id) : null;
     editingId = r ? r.id : null;
     el.formHeading.textContent = r ? "Revise record" : "Inscribe a record";
     el.fSubmit.textContent = r ? "Save changes" : "Inscribe";
     el.fTitle.value = r ? r.title : "";
-    el.fDomain.value = r ? r.domain : "";
-    el.fDate.value = r ? r.date : today();
+    el.fDate.value = r ? r.date : "";
     el.fNote.value = r ? r.note : "";
     el.fSource.value = r ? r.source : "";
-    var s = r ? r.status : "relearned";
-    byId("f-s-" + s).checked = true;
-    updateStatusDesc();
+    fill(el.fEncounter, [h("option", { value: "", text: "None" })].concat(newest(state.encounters).map(function (e) {
+      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") });
+    })));
+    el.fEncounter.value = r ? r.encounter : "";
     el.fError.hidden = true;
-    var ds = domains();
-    SUGGESTED_DOMAINS.forEach(function (d) { if (ds.indexOf(d) < 0) ds.push(d); });
-    fill(el.domainList, ds.map(function (d) { return h("option", { value: d }); }));
     showView("form");
     setTimeout(function () { if (!el.recForm.contains(document.activeElement) || document.activeElement === el.fBack) el.fTitle.focus(); }, 40);
   }
@@ -1501,8 +1489,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!title) { formError("form", "Give the record a title."); el.fTitle.focus(); return; }
     var prev = editingId ? find(editingId) : null;
     var rec = {
-      title: title, domain: el.fDomain.value.trim(), status: selectedStatus(), note: el.fNote.value.trim(), source: el.fSource.value.trim(),
-      date: isDate(el.fDate.value) ? el.fDate.value : today()
+      title: title, note: el.fNote.value.trim(), source: el.fSource.value.trim(), encounter: el.fEncounter.value,
+      date: isDate(el.fDate.value) ? el.fDate.value : ""
     };
     save(prev ? "PUT" : "POST", prev ? "api/records/" + encodeURIComponent(prev.id) : "api/records", rec,
       function (data) { if (find(data.id)) showDetail(data.id); else showView("overview"); }, el.fSubmit, prev ? "Saving…" : "Inscribing…",
@@ -1511,7 +1499,50 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
 
-  // The About page: names, portrait, the Total RP 3 fields, and rows the keeper can add, move and remove: additional
+  // An encounter. Its private text goes to the server only when it was changed here, so one saved before its private
+  // section had arrived, or one that can no longer be read, keeps what is stored.
+  var PRIVATE_HELP = el.efPrivateHelp.textContent, encWas = "", privWas = "";
+  function encFromForm() {
+    return { title: el.efTitle.value.trim(), date: isDate(el.efDate.value) ? el.efDate.value : "", text: el.efText.value.trim(), private: el.efPrivate.value.trim() };
+  }
+  function fillPrivate(e) {
+    var priv = e ? privates[e.id] : "";
+    el.efPrivate.value = typeof priv === "string" ? priv : "";
+    el.efPrivateHelp.textContent = priv === null ? "What was written here before can no longer be read: it was written under a word that was forgotten. Writing here replaces it." : PRIVATE_HELP;
+    privWas = el.efPrivate.value;
+    encWas = JSON.stringify(encFromForm());
+  }
+  function openEncounterForm(id) {
+    var e = id ? findEnc(id) : null;
+    encEditing = e ? e.id : null;
+    el.efHeading.textContent = e ? "Revise the encounter" : "Record an encounter";
+    el.efSubmit.textContent = e ? "Save changes" : "Save the encounter";
+    el.efTitle.value = e ? e.title : "";
+    el.efDate.value = e ? e.date : "";
+    el.efText.value = e ? e.text : "";
+    el.efError.hidden = true;
+    fillPrivate(e);
+    showView("encounterForm");
+    if (e && !privatesLoaded) loadPrivate().then(function () { if (currentView === "encounterForm" && encEditing === e.id && el.efPrivate.value === privWas) fillPrivate(e); });
+    setTimeout(function () { if (!el.encounterForm.contains(document.activeElement) || document.activeElement === el.efBack) el.efTitle.focus(); }, 40);
+  }
+  function encounterChanged() { return currentView === "encounterForm" && JSON.stringify(encFromForm()) !== encWas; }
+  el.encounterForm.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (busy || !canPost()) return;
+    var body = encFromForm(), prev = encEditing ? findEnc(encEditing) : null;
+    if (!body.title) { formError("encounterForm", "Give the encounter a title."); el.efTitle.focus(); return; }
+    if (prev && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
+    save(prev ? "PUT" : "POST", prev ? "api/encounters/" + encodeURIComponent(prev.id) : "api/encounters", body, function (data) {
+      if (body.private !== undefined) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
+      if (findEnc(data.id)) showEncounter(data.id); else showView("encounters");
+      loadPrivate();
+    }, el.efSubmit, prev ? "Saving…" : "Recording…", prev ? "The encounter is revised." : "The encounter is recorded.");
+  });
+  el.efCancel.addEventListener("click", leaveCurrentForm);
+  el.efBack.addEventListener("click", leaveCurrentForm);
+
+  // The About page: names, the Total RP 3 fields, and rows the keeper can add, move and remove: additional
   // information, personality traits, glances and the description's sections
   var FACT_HINTS = [["Motto", ""], ["Pronouns", ""], ["Voice", ""]];
   function rowTools() {
@@ -1550,18 +1581,28 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       rowTools(),
       h("textarea", { class: "input", "data-k": "text", "aria-label": "What anyone would see", maxlength: 1000, placeholder: "Obsidian, dulled at the edges." }, g.text));
   }
+  // A section: its heading (shown in the heading's style and colour as it is typed), the heading's colour, and its text.
+  // A new section takes the colour of the last one.
+  var GOLD = "#ffd100";
+  function lastColor() { var last = el.abfSections.lastElementChild; return last ? last.querySelector('[data-k="color"]').value : GOLD; }
   function sectionRow(x, i) {
-    return h("div", { class: "row row-section" },
-      h("input", { class: "input", "data-k": "heading", "aria-label": "Heading", maxlength: 120, autocomplete: "off", placeholder: STANDARD_SECTIONS[i] || "Heading", value: x.heading }),
+    var color = x.color || GOLD;
+    var head = h("input", { class: "input head-input", "data-k": "heading", "aria-label": "Heading", maxlength: 120, autocomplete: "off", placeholder: STANDARD_SECTIONS[i] || "Heading", value: x.heading });
+    var pick = h("input", { type: "color", class: "head-color", "data-k": "color", "aria-label": "Heading colour", title: "Heading colour", value: color });
+    function show() { head.style.color = ink(pick.value.slice(1)); }
+    pick.addEventListener("input", show);
+    show();
+    return h("div", { class: "row row-section" }, head, pick,
       rowTools(),
       h("textarea", { class: "input", "data-k": "body", "aria-label": "Text", maxlength: 40000, placeholder: i ? "" : "Write it here, or paste his description from Total RP 3." }, x.body));
   }
-  function rowsOf(box, keys) {
+  // the rows' values; a row counts only if one of `filled` (by default, any key) has something in it
+  function rowsOf(box, keys, filled) {
     return Array.prototype.map.call(box.children, function (row) {
       var o = {};
       keys.forEach(function (k) { o[k] = row.querySelector('[data-k="' + k + '"]').value.trim(); });
       return o;
-    }).filter(function (o) { return keys.some(function (k) { return o[k]; }); });
+    }).filter(function (o) { return (filled || keys).some(function (k) { return o[k]; }); });
   }
   // The ↑ ↓ × buttons of a list of rows; at least `min` rows stay
   function rowButtons(box, min) {
@@ -1590,7 +1631,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     [el.abfFacts, el.abfAddFact, MAX.facts, function () { return factRow({ label: "", value: "" }, el.abfFacts.children.length); }],
     [el.abfTraits, el.abfAddTrait, MAX.traits, function () { return traitRow({ left: "", right: "", value: 10 }); }],
     [el.abfGlances, el.abfAddGlance, MAX.glances, function () { return glanceRow({ title: "", text: "" }); }],
-    [el.abfSections, el.abfAddSection, MAX.sections, function () { return sectionRow({ heading: "", body: "" }, el.abfSections.children.length); }]
+    [el.abfSections, el.abfAddSection, MAX.sections, function () { return sectionRow({ heading: "", body: "", color: lastColor() }, el.abfSections.children.length); }]
   ];
   function updateRows() {
     ROWS.forEach(function (r) { r[1].disabled = r[0].children.length >= r[2]; rowButtons(r[0], 0); });
@@ -1627,7 +1668,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var head = row.querySelector('[data-k="heading"]');
       if (want.length && !head.value.trim() && !row.querySelector('[data-k="body"]').value.trim()) head.value = want.shift();
     });
-    want.forEach(function (x) { if (el.abfSections.children.length < MAX.sections) el.abfSections.append(sectionRow({ heading: x, body: "" }, el.abfSections.children.length)); });
+    want.forEach(function (x) { if (el.abfSections.children.length < MAX.sections) el.abfSections.append(sectionRow({ heading: x, body: "", color: lastColor() }, el.abfSections.children.length)); });
     updateRows();
   });
   DIRECTORY.forEach(function (d) {
@@ -1648,10 +1689,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.abfEyeOn.checked = !!ab.eyeColor;
     el.abfEyeColor.value = ab.eyeColor || "#e3a13a";
     el.abfEyeColor.disabled = !ab.eyeColor;
-    fill(el.abfPortrait, [h("option", { value: "", text: "None" })].concat(state.art.map(function (a, i) {
-      return a.versions[0].mature ? null : h("option", { value: a.id, text: roman(i + 1) + ". " + (a.title || "Untitled") }); // never a mature image
-    }).filter(Boolean)));
-    el.abfPortrait.value = ab.portrait;
     fill(el.abfFacts, (ab.facts.length ? ab.facts : [{ label: "", value: "" }]).map(factRow));
     fill(el.abfTraits, ab.traits.map(traitRow));
     fill(el.abfGlances, ab.glances.map(glanceRow));
@@ -1660,24 +1697,22 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.abfError.hidden = true;
     showView("aboutForm");
     aboutWas = JSON.stringify(aboutFromForm());
-    setTimeout(function () { el.abfTitle.focus(); }, 40);
+    setTimeout(function () { if (!el.aboutForm.contains(document.activeElement) || document.activeElement === el.abfBack) el.abfTitle.focus(); }, 40);
   }
   function aboutFromForm() {
     var body = {
-      name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(), portrait: el.abfPortrait.value,
+      name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(),
       title: el.abfTitle.value.trim(), currently: el.abfCurrently.value.trim(), ooc: el.abfOoc.value.trim(),
       eyeColor: el.abfEyeOn.checked ? el.abfEyeColor.value : "",
       facts: rowsOf(el.abfFacts, ["label", "value"]),
-      traits: rowsOf(el.abfTraits, ["left", "right", "value"]).map(function (t) { t.value = traitValue(t.value); return t; }),
+      traits: rowsOf(el.abfTraits, ["left", "right", "value"], ["left", "right"]).map(function (t) { t.value = traitValue(t.value); return t; }),
       glances: rowsOf(el.abfGlances, ["title", "text"]),
-      sections: rowsOf(el.abfSections, ["heading", "body"])
+      sections: rowsOf(el.abfSections, ["heading", "body", "color"], ["heading", "body"])
     };
     DIRECTORY.forEach(function (d) { body[d[0]] = byId("abf-" + d[0]).value.trim(); });
     return body;
   }
   function aboutChanged() { return currentView === "aboutForm" && JSON.stringify(aboutFromForm()) !== aboutWas; }
-  // the whole page as it is now, for a change made elsewhere (the portrait, from a plate)
-  function aboutNow() { return Object.assign({ name: state.profile.name, epithet: state.profile.epithet }, state.about); }
   el.aboutForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (busy || !canPost()) return;
@@ -1846,6 +1881,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var r = find(detailId); if (!r || !canPost()) return;
     save("DELETE", "api/records/" + encodeURIComponent(r.id), undefined, function () { showView("overview"); }, el.detDelete, "Removing…", "Removed “" + r.title + "”.");
   });
+  arm(el.encDelete, function () { return "Confirm removal"; }, function () {
+    var e = findEnc(encounterId); if (!e || !canPost()) return;
+    save("DELETE", "api/encounters/" + encodeURIComponent(e.id), undefined, function () { delete privates[e.id]; showView("encounters"); }, el.encDelete, "Removing…", "Removed “" + e.title + "”.");
+  });
   arm(el.btnClearExamples, function () { return "Confirm: remove examples"; }, function () {
     if (!canPost()) return;
     save("POST", "api/records/clear-examples", undefined, function () { showView("overview"); }, el.btnClearExamples, "Removing…", "Examples removed.");
@@ -1863,12 +1902,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   el.plEarlier.addEventListener("click", function () { movePlate(-1, el.plEarlier); });
   el.plLater.addEventListener("click", function () { movePlate(1, el.plLater); });
-  el.plPortrait.addEventListener("click", function () {
-    var a = findArt(plateId); if (!a || !canPost()) return;
-    var was = state.about.portrait === a.id, body = aboutNow();
-    body.portrait = was ? "" : a.id;
-    save("PUT", "api/about", body, function () { showPlate(a.id); }, el.plPortrait, "Saving…", was ? "It is no longer the portrait." : "It is now the portrait on the About page.");
-  });
 
   // ---------- Mature images and the age check ----------
   // A mature image is never loaded until the visitor chooses to see it, and it is covered again as soon as another
@@ -1980,7 +2013,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!v) return;
     if (v.mature && shown !== v.id) showMature(v); else openLightbox(a.id, v.id);
   });
-  el.frontisOpen.addEventListener("click", function () { openLightbox(state.about.portrait); });
   el.lbClose.addEventListener("click", closeLightbox);
   el.lbPrev.addEventListener("click", function () { stepLightbox(-1); });
   el.lbNext.addEventListener("click", function () { stepLightbox(1); });
@@ -1990,7 +2022,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   // body: an object, sent as JSON, or a Blob (an image), sent as it is with its own type
   function call(method, url, body) {
     var headers = { Accept: "application/json" }, blob = typeof Blob !== "undefined" && body instanceof Blob;
-    if (method !== "GET") headers["X-CSRF-Token"] = csrf;
+    if (csrf) headers["X-CSRF-Token"] = csrf; // GET too: the private sections are read with it
     if (body !== undefined) headers["Content-Type"] = blob ? body.type : "application/json";
     return request(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store" })
       .then(function (res) {
@@ -2053,7 +2085,20 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function setOwner(on, token) {
     owner = on;
     csrf = on ? token || "" : "";
+    if (!on) { privates = {}; privatesLoaded = false; } // sealed: the private sections leave the page's memory too
     renderAll();
+    if (on) loadPrivate();
+  }
+  // The encounters' private sections, decrypted by the server for the keeper's session alone (null: unreadable)
+  var privates = {}, privatesLoaded = false;
+  function loadPrivate() {
+    if (!owner) return Promise.resolve();
+    return call("GET", "api/private").then(function (d) {
+      if (!owner) return;
+      privates = d.encounters || {};
+      privatesLoaded = true;
+      if (currentView === "encounter") renderEncounter();
+    }, function () {});
   }
   function refreshSession() {
     return call("GET", "api/session").then(function (s) { setOwner(!!s.owner, s.csrf); }, function () {});
@@ -2167,9 +2212,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     t._t = setTimeout(function () { t.hidden = true; }, 4200);
   }
 
-  // ---------- Ambient: light shafts, motes at three depths, and anima wisps the construct draws in ----------
+  // ---------- Ambient: light shafts, motes at three depths, flares, and anima wisps the construct draws in ----------
   var motes = (function () {
-    var noop = { pause: function () {}, resume: function () {}, gather: function () {}, recenter: function () {} };
+    var noop = { pause: function () {}, resume: function () {}, gather: function () {}, pulse: function () {}, recenter: function () {} };
     var c = el.motes, ctx = c.getContext && c.getContext("2d");
     if (!ctx) return noop;
     var cs = getComputedStyle(document.documentElement);
@@ -2181,11 +2226,23 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       gr.addColorStop(0, "rgb(" + rgb + " / 1)"); gr.addColorStop(.28, "rgb(" + rgb + " / .5)"); gr.addColorStop(1, "rgb(" + rgb + " / 0)");
       g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return s;
     }
-    var glow = {};
-    glow[TEAL] = sprite(TEAL);
-    glow[COPPER] = sprite(COPPER);
-    var WISPS = 6, TRAIL = 46;
-    var w = 0, hgt = 0, cx = 0, cy = 0, unit = 300, parts = [], wisps = [], rays = [], raf = 0, running = false, last = 0, clock = 0;
+    // A flare's glint: a white-hot point with four thin rays, drawn once per colour and scaled
+    function starSprite(rgb) {
+      var S = 96, m = S / 2, s = document.createElement("canvas"); s.width = s.height = S;
+      var g = s.getContext("2d"), core = g.createRadialGradient(m, m, 0, m, m, m * .3);
+      core.addColorStop(0, "rgb(255 255 255 / 1)"); core.addColorStop(.2, "rgb(" + rgb + " / .85)"); core.addColorStop(1, "rgb(" + rgb + " / 0)");
+      g.fillStyle = core; g.fillRect(0, 0, S, S);
+      var hz = g.createLinearGradient(0, 0, S, 0), vt = g.createLinearGradient(0, 0, 0, S);
+      [hz, vt].forEach(function (lg) { lg.addColorStop(0, "rgb(" + rgb + " / 0)"); lg.addColorStop(.5, "rgb(" + rgb + " / .9)"); lg.addColorStop(1, "rgb(" + rgb + " / 0)"); });
+      g.fillStyle = hz; g.fillRect(0, m - 1, S, 2);
+      g.fillStyle = vt; g.fillRect(m - .75, S * .18, 1.5, S * .64); // the upright ray is shorter, as in a lens
+      return s;
+    }
+    var glow = {}, star = {};
+    [TEAL, COPPER].forEach(function (rgb) { glow[rgb] = sprite(rgb); star[rgb] = starSprite(rgb); });
+    var TRAIL = 46, SWIRL = 1; // every streak turns the same way when the construct draws them in, so they read as one vortex
+    var w = 0, hgt = 0, cx = 0, cy = 0, unit = 300, parts = [], wisps = [], flares = [], sparks = [], rays = [], raf = 0, running = false, last = 0, clock = 0;
+    var rush = 10, pulseAt = -1;
     var aim = { x: 0, y: 0, tx: 0, ty: 0 }; // cursor offset from the stage centre (-1..1), eased, for parallax
 
     // Light shafts: soft wedges fanning out from the construct, turning slowly, brighter while it is risen
@@ -2219,7 +2276,25 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     function spawn(anywhere) {
       var z = Math.random(); // depth: 0 far, 1 near
       return { x: Math.random() * w, y: anywhere ? Math.random() * hgt : hgt + 12, z: z, r: .5 + z * 1.7 + Math.random() * .4,
-               vy: 3 + z * 10 + Math.random() * 3, ph: Math.random() * 6.283, c: Math.random() < .28 ? COPPER : TEAL };
+               vy: 3 + z * 10 + Math.random() * 3, ph: Math.random() * 6.283, c: Math.random() < .28 ? COPPER : TEAL, wait: 0, vis: 1 };
+    }
+
+    // Flares: soft glints scattered through the dark, drifting slowly. Each twinkles, and now and then one flares up
+    // with its rays. Taken in by the construct, a flare is replaced after a while somewhere else, fading in.
+    function flare(delay) {
+      var z = Math.random();
+      return { x: Math.random() * w, y: Math.random() * hgt, z: z, size: 12 + z * 22 + Math.random() * 8, c: Math.random() < .3 ? COPPER : TEAL,
+               ph: Math.random() * 6.283, tw: .4 + Math.random(), age: delay == null ? 99 : -delay, next: 1 + Math.random() * 6, burst: 0,
+               fall: 0, trail: null, turn: SWIRL };
+    }
+    function moveFlare(f, dt) {
+      f.age += dt;
+      var speed = unit * .012 * (.4 + f.z), a = (Math.sin(f.x * .0016 + clock * .05) + Math.cos(f.y * .0019 - clock * .04)) * 2.2;
+      f.x += Math.cos(a) * speed * dt; f.y += Math.sin(a) * speed * dt;
+      if (f.x < -40) f.x += w + 80; else if (f.x > w + 40) f.x -= w + 80;
+      if (f.y < -40) f.y += hgt + 80; else if (f.y > hgt + 40) f.y -= hgt + 80;
+      f.burst = Math.max(0, f.burst - dt / .9);
+      if ((f.next -= dt) <= 0) { f.burst = 1; f.next = 3 + Math.random() * 8; }
     }
 
     // Anima wisps drift in from the edges on a slow flow field. Near the construct they orbit; some spiral in
@@ -2230,16 +2305,31 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                trail: [], age: 0, delay: delay, fall: 0, gone: 0, dead: false, c: Math.random() < .3 ? COPPER : TEAL,
                size: .7 + Math.random() * .8, turn: Math.random() < .5 ? 1 : -1, inward: Math.random() < .45 ? .5 : -.08 };
     }
+    // Spiralling in: the distance shrinks ever faster while the angle turns, quicker near the centre, so whatever
+    // starts farther out arrives only a little later. True on arrival.
+    function fallIn(s, dt) {
+      s.fall += dt;
+      var dx = s.x - cx, dy = s.y - cy, r = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx);
+      r *= 1 - Math.min(1, dt * (1.4 + s.fall * 5));
+      a += s.turn * dt * (1.2 + 90 / (r + 40));
+      s.x = cx + Math.cos(a) * r; s.y = cy + Math.sin(a) * r;
+      return r < 5;
+    }
+    function follow(s, max) {
+      var tr = s.trail, n = tr.length;
+      if (!n || Math.abs(s.x - tr[n - 2]) + Math.abs(s.y - tr[n - 1]) > 3) {
+        tr.push(s.x, s.y);
+        if (tr.length > max * 2) tr.splice(0, 2);
+      }
+    }
     function moveWisp(s, dt) {
       if (s.delay > 0) { s.delay -= dt; return; }
       s.age += dt;
-      var R = Math.min(w, hgt), dx = cx - s.x, dy = cy - s.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (s.pull && !s.fall) s.fall = .001;
       if (s.fall) {
-        s.fall += dt;
-        var k = Math.min(1, dt * (2 + s.fall * 10));
-        s.x += dx * k; s.y += dy * k;
-        if (d < 4) { s.dead = true; if (model3d) model3d.absorb(); }
+        if (fallIn(s, dt)) { s.dead = true; if (model3d) model3d.absorb(); }
       } else {
+        var R = Math.min(w, hgt), dx = cx - s.x, dy = cy - s.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
         var speed = R * .05, f = Math.sin(s.x * .0016 + clock * .07) + Math.cos(s.y * .0019 - clock * .05);
         var vx = Math.cos(f * 2.2) * speed, vy = Math.sin(f * 2.2) * speed;
         var pull = speed * 1.1 * Math.min(1, R * .45 / d);
@@ -2250,26 +2340,45 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         if ((s.x < -60 || s.x > w + 60 || s.y < -60 || s.y > hgt + 60) && s.age > 3 || s.age > 40) s.gone += dt;
         if (s.gone > 1.2) s.dead = true;
       }
-      var tr = s.trail, n = tr.length;
-      if (!n || Math.abs(s.x - tr[n - 2]) + Math.abs(s.y - tr[n - 1]) > 3) {
-        tr.push(s.x, s.y);
-        if (tr.length > TRAIL * 2) tr.splice(0, 2);
-      }
+      follow(s, TRAIL);
     }
-    function drawWisp(s) {
-      var tr = s.trail, n = tr.length / 2;
-      if (s.delay > 0 || n < 2) return;
-      var a = Math.min(1, s.age / 1.5) * (1 - Math.min(1, s.gone / 1.2));
+    // a streak: its trail, thin and faint at the tail, and a glowing head
+    function drawStreak(tr, rgb, a, size, head) {
+      var n = tr.length / 2;
+      if (n < 2) return;
       for (var i = 1; i < n; i++) {
         var f = i / (n - 1);
-        ctx.strokeStyle = "rgb(" + s.c + " / " + (a * f * f * .5).toFixed(3) + ")";
-        ctx.lineWidth = s.size * (.4 + f * 1.6);
+        ctx.strokeStyle = "rgb(" + rgb + " / " + (a * f * f * .5).toFixed(3) + ")";
+        ctx.lineWidth = size * (.4 + f * 1.6);
         ctx.beginPath(); ctx.moveTo(tr[i * 2 - 2], tr[i * 2 - 1]); ctx.lineTo(tr[i * 2], tr[i * 2 + 1]); ctx.stroke();
       }
-      var g = 10 + s.size * 10;
       ctx.globalAlpha = a * .8;
-      ctx.drawImage(glow[s.c], s.x - g / 2, s.y - g / 2, g, g);
+      ctx.drawImage(glow[rgb], tr[n * 2 - 2] - head / 2, tr[n * 2 - 1] - head / 2, head, head);
       ctx.globalAlpha = 1;
+    }
+    function drawFlare(f) {
+      if (f.fall) { drawStreak(f.trail, f.c, .9, .6 + f.z, f.size * 1.2); return; }
+      var fade = Math.min(1, Math.max(0, f.age) / 2), tw = .6 + .4 * Math.sin(clock * f.tw + f.ph), b = f.burst * f.burst;
+      if (!fade) return;
+      ctx.globalAlpha = Math.min(1, ((.3 + .35 * f.z) * tw + b * .5) * fade);
+      ctx.drawImage(glow[f.c], f.x - f.size / 2, f.y - f.size / 2, f.size, f.size);
+      var st = f.size * (1.8 + 2.6 * b);
+      ctx.globalAlpha = Math.min(1, ((.2 + .32 * f.z) * tw + b * .8) * fade);
+      ctx.drawImage(star[f.c], f.x - st / 2, f.y - st / 2, st, st);
+      ctx.globalAlpha = 1;
+    }
+    // As the hub appears, a ring of light leaves the construct, and a fainter one after it
+    function drawPulse() {
+      var t = clock - pulseAt;
+      if (pulseAt < 0 || t > 1.4) return;
+      [0, .16].forEach(function (lag, k) {
+        var u = Math.max(0, t - lag) / 1.1;
+        if (u <= 0 || u >= 1) return;
+        var e = 1 - Math.pow(1 - u, 3);
+        ctx.strokeStyle = "rgb(" + TEAL + " / " + ((1 - u) * (1 - u) * (k ? .22 : .45)).toFixed(3) + ")";
+        ctx.lineWidth = 1 + 9 * (1 - u);
+        ctx.beginPath(); ctx.arc(cx, cy, unit * (.12 + 1.15 * e), 0, 6.283); ctx.stroke();
+      });
     }
 
     function draw() {
@@ -2279,14 +2388,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       ctx.globalCompositeOperation = "source-over";
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i], s = p.r * 7, shift = (p.z - .35) * 26; // near motes slide against the cursor more than far ones
-        ctx.globalAlpha = (.12 + .34 * p.z) * (.55 + .45 * Math.sin(clock * 1.1 + p.ph));
+        if (!p.vis) continue;
+        ctx.globalAlpha = (.12 + .34 * p.z) * (.55 + .45 * Math.sin(clock * 1.1 + p.ph)) * p.vis;
         ctx.drawImage(glow[p.c], p.x - aim.x * shift - s / 2, p.y - aim.y * shift * .7 - s / 2, s, s);
       }
       ctx.globalAlpha = 1;
-      if (reduced) return;
       ctx.globalCompositeOperation = "lighter";
       ctx.lineCap = "round";
-      wisps.forEach(drawWisp);
+      flares.forEach(drawFlare);
+      if (!reduced) {
+        wisps.forEach(function (s) { if (s.delay <= 0) drawStreak(s.trail, s.c, Math.min(1, s.age / 1.5) * (1 - Math.min(1, s.gone / 1.2)), s.size, 10 + s.size * 10); });
+        sparks.forEach(function (s) { drawStreak(s.trail, s.c, s.a, s.size, 5 + s.size * 6); });
+        drawPulse();
+      }
       ctx.globalCompositeOperation = "source-over";
     }
     function step(now) {
@@ -2298,13 +2412,26 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       aim.y += (aim.ty - aim.y) * Math.min(1, dt * 2.5);
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
+        if (p.wait > 0) { p.wait -= dt; continue; }
+        p.vis = Math.min(1, p.vis + dt / 2.5);
         p.y -= p.vy * dt;
         p.x += Math.sin(clock * .4 + p.ph) * 7 * dt;
         if (p.y < -12) parts[i] = spawn(false);
       }
+      for (var f = 0; f < flares.length; f++) {
+        var fl = flares[f];
+        if (!fl.fall) { moveFlare(fl, dt); continue; }
+        follow(fl, 24);
+        if (fallIn(fl, dt)) { if (model3d) model3d.absorb(); flares[f] = flare(1.5 + Math.random() * 5); }
+      }
       for (var j = 0; j < wisps.length; j++) {
         moveWisp(wisps[j], dt);
-        if (wisps[j].dead) wisps[j] = wisp(3 + Math.random() * 6);
+        if (!wisps[j].dead) continue;
+        if (wisps[j].rush) { wisps.splice(j, 1); j--; } else wisps[j] = wisp(3 + Math.random() * 6);
+      }
+      for (var k = sparks.length - 1; k >= 0; k--) {
+        follow(sparks[k], 12);
+        if (fallIn(sparks[k], dt)) { sparks.splice(k, 1); if (model3d) model3d.absorb(); }
       }
       draw();
       raf = requestAnimationFrame(step);
@@ -2321,22 +2448,44 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       shade[TEAL] = shadeFor(TEAL);
       shade[COPPER] = shadeFor(COPPER);
-      var n = Math.round(Math.min(110, Math.max(30, w * hgt / 13000)));
+      var area = w * hgt, n = Math.round(Math.min(110, Math.max(30, area / 13000)));
       parts = []; for (var i = 0; i < n; i++) parts.push(spawn(true));
-      if (!wisps.length) for (var k = 0; k < WISPS; k++) wisps.push(wisp(k * 1.3 + Math.random() * 2));
+      var nf = Math.round(Math.min(28, Math.max(10, area / 45000))); // more on a bigger screen
+      flares = flares.slice(0, nf); while (flares.length < nf) flares.push(flare());
+      var nw = Math.round(Math.min(18, Math.max(8, area / 85000)));
+      rush = Math.round(nw * .7);
+      if (!wisps.length) for (var k = 0; k < nw; k++) wisps.push(wisp(k * .7 + Math.random() * 2));
       draw();
     }
     function resume() { if (reduced || running || document.hidden || el.archive.open) return; running = true; last = 0; raf = requestAnimationFrame(step); }
     function pause() { running = false; cancelAnimationFrame(raf); }
-    // Every wisp in flight is drawn into the construct as it is scanned
-    function gather() { wisps.forEach(function (s) { if (s.delay <= 0 && !s.fall && !s.gone) s.fall = .001; }); }
+    // A click on the gem draws everything in: every wisp (the waiting ones set off from the edges at once), every
+    // flare, the motes near the construct as sparks (new ones fade in elsewhere), and a last rush of wisps from the
+    // edges, all spiralling the same way
+    function gather() {
+      wisps.forEach(function (s) {
+        if (s.gone || s.dead) return;
+        if (s.delay > 0) s.delay = Math.random() * .3;
+        s.pull = true; s.turn = SWIRL;
+      });
+      flares.forEach(function (f) { if (!f.fall && f.age > 0) { f.fall = .001; f.trail = []; f.turn = SWIRL; } });
+      var reach = Math.max(w, hgt) * .45;
+      for (var i = 0; i < parts.length && sparks.length < 60; i++) {
+        var p = parts[i], dx = p.x - cx, dy = p.y - cy;
+        if (!p.vis || dx * dx + dy * dy > reach * reach) continue;
+        sparks.push({ x: p.x, y: p.y, c: p.c, size: .35 + p.z * .8, a: (.3 + .5 * p.z) * p.vis, fall: .001, trail: [], turn: SWIRL });
+        parts[i] = spawn(true); parts[i].vis = 0; parts[i].wait = 1.5 + Math.random() * 3;
+      }
+      for (var k = 0; k < rush; k++) { var s = wisp(Math.random() * .35); s.pull = true; s.turn = SWIRL; s.rush = true; wisps.push(s); }
+    }
+    function pulse() { pulseAt = clock; }
     if (window.ResizeObserver) new ResizeObserver(resize).observe(c); else { resize(); window.addEventListener("resize", resize); }
     document.addEventListener("visibilitychange", function () { if (document.hidden) pause(); else resume(); });
     document.addEventListener("pointermove", function (e) { aim.tx = e.clientX / innerWidth * 2 - 1; aim.ty = e.clientY / innerHeight * 2 - 1; }, { passive: true });
     document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) aim.tx = aim.ty = 0; });
     // After the construct has moved: redraw the still frame (reduced motion), or let the running loop follow it
     function recenter() { center(); if (!running) draw(); }
-    return { pause: pause, resume: resume, gather: gather, recenter: recenter };
+    return { pause: pause, resume: resume, gather: gather, pulse: pulse, recenter: recenter };
   })();
 
   // ---------- Construct: the in-game model, drawn with three.js ----------
@@ -2348,7 +2497,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm";
   var GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js/+esm";
   var model3d = (function () {
-    var api = { pause: function () {}, resume: function () {}, scan: function () {}, absorb: function () {}, lift: function () { return .5; }, gemAt: function () { return false; } };
+    var api = { pause: function () {}, resume: function () {}, charge: function () {}, absorb: function () {}, lift: function () { return .5; }, gemAt: function () { return false; } };
     var canvas = el.constructGl;
     if (!MODEL_URL || !canvas || !window.WebGLRenderingContext) return api;
 
@@ -2388,8 +2537,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var FRAG = [
       "uniform sampler2D uTex0, uTex1;",
       "uniform int uPixel;",
-      "uniform float uLit, uGem, uGlow, uFlare, uHover, uScan, uScanY, uWash, uTilt, uDpr;",
-      "uniform vec2 uSize;",
+      "uniform float uLit, uGem, uGlow, uFlare, uHover;",
       "uniform vec3 uAmbient, uKeyDir, uKey, uFillDir, uFill, uTeal;",
       "varying vec2 vUv0, vUv1;",
       "varying vec3 vNormal, vView;",
@@ -2408,10 +2556,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       "    c = c * light + uTeal * rim * (0.14 + 0.2 * uHover);",
       "  }",
       "  c = c * (1.0 + uGem * (0.2 + 0.35 * uGlow + 1.1 * uFlare + 0.5 * uHover)) + uGem * uTeal * (0.06 + 0.2 * uGlow + 0.5 * uFlare + 0.2 * uHover);",
-      // distance in CSS px from the page's scan line, in the screen's frame (the canvas sits in a tilted wrapper)
-      "  vec2 q = vec2(gl_FragCoord.x, uSize.y * uDpr - gl_FragCoord.y) / uDpr - uSize * 0.5;",
-      "  float d = q.x * sin(uTilt) + q.y * cos(uTilt) - uScanY;",
-      "  c += uTeal * (exp(-d * d / 90.0) * 1.3 * uScan + step(d, 0.0) * uWash);",
       "  gl_FragColor = vec4(c, a * vEdge);",
       "}"
     ].join("\n");
@@ -2439,11 +2583,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var mats = [], sprites = [], emitter = null, bone0 = null, liftMin = 0, liftAmp = 0, lastLift = "", clipLen = 1;
     var size = null, PITCH = .2;
     var ready = false, running = false, onScreen = true, raf = 0, last = 0;
-    var t = 0, speed = 1, hover = 0, focused = false, scanAt = -1, absorbAt = -1e9, liftNow = .5, gemMesh = null, picker = null;
+    var t = 0, speed = 1, hover = 0, focused = false, drawAt = -1, absorbAt = -1e9, liftNow = .5, gemMesh = null, picker = null;
     // Cursor following: the construct turns so the gem's line of sight passes through the cursor, read as a point
     // on a pane GAP model units in front of it. A smaller GAP makes it turn harder for the same cursor offset.
     var GAP = 1.2, pointer = { on: false, x: 0, y: 0 }, A = null;
-    var beam = el.scan.querySelector(".scan-beam"), tiltEl = canvas.parentElement;
 
     // GLTFLoader decodes embedded images through blob: URLs. The page's CSP allows images only from the site
     // itself and data: URIs, so they are decoded that way instead.
@@ -2501,8 +2644,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
           uVertex: { value: w.vertex === "Diffuse_T1_Env" ? 0 : w.vertex.indexOf("EdgeFade") >= 0 ? 1 : 2 },
           uUv0Shift: { value: new T.Vector2() }, uUv1Shift: { value: new T.Vector2() },
           uLit: { value: w.unlit ? 0 : 1 }, uGem: { value: src.name === "gem" ? 1 : 0 },
-          uGlow: U.glow, uFlare: U.flare, uHover: U.hover, uScan: U.scan, uScanY: U.scanY, uWash: U.wash, uTilt: U.tilt,
-          uDpr: U.dpr, uSize: U.size, uAmbient: U.ambient, uKeyDir: U.keyDir, uKey: U.key, uFillDir: U.fillDir, uFill: U.fill, uTeal: U.teal
+          uGlow: U.glow, uFlare: U.flare, uHover: U.hover, uAmbient: U.ambient, uKeyDir: U.keyDir, uKey: U.key, uFillDir: U.fillDir, uFill: U.fill, uTeal: U.teal
         },
         transparent: w.blend >= 2, depthWrite: w.depthWrite, side: src.side,
         blending: w.blend === 2 ? T.NormalBlending : T.NoBlending
@@ -2533,8 +2675,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       renderer = new T.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: "low-power" });
       renderer.setClearColor(0x000000, 0);
       U = {
-        glow: { value: 0 }, flare: { value: 0 }, hover: { value: 0 }, scan: { value: 0 }, scanY: { value: -1e4 }, wash: { value: 0 },
-        tilt: { value: 0 }, dpr: { value: 1 }, size: { value: new T.Vector2(1, 1) },
+        glow: { value: 0 }, flare: { value: 0 }, hover: { value: 0 },
         ambient: { value: new T.Vector3(.36, .39, .48) },
         keyDir: { value: new T.Vector3(-.45, .62, .64).normalize() }, key: { value: new T.Vector3(.9, .8, .7) },
         fillDir: { value: new T.Vector3(.2, -.88, .42).normalize() }, fill: { value: new T.Vector3(.14, .44, .4) },
@@ -2635,8 +2776,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var dpr = Math.min(2, window.devicePixelRatio || 1), w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
       renderer.setPixelRatio(dpr);
       renderer.setSize(w, h, false);
-      U.dpr.value = dpr;
-      U.size.value.set(w, h);
       camera.aspect = w / h;
       placeCamera(camera, 0, PITCH, size.x, size.y, .4);
       if (ready && !running) draw(performance.now());
@@ -2666,27 +2805,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }
 
     function step(dt, now) {
-      var scanning = scanAt >= 0, since = scanning ? (now - scanAt) / 1000 : 0;
-      speed += ((scanning ? .15 : 1) - speed) * Math.min(1, dt * 5);
+      // Drawing the light in, the model slows and its gem charges up to a flash as the hub appears, then settles
+      if (drawAt >= 0 && now - drawAt > 2600) drawAt = -1;
+      var drawing = drawAt >= 0, since = drawing ? (now - drawAt) / 1000 : 0;
+      speed += ((drawing ? .15 : 1) - speed) * Math.min(1, dt * 5);
       t += dt * speed;
       pose(reduced ? 1.2 : t);
-      if (pointer.on && !scanning) setGemHover(gemAt(pointer.x, pointer.y)); // the gem moves under a still cursor too
+      if (pointer.on && !drawing) setGemHover(gemAt(pointer.x, pointer.y)); // the gem moves under a still cursor too
       hover += ((gemHover || focused ? 1 : 0) - hover) * Math.min(1, dt * 6);
       aim(dt);
       U.hover.value = hover;
       U.glow.value = .5 + .5 * Math.sin(now / 1000 * Math.PI * 2 / 3.4);
-      U.flare.value = Math.max(scanning ? (since < .34 ? since / .34 : 1 - .7 * Math.min(1, (since - .34) / 1.56)) : 0,
-                               .4 * Math.exp(-(now - absorbAt) / 260)); // a wisp just arrived
-      if (scanning && beam) {
-        var b = beam.getBoundingClientRect(), r = canvas.getBoundingClientRect(), m = getComputedStyle(tiltEl).transform;
-        var mx = m && m !== "none" && window.DOMMatrixReadOnly ? new DOMMatrixReadOnly(m) : null;
-        U.scanY.value = b.bottom - 1 - (r.top + r.height / 2);
-        U.tilt.value = mx ? Math.atan2(mx.b, mx.a) : 0;
-        U.scan.value = since < 1.45 ? 1 : Math.max(0, 1 - (since - 1.45) / .4);
-        U.wash.value = .14 * U.scan.value;
-      } else {
-        U.scan.value = U.wash.value = 0;
-      }
+      U.flare.value = Math.max(drawing ? (since < 1.35 ? .2 + .8 * Math.pow(since / 1.35, 2) : 1 - Math.min(1, (since - 1.35) / 1.2)) : 0,
+                               .4 * Math.exp(-(now - absorbAt) / 260)); // something just arrived
       if (liftAmp && bone0) {
         liftNow = (bone0.position.y - liftMin) / liftAmp;
         var lift = liftNow.toFixed(2);
@@ -2759,8 +2890,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       last = performance.now();
       raf = requestAnimationFrame(frame);
     };
-    api.pause = function () { stop(); scanAt = -1; };
-    api.scan = function () { if (ready && !reduced) scanAt = performance.now(); };
+    api.pause = function () { stop(); drawAt = -1; };
+    api.charge = function () { if (ready && !reduced) drawAt = performance.now(); };
     api.absorb = function () { absorbAt = performance.now(); };
     api.lift = function () { return liftNow; };
     api.gemAt = gemAt;
@@ -2777,32 +2908,28 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return api;
   })();
 
-  // ---------- Scan, and the hub it reveals ----------
-  // The scan sweeps the construct; as the beam reaches the bottom, the three choices appear beneath it. A scan
-  // started from the keyboard moves the focus to the first of them.
-  var scanning = false, hubShown = false;
-  function scan(keyboard) {
-    if (scanning || el.archive.open) return;
-    scanning = true;
-    el.stage.classList.add("is-scanning");
+  // ---------- Drawing the light in, and the hub it reveals ----------
+  // A click on the gem draws in everything drifting in the dark: the wisps, the flares, the nearer motes and a last
+  // rush from the edges, spiralling in while the gem charges. As it flashes, a ring of light leaves it and the three
+  // choices appear beneath it. Started from the keyboard, the focus moves to the first of them.
+  var drawing = false, hubShown = false;
+  function summon(keyboard) {
+    if (drawing || el.archive.open) return;
+    drawing = true;
+    el.stage.classList.add("is-drawing");
     var reveal, done;
     if (reduced) {
       reveal = done = wait(250);
     } else {
-      el.scan.hidden = false;
-      void el.scan.offsetWidth;
-      el.scan.classList.add("run");
-      model3d.scan();
+      model3d.charge();
       motes.gather();
       reveal = wait(1350);
       done = wait(1950);
     }
-    reveal.then(function () { showHub(keyboard); });
+    reveal.then(function () { if (!reduced) motes.pulse(); showHub(keyboard); });
     done.then(function () {
-      el.scan.classList.remove("run");
-      el.scan.hidden = true;
-      el.stage.classList.remove("is-scanning");
-      scanning = false;
+      el.stage.classList.remove("is-drawing");
+      drawing = false;
     });
   }
   function showHub(focus) {
@@ -2817,8 +2944,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
 
   // ---------- Events ----------
-  // Only the gem starts a scan. A pointer click has to land on it; keyboard activation of the button
-  // (Enter or Space, which reports detail 0) always scans.
+  // Only the gem wakes the construct. A pointer click has to land on it; keyboard activation of the button
+  // (Enter or Space, which reports detail 0) always does.
   var gemHover = false;
   function setGemHover(on) { if (on === gemHover) return; gemHover = on; el.stage.classList.toggle("on-gem", on); }
   function onGem(x, y) {
@@ -2827,8 +2954,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var dx = x - (g.left + g.width / 2), dy = y - (g.top + g.height / 2);
     return dx * dx + dy * dy < Math.pow(g.width * .25, 2);
   }
-  el.construct.addEventListener("click", function (e) { if (e.detail === 0) scan(true); });
-  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && !e.target.closest(".hub") && onGem(e.clientX, e.clientY)) scan(false); });
+  el.construct.addEventListener("click", function (e) { if (e.detail === 0) summon(true); });
+  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && !e.target.closest(".hub") && onGem(e.clientX, e.clientY)) summon(false); });
   el.hub.addEventListener("click", function (e) { var b = e.target.closest(".hub-opt"); if (b) openArchive({ book: b.dataset.book }); });
   el.tabs.addEventListener("click", function (e) {
     var t = e.target.closest(".tab");
@@ -2836,7 +2963,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (FORMS[currentView]) { toast("Finish or cancel the form first."); return; } // a tab would throw away what is written
     openBook(t.dataset.book); // the open chapter's own tab goes back to its start
   });
-  el.stage.addEventListener("pointermove", function (e) { if (!scanning) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
+  el.stage.addEventListener("pointermove", function (e) { if (!drawing) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
   el.stage.addEventListener("pointerleave", function () { setGemHover(false); });
   el.btnClose.addEventListener("click", function () { el.archive.close(); });
   el.archive.addEventListener("click", function (e) {
@@ -2848,7 +2975,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     else if (!el.seal.hidden) { e.preventDefault(); closeSeal(true); }
     else if (FORMS[currentView]) {
       e.preventDefault();
-      if (aboutChanged()) toast("There are unsaved changes. Save the page, or press Cancel to let them go.");
+      if (aboutChanged() || encounterChanged()) toast("There are unsaved changes. Save them, or press Cancel to let them go.");
       else leaveCurrentForm();
     }
   });
@@ -2863,7 +2990,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     shown = null;
     closeSeal(false);
     root.append(el.toast);
-    disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete);
+    disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete); disarm(el.encDelete);
     el.stage.classList.remove("is-paused");
     motes.resume();
     model3d.resume();
@@ -2874,14 +3001,18 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.detBack.addEventListener("click", function () { showView("overview"); });
   el.detEdit.addEventListener("click", function () { openForm(detailId); });
   el.btnInscribe.addEventListener("click", function () { openForm(null); });
+  el.encBack.addEventListener("click", function () { showView("encounters"); });
+  el.encEdit.addEventListener("click", function () { openEncounterForm(encounterId); });
+  el.btnAddEncounter.addEventListener("click", function () { openEncounterForm(null); });
   el.btnAmend.addEventListener("click", openAboutForm);
   el.btnAddArt.addEventListener("click", function () { openArtForm(null); });
   el.plEdit.addEventListener("click", function () { openArtForm(plateId); });
   el.plBack.addEventListener("click", showPlates);
 
-  // A shared address opens its chapter at once, without the scan: #about, #art, #knowledge, #art/<plate>, #knowledge/<record>
+  // A shared address opens its chapter at once, without waking the construct: #about, #art, #knowledge, #encounters,
+  // #art/<plate>, #knowledge/<record>, #encounters/<encounter>
   function route() {
-    var m = /^#(about|art|knowledge)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
+    var m = /^#(about|art|knowledge|encounters)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
     if (!m || (el.archive.open && FORMS[currentView])) return;
     showHub(false);
     openArchive({ book: m[1], id: m[2] });
