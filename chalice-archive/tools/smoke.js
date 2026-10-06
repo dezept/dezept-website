@@ -20,7 +20,7 @@ Checks:
      they had several images; the password file; changing the word signs other sessions out; failed logins are
      throttled per IP.
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors; only
-     the gem starts the scan, which reveals the three choices; a wrong word is refused; the right word shows the
+     the gem wakes the construct, which reveals the three choices; a wrong word is refused; the right word shows the
      tools; records can be inscribed, revised and removed, and markup in them stays text; the About page can be
      amended in Total RP 3's terms (directory, standard traits, glances, a description whose TRP markup becomes
      headings, darkened colours and only http(s) links while HTML stays text), Escape keeps unsaved writing, and
@@ -397,7 +397,7 @@ async function legacyChecks() {
   }
 }
 
-// The construct by keyboard (which always scans), then a chapter from the hub
+// The construct by keyboard (which always wakes it), then a chapter from the hub
 async function enter(page, book) {
   await page.waitForSelector('.core.is-3d', { timeout: 30000 });
   await page.focus('#construct');
@@ -432,7 +432,7 @@ async function browserChecks() {
     const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
     await page.mouse.click(cx, cy - box.height * .3); // the frame between the horns, above the gem
     await page.waitForTimeout(2500);
-    check(!(await page.$('#archive[open]')), 'a click on the construct away from the gem does not scan');
+    check(!(await page.$('#archive[open]')), 'a click on the construct away from the gem does nothing');
     // Walk down the centre line until the pointer is over the gem, then click it. The construct keeps turning
     // toward the pointer, and software rendering is slow, so settle first and try the walk up to three times.
     let gem = null, opened = false;

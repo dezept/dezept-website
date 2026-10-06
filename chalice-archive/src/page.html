@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
 <style id="ca-style">
-/* Layout: one dark stage where the construct is the only bright object. Scanning its gem projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
+/* Layout: one dark stage where the construct is the only bright object. A click on its gem draws in the light drifting around it and projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
 :root {
   --void: #0a0e1a;
   --void-2: #10172a;
@@ -96,7 +96,7 @@ button, input, textarea { font: inherit; color: inherit; }
 
 .core { --size: min(58vmin, 460px); position: relative; display: grid; place-items: center; }
 .construct { position: relative; width: var(--size); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: none; cursor: inherit; -webkit-tap-highlight-color: transparent; }
-.stage.on-gem { cursor: pointer; } /* only the gem starts a scan */
+.stage.on-gem { cursor: pointer; } /* only the gem wakes it */
 .fx { position: absolute; inset: 0; display: block; }
 .fx-x { animation: drift-x 13s ease-in-out infinite alternate; }
 .fx-y { animation: bob 5.6s ease-in-out infinite; }
@@ -112,26 +112,19 @@ button, input, textarea { font: inherit; color: inherit; }
 .gem { position: absolute; left: 50%; top: 80.2%; width: 34%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; background: radial-gradient(circle, rgb(var(--teal-rgb) / .55) 0%, rgb(var(--teal-rgb) / .16) 34%, transparent 66%); animation: gem 3.4s ease-in-out infinite; transition: opacity .8s; }
 @keyframes gem { 0%, 100% { opacity: .5; scale: .9; } 50% { opacity: 1; scale: 1.08; } }
 .construct:hover .construct-img, .construct:focus-visible .construct-img { filter: drop-shadow(0 0 30px rgb(var(--teal-rgb) / .34)) drop-shadow(0 24px 26px rgb(var(--shade-rgb) / .85)); }
-.lock { position: absolute; inset: -10%; pointer-events: none; opacity: 0; transition: opacity .25s, inset .5s cubic-bezier(.2, .8, .2, 1); }
-.lock i { position: absolute; width: 20px; height: 20px; border: 0 solid var(--teal); filter: drop-shadow(0 0 6px rgb(var(--teal-rgb) / .6)); }
-.lock i:nth-child(1) { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
-.lock i:nth-child(2) { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
-.lock i:nth-child(3) { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
-.lock i:nth-child(4) { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
-.is-scanning .lock { opacity: 1; inset: -2%; }
-.is-scanning .gem { animation: flare 1.9s ease-out forwards; }
+.is-drawing .gem { animation: flare 1.9s ease-out forwards; }
 @keyframes flare { 0% { opacity: .8; scale: 1; } 18% { opacity: 1; scale: 2.6; } 100% { opacity: .9; scale: 1.3; } }
-.is-scanning .fx-y, .is-scanning .fx-x, .is-scanning .fx-tilt { animation-play-state: paused; }
+.is-drawing .fx-y, .is-drawing .fx-x, .is-drawing .fx-tilt { animation-play-state: paused; }
 /* The 3D model: the canvas is twice the button so the construct can turn far toward the cursor without clipping. The cutout stays underneath until the first frame is drawn. */
 .construct-gl { position: absolute; left: -50%; top: -50%; width: 200%; height: 200%; pointer-events: none; opacity: 0; transition: opacity .8s; }
 .is-3d .construct-gl { opacity: 1; }
-.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-scanning .gem, whose flare would bring the overlay back */
+.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-drawing .gem, whose flare would bring the overlay back */
 .core { --lift: .5; }
 .core.is-3d .fx { animation: none; } /* the model hovers on its own, and the canvas must not drift under the cursor it aims at */
 .is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); } /* both follow the model's hover */
 .is-3d .pool { animation: none; opacity: calc(.9 - .45 * var(--lift)); scale: calc(1 - .2 * var(--lift)); }
 
-/* ---------- The hub: three choices the scan projects beneath the construct ---------- */
+/* ---------- The hub: three choices the construct projects beneath it once it has drawn the light in ---------- */
 .core { transition: translate .9s cubic-bezier(.2, .8, .2, 1); }
 .stage.has-hub .core { translate: 0 -56px; } /* the construct rises to make room */
 .hub { position: absolute; z-index: 2; top: calc(100% + 30px); left: 50%; translate: -50% 0; display: flex; justify-content: center; gap: clamp(8px, 1.8vw, 18px); width: max-content; max-width: calc(100vw - 32px); }
@@ -158,20 +151,6 @@ button, input, textarea { font: inherit; color: inherit; }
   .hub-opt { width: 200px; padding: 10px 12px; grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 12px; text-align: left; }
   .hub-label { text-indent: 0; }
 }
-
-/* ---------- Scan overlay ---------- */
-.scan { position: fixed; inset: 0; z-index: 50; overflow: hidden; pointer-events: none; }
-.scan::before { content: ""; position: absolute; inset: 0; background: rgb(var(--teal-rgb) / .05); opacity: 0; }
-.scan-grid { position: absolute; inset: 0; clip-path: inset(0 0 100% 0); background-image: linear-gradient(rgb(var(--teal-rgb) / .09) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--teal-rgb) / .09) 1px, transparent 1px); background-size: 34px 34px; background-position: center; }
-.scan-beam { position: absolute; left: 0; right: 0; top: 0; height: 140px; transform: translateY(-140px); background: linear-gradient(to bottom, transparent, rgb(var(--teal-rgb) / .12) 88%, rgb(var(--teal-rgb) / .35)); }
-.scan-beam::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--teal); box-shadow: 0 0 18px 3px rgb(var(--teal-rgb) / .7), 0 0 60px 8px rgb(var(--teal-rgb) / .25); }
-.scan.run::before { animation: tint 1.9s ease-out forwards; }
-.scan.run .scan-grid { animation: grid-reveal 1.45s cubic-bezier(.55, 0, .35, 1) forwards, grid-fade .5s 1.4s ease-out forwards; }
-.scan.run .scan-beam { animation: beam 1.45s cubic-bezier(.55, 0, .35, 1) forwards; }
-@keyframes tint { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes grid-reveal { to { clip-path: inset(0 0 0 0); } }
-@keyframes grid-fade { to { opacity: 0; } }
-@keyframes beam { to { transform: translateY(calc(100vh - 138px)); opacity: .2; } }
 
 /* ---------- The archive: an old tome ---------- */
 .archive { width: min(980px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--sepia); overflow: visible; font-family: var(--font-book); }
@@ -580,14 +559,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   <canvas class="motes" id="motes" aria-hidden="true"></canvas>
   <h1 class="sr-only">The archive of <span id="pf-name">Unnamed Dracthyr</span></h1>
   <div class="core" id="core">
-    <button class="construct" id="construct" type="button" aria-label="Scan the archive" aria-haspopup="dialog">
+    <button class="construct" id="construct" type="button" aria-label="Open the archive" aria-haspopup="dialog">
       <span class="fx fx-x"><span class="fx fx-y"><span class="fx fx-tilt">
         <span class="halo"></span>
         <img class="construct-img" src="__FRONT__" alt="" width="364" height="410" draggable="false">
         <span class="gem"></span>
         <canvas class="construct-gl" id="construct-gl" aria-hidden="true"></canvas>
       </span></span></span>
-      <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     </button>
     <span class="pool" aria-hidden="true"></span>
     <nav class="hub" id="hub" aria-label="The archive" hidden>
@@ -606,10 +584,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     </nav>
   </div>
 </main>
-<div class="scan" id="scan" hidden aria-hidden="true">
-  <div class="scan-grid"></div>
-  <div class="scan-beam"></div>
-</div>
 <dialog class="archive" id="archive" aria-labelledby="ar-title">
   <nav class="tabs" id="tabs" aria-label="Chapters">
     <button class="tab" type="button" data-book="about">About</button>
@@ -1195,7 +1169,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function renderLanding() {
     var name = state.profile.name || "Unnamed Dracthyr";
     el.pfName.textContent = name;
-    el.construct.setAttribute("aria-label", "Scan the archive of " + name);
+    el.construct.setAttribute("aria-label", "Open the archive of " + name);
   }
 
   // ---------- The archive: one tome, three chapters ----------
@@ -2197,9 +2171,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     t._t = setTimeout(function () { t.hidden = true; }, 4200);
   }
 
-  // ---------- Ambient: light shafts, motes at three depths, and anima wisps the construct draws in ----------
+  // ---------- Ambient: light shafts, motes at three depths, flares, and anima wisps the construct draws in ----------
   var motes = (function () {
-    var noop = { pause: function () {}, resume: function () {}, gather: function () {}, recenter: function () {} };
+    var noop = { pause: function () {}, resume: function () {}, gather: function () {}, pulse: function () {}, recenter: function () {} };
     var c = el.motes, ctx = c.getContext && c.getContext("2d");
     if (!ctx) return noop;
     var cs = getComputedStyle(document.documentElement);
@@ -2211,11 +2185,23 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       gr.addColorStop(0, "rgb(" + rgb + " / 1)"); gr.addColorStop(.28, "rgb(" + rgb + " / .5)"); gr.addColorStop(1, "rgb(" + rgb + " / 0)");
       g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return s;
     }
-    var glow = {};
-    glow[TEAL] = sprite(TEAL);
-    glow[COPPER] = sprite(COPPER);
-    var WISPS = 6, TRAIL = 46;
-    var w = 0, hgt = 0, cx = 0, cy = 0, unit = 300, parts = [], wisps = [], rays = [], raf = 0, running = false, last = 0, clock = 0;
+    // A flare's glint: a white-hot point with four thin rays, drawn once per colour and scaled
+    function starSprite(rgb) {
+      var S = 96, m = S / 2, s = document.createElement("canvas"); s.width = s.height = S;
+      var g = s.getContext("2d"), core = g.createRadialGradient(m, m, 0, m, m, m * .3);
+      core.addColorStop(0, "rgb(255 255 255 / 1)"); core.addColorStop(.2, "rgb(" + rgb + " / .85)"); core.addColorStop(1, "rgb(" + rgb + " / 0)");
+      g.fillStyle = core; g.fillRect(0, 0, S, S);
+      var hz = g.createLinearGradient(0, 0, S, 0), vt = g.createLinearGradient(0, 0, 0, S);
+      [hz, vt].forEach(function (lg) { lg.addColorStop(0, "rgb(" + rgb + " / 0)"); lg.addColorStop(.5, "rgb(" + rgb + " / .9)"); lg.addColorStop(1, "rgb(" + rgb + " / 0)"); });
+      g.fillStyle = hz; g.fillRect(0, m - 1, S, 2);
+      g.fillStyle = vt; g.fillRect(m - .75, S * .18, 1.5, S * .64); // the upright ray is shorter, as in a lens
+      return s;
+    }
+    var glow = {}, star = {};
+    [TEAL, COPPER].forEach(function (rgb) { glow[rgb] = sprite(rgb); star[rgb] = starSprite(rgb); });
+    var TRAIL = 46, SWIRL = 1; // every streak turns the same way when the construct draws them in, so they read as one vortex
+    var w = 0, hgt = 0, cx = 0, cy = 0, unit = 300, parts = [], wisps = [], flares = [], sparks = [], rays = [], raf = 0, running = false, last = 0, clock = 0;
+    var rush = 10, pulseAt = -1;
     var aim = { x: 0, y: 0, tx: 0, ty: 0 }; // cursor offset from the stage centre (-1..1), eased, for parallax
 
     // Light shafts: soft wedges fanning out from the construct, turning slowly, brighter while it is risen
@@ -2249,7 +2235,25 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     function spawn(anywhere) {
       var z = Math.random(); // depth: 0 far, 1 near
       return { x: Math.random() * w, y: anywhere ? Math.random() * hgt : hgt + 12, z: z, r: .5 + z * 1.7 + Math.random() * .4,
-               vy: 3 + z * 10 + Math.random() * 3, ph: Math.random() * 6.283, c: Math.random() < .28 ? COPPER : TEAL };
+               vy: 3 + z * 10 + Math.random() * 3, ph: Math.random() * 6.283, c: Math.random() < .28 ? COPPER : TEAL, wait: 0, vis: 1 };
+    }
+
+    // Flares: soft glints scattered through the dark, drifting slowly. Each twinkles, and now and then one flares up
+    // with its rays. Taken in by the construct, a flare is replaced after a while somewhere else, fading in.
+    function flare(delay) {
+      var z = Math.random();
+      return { x: Math.random() * w, y: Math.random() * hgt, z: z, size: 12 + z * 22 + Math.random() * 8, c: Math.random() < .3 ? COPPER : TEAL,
+               ph: Math.random() * 6.283, tw: .4 + Math.random(), age: delay == null ? 99 : -delay, next: 1 + Math.random() * 6, burst: 0,
+               fall: 0, trail: null, turn: SWIRL };
+    }
+    function moveFlare(f, dt) {
+      f.age += dt;
+      var speed = unit * .012 * (.4 + f.z), a = (Math.sin(f.x * .0016 + clock * .05) + Math.cos(f.y * .0019 - clock * .04)) * 2.2;
+      f.x += Math.cos(a) * speed * dt; f.y += Math.sin(a) * speed * dt;
+      if (f.x < -40) f.x += w + 80; else if (f.x > w + 40) f.x -= w + 80;
+      if (f.y < -40) f.y += hgt + 80; else if (f.y > hgt + 40) f.y -= hgt + 80;
+      f.burst = Math.max(0, f.burst - dt / .9);
+      if ((f.next -= dt) <= 0) { f.burst = 1; f.next = 3 + Math.random() * 8; }
     }
 
     // Anima wisps drift in from the edges on a slow flow field. Near the construct they orbit; some spiral in
@@ -2260,16 +2264,31 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                trail: [], age: 0, delay: delay, fall: 0, gone: 0, dead: false, c: Math.random() < .3 ? COPPER : TEAL,
                size: .7 + Math.random() * .8, turn: Math.random() < .5 ? 1 : -1, inward: Math.random() < .45 ? .5 : -.08 };
     }
+    // Spiralling in: the distance shrinks ever faster while the angle turns, quicker near the centre, so whatever
+    // starts farther out arrives only a little later. True on arrival.
+    function fallIn(s, dt) {
+      s.fall += dt;
+      var dx = s.x - cx, dy = s.y - cy, r = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx);
+      r *= 1 - Math.min(1, dt * (1.4 + s.fall * 5));
+      a += s.turn * dt * (1.2 + 90 / (r + 40));
+      s.x = cx + Math.cos(a) * r; s.y = cy + Math.sin(a) * r;
+      return r < 5;
+    }
+    function follow(s, max) {
+      var tr = s.trail, n = tr.length;
+      if (!n || Math.abs(s.x - tr[n - 2]) + Math.abs(s.y - tr[n - 1]) > 3) {
+        tr.push(s.x, s.y);
+        if (tr.length > max * 2) tr.splice(0, 2);
+      }
+    }
     function moveWisp(s, dt) {
       if (s.delay > 0) { s.delay -= dt; return; }
       s.age += dt;
-      var R = Math.min(w, hgt), dx = cx - s.x, dy = cy - s.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (s.pull && !s.fall) s.fall = .001;
       if (s.fall) {
-        s.fall += dt;
-        var k = Math.min(1, dt * (2 + s.fall * 10));
-        s.x += dx * k; s.y += dy * k;
-        if (d < 4) { s.dead = true; if (model3d) model3d.absorb(); }
+        if (fallIn(s, dt)) { s.dead = true; if (model3d) model3d.absorb(); }
       } else {
+        var R = Math.min(w, hgt), dx = cx - s.x, dy = cy - s.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
         var speed = R * .05, f = Math.sin(s.x * .0016 + clock * .07) + Math.cos(s.y * .0019 - clock * .05);
         var vx = Math.cos(f * 2.2) * speed, vy = Math.sin(f * 2.2) * speed;
         var pull = speed * 1.1 * Math.min(1, R * .45 / d);
@@ -2280,26 +2299,45 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         if ((s.x < -60 || s.x > w + 60 || s.y < -60 || s.y > hgt + 60) && s.age > 3 || s.age > 40) s.gone += dt;
         if (s.gone > 1.2) s.dead = true;
       }
-      var tr = s.trail, n = tr.length;
-      if (!n || Math.abs(s.x - tr[n - 2]) + Math.abs(s.y - tr[n - 1]) > 3) {
-        tr.push(s.x, s.y);
-        if (tr.length > TRAIL * 2) tr.splice(0, 2);
-      }
+      follow(s, TRAIL);
     }
-    function drawWisp(s) {
-      var tr = s.trail, n = tr.length / 2;
-      if (s.delay > 0 || n < 2) return;
-      var a = Math.min(1, s.age / 1.5) * (1 - Math.min(1, s.gone / 1.2));
+    // a streak: its trail, thin and faint at the tail, and a glowing head
+    function drawStreak(tr, rgb, a, size, head) {
+      var n = tr.length / 2;
+      if (n < 2) return;
       for (var i = 1; i < n; i++) {
         var f = i / (n - 1);
-        ctx.strokeStyle = "rgb(" + s.c + " / " + (a * f * f * .5).toFixed(3) + ")";
-        ctx.lineWidth = s.size * (.4 + f * 1.6);
+        ctx.strokeStyle = "rgb(" + rgb + " / " + (a * f * f * .5).toFixed(3) + ")";
+        ctx.lineWidth = size * (.4 + f * 1.6);
         ctx.beginPath(); ctx.moveTo(tr[i * 2 - 2], tr[i * 2 - 1]); ctx.lineTo(tr[i * 2], tr[i * 2 + 1]); ctx.stroke();
       }
-      var g = 10 + s.size * 10;
       ctx.globalAlpha = a * .8;
-      ctx.drawImage(glow[s.c], s.x - g / 2, s.y - g / 2, g, g);
+      ctx.drawImage(glow[rgb], tr[n * 2 - 2] - head / 2, tr[n * 2 - 1] - head / 2, head, head);
       ctx.globalAlpha = 1;
+    }
+    function drawFlare(f) {
+      if (f.fall) { drawStreak(f.trail, f.c, .9, .6 + f.z, f.size * 1.2); return; }
+      var fade = Math.min(1, Math.max(0, f.age) / 2), tw = .6 + .4 * Math.sin(clock * f.tw + f.ph), b = f.burst * f.burst;
+      if (!fade) return;
+      ctx.globalAlpha = Math.min(1, ((.3 + .35 * f.z) * tw + b * .5) * fade);
+      ctx.drawImage(glow[f.c], f.x - f.size / 2, f.y - f.size / 2, f.size, f.size);
+      var st = f.size * (1.8 + 2.6 * b);
+      ctx.globalAlpha = Math.min(1, ((.2 + .32 * f.z) * tw + b * .8) * fade);
+      ctx.drawImage(star[f.c], f.x - st / 2, f.y - st / 2, st, st);
+      ctx.globalAlpha = 1;
+    }
+    // As the hub appears, a ring of light leaves the construct, and a fainter one after it
+    function drawPulse() {
+      var t = clock - pulseAt;
+      if (pulseAt < 0 || t > 1.4) return;
+      [0, .16].forEach(function (lag, k) {
+        var u = Math.max(0, t - lag) / 1.1;
+        if (u <= 0 || u >= 1) return;
+        var e = 1 - Math.pow(1 - u, 3);
+        ctx.strokeStyle = "rgb(" + TEAL + " / " + ((1 - u) * (1 - u) * (k ? .22 : .45)).toFixed(3) + ")";
+        ctx.lineWidth = 1 + 9 * (1 - u);
+        ctx.beginPath(); ctx.arc(cx, cy, unit * (.12 + 1.15 * e), 0, 6.283); ctx.stroke();
+      });
     }
 
     function draw() {
@@ -2309,14 +2347,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       ctx.globalCompositeOperation = "source-over";
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i], s = p.r * 7, shift = (p.z - .35) * 26; // near motes slide against the cursor more than far ones
-        ctx.globalAlpha = (.12 + .34 * p.z) * (.55 + .45 * Math.sin(clock * 1.1 + p.ph));
+        if (!p.vis) continue;
+        ctx.globalAlpha = (.12 + .34 * p.z) * (.55 + .45 * Math.sin(clock * 1.1 + p.ph)) * p.vis;
         ctx.drawImage(glow[p.c], p.x - aim.x * shift - s / 2, p.y - aim.y * shift * .7 - s / 2, s, s);
       }
       ctx.globalAlpha = 1;
-      if (reduced) return;
       ctx.globalCompositeOperation = "lighter";
       ctx.lineCap = "round";
-      wisps.forEach(drawWisp);
+      flares.forEach(drawFlare);
+      if (!reduced) {
+        wisps.forEach(function (s) { if (s.delay <= 0) drawStreak(s.trail, s.c, Math.min(1, s.age / 1.5) * (1 - Math.min(1, s.gone / 1.2)), s.size, 10 + s.size * 10); });
+        sparks.forEach(function (s) { drawStreak(s.trail, s.c, s.a, s.size, 5 + s.size * 6); });
+        drawPulse();
+      }
       ctx.globalCompositeOperation = "source-over";
     }
     function step(now) {
@@ -2328,13 +2371,26 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       aim.y += (aim.ty - aim.y) * Math.min(1, dt * 2.5);
       for (var i = 0; i < parts.length; i++) {
         var p = parts[i];
+        if (p.wait > 0) { p.wait -= dt; continue; }
+        p.vis = Math.min(1, p.vis + dt / 2.5);
         p.y -= p.vy * dt;
         p.x += Math.sin(clock * .4 + p.ph) * 7 * dt;
         if (p.y < -12) parts[i] = spawn(false);
       }
+      for (var f = 0; f < flares.length; f++) {
+        var fl = flares[f];
+        if (!fl.fall) { moveFlare(fl, dt); continue; }
+        follow(fl, 24);
+        if (fallIn(fl, dt)) { if (model3d) model3d.absorb(); flares[f] = flare(1.5 + Math.random() * 5); }
+      }
       for (var j = 0; j < wisps.length; j++) {
         moveWisp(wisps[j], dt);
-        if (wisps[j].dead) wisps[j] = wisp(3 + Math.random() * 6);
+        if (!wisps[j].dead) continue;
+        if (wisps[j].rush) { wisps.splice(j, 1); j--; } else wisps[j] = wisp(3 + Math.random() * 6);
+      }
+      for (var k = sparks.length - 1; k >= 0; k--) {
+        follow(sparks[k], 12);
+        if (fallIn(sparks[k], dt)) { sparks.splice(k, 1); if (model3d) model3d.absorb(); }
       }
       draw();
       raf = requestAnimationFrame(step);
@@ -2351,22 +2407,44 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       shade[TEAL] = shadeFor(TEAL);
       shade[COPPER] = shadeFor(COPPER);
-      var n = Math.round(Math.min(110, Math.max(30, w * hgt / 13000)));
+      var area = w * hgt, n = Math.round(Math.min(110, Math.max(30, area / 13000)));
       parts = []; for (var i = 0; i < n; i++) parts.push(spawn(true));
-      if (!wisps.length) for (var k = 0; k < WISPS; k++) wisps.push(wisp(k * 1.3 + Math.random() * 2));
+      var nf = Math.round(Math.min(28, Math.max(10, area / 45000))); // more on a bigger screen
+      flares = flares.slice(0, nf); while (flares.length < nf) flares.push(flare());
+      var nw = Math.round(Math.min(18, Math.max(8, area / 85000)));
+      rush = Math.round(nw * .7);
+      if (!wisps.length) for (var k = 0; k < nw; k++) wisps.push(wisp(k * .7 + Math.random() * 2));
       draw();
     }
     function resume() { if (reduced || running || document.hidden || el.archive.open) return; running = true; last = 0; raf = requestAnimationFrame(step); }
     function pause() { running = false; cancelAnimationFrame(raf); }
-    // Every wisp in flight is drawn into the construct as it is scanned
-    function gather() { wisps.forEach(function (s) { if (s.delay <= 0 && !s.fall && !s.gone) s.fall = .001; }); }
+    // A click on the gem draws everything in: every wisp (the waiting ones set off from the edges at once), every
+    // flare, the motes near the construct as sparks (new ones fade in elsewhere), and a last rush of wisps from the
+    // edges, all spiralling the same way
+    function gather() {
+      wisps.forEach(function (s) {
+        if (s.gone || s.dead) return;
+        if (s.delay > 0) s.delay = Math.random() * .3;
+        s.pull = true; s.turn = SWIRL;
+      });
+      flares.forEach(function (f) { if (!f.fall && f.age > 0) { f.fall = .001; f.trail = []; f.turn = SWIRL; } });
+      var reach = Math.max(w, hgt) * .45;
+      for (var i = 0; i < parts.length && sparks.length < 60; i++) {
+        var p = parts[i], dx = p.x - cx, dy = p.y - cy;
+        if (!p.vis || dx * dx + dy * dy > reach * reach) continue;
+        sparks.push({ x: p.x, y: p.y, c: p.c, size: .35 + p.z * .8, a: (.3 + .5 * p.z) * p.vis, fall: .001, trail: [], turn: SWIRL });
+        parts[i] = spawn(true); parts[i].vis = 0; parts[i].wait = 1.5 + Math.random() * 3;
+      }
+      for (var k = 0; k < rush; k++) { var s = wisp(Math.random() * .35); s.pull = true; s.turn = SWIRL; s.rush = true; wisps.push(s); }
+    }
+    function pulse() { pulseAt = clock; }
     if (window.ResizeObserver) new ResizeObserver(resize).observe(c); else { resize(); window.addEventListener("resize", resize); }
     document.addEventListener("visibilitychange", function () { if (document.hidden) pause(); else resume(); });
     document.addEventListener("pointermove", function (e) { aim.tx = e.clientX / innerWidth * 2 - 1; aim.ty = e.clientY / innerHeight * 2 - 1; }, { passive: true });
     document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) aim.tx = aim.ty = 0; });
     // After the construct has moved: redraw the still frame (reduced motion), or let the running loop follow it
     function recenter() { center(); if (!running) draw(); }
-    return { pause: pause, resume: resume, gather: gather, recenter: recenter };
+    return { pause: pause, resume: resume, gather: gather, pulse: pulse, recenter: recenter };
   })();
 
   // ---------- Construct: the in-game model, drawn with three.js ----------
@@ -2378,7 +2456,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm";
   var GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js/+esm";
   var model3d = (function () {
-    var api = { pause: function () {}, resume: function () {}, scan: function () {}, absorb: function () {}, lift: function () { return .5; }, gemAt: function () { return false; } };
+    var api = { pause: function () {}, resume: function () {}, charge: function () {}, absorb: function () {}, lift: function () { return .5; }, gemAt: function () { return false; } };
     var canvas = el.constructGl;
     if (!MODEL_URL || !canvas || !window.WebGLRenderingContext) return api;
 
@@ -2418,8 +2496,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var FRAG = [
       "uniform sampler2D uTex0, uTex1;",
       "uniform int uPixel;",
-      "uniform float uLit, uGem, uGlow, uFlare, uHover, uScan, uScanY, uWash, uTilt, uDpr;",
-      "uniform vec2 uSize;",
+      "uniform float uLit, uGem, uGlow, uFlare, uHover;",
       "uniform vec3 uAmbient, uKeyDir, uKey, uFillDir, uFill, uTeal;",
       "varying vec2 vUv0, vUv1;",
       "varying vec3 vNormal, vView;",
@@ -2438,10 +2515,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       "    c = c * light + uTeal * rim * (0.14 + 0.2 * uHover);",
       "  }",
       "  c = c * (1.0 + uGem * (0.2 + 0.35 * uGlow + 1.1 * uFlare + 0.5 * uHover)) + uGem * uTeal * (0.06 + 0.2 * uGlow + 0.5 * uFlare + 0.2 * uHover);",
-      // distance in CSS px from the page's scan line, in the screen's frame (the canvas sits in a tilted wrapper)
-      "  vec2 q = vec2(gl_FragCoord.x, uSize.y * uDpr - gl_FragCoord.y) / uDpr - uSize * 0.5;",
-      "  float d = q.x * sin(uTilt) + q.y * cos(uTilt) - uScanY;",
-      "  c += uTeal * (exp(-d * d / 90.0) * 1.3 * uScan + step(d, 0.0) * uWash);",
       "  gl_FragColor = vec4(c, a * vEdge);",
       "}"
     ].join("\n");
@@ -2469,11 +2542,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var mats = [], sprites = [], emitter = null, bone0 = null, liftMin = 0, liftAmp = 0, lastLift = "", clipLen = 1;
     var size = null, PITCH = .2;
     var ready = false, running = false, onScreen = true, raf = 0, last = 0;
-    var t = 0, speed = 1, hover = 0, focused = false, scanAt = -1, absorbAt = -1e9, liftNow = .5, gemMesh = null, picker = null;
+    var t = 0, speed = 1, hover = 0, focused = false, drawAt = -1, absorbAt = -1e9, liftNow = .5, gemMesh = null, picker = null;
     // Cursor following: the construct turns so the gem's line of sight passes through the cursor, read as a point
     // on a pane GAP model units in front of it. A smaller GAP makes it turn harder for the same cursor offset.
     var GAP = 1.2, pointer = { on: false, x: 0, y: 0 }, A = null;
-    var beam = el.scan.querySelector(".scan-beam"), tiltEl = canvas.parentElement;
 
     // GLTFLoader decodes embedded images through blob: URLs. The page's CSP allows images only from the site
     // itself and data: URIs, so they are decoded that way instead.
@@ -2531,8 +2603,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
           uVertex: { value: w.vertex === "Diffuse_T1_Env" ? 0 : w.vertex.indexOf("EdgeFade") >= 0 ? 1 : 2 },
           uUv0Shift: { value: new T.Vector2() }, uUv1Shift: { value: new T.Vector2() },
           uLit: { value: w.unlit ? 0 : 1 }, uGem: { value: src.name === "gem" ? 1 : 0 },
-          uGlow: U.glow, uFlare: U.flare, uHover: U.hover, uScan: U.scan, uScanY: U.scanY, uWash: U.wash, uTilt: U.tilt,
-          uDpr: U.dpr, uSize: U.size, uAmbient: U.ambient, uKeyDir: U.keyDir, uKey: U.key, uFillDir: U.fillDir, uFill: U.fill, uTeal: U.teal
+          uGlow: U.glow, uFlare: U.flare, uHover: U.hover, uAmbient: U.ambient, uKeyDir: U.keyDir, uKey: U.key, uFillDir: U.fillDir, uFill: U.fill, uTeal: U.teal
         },
         transparent: w.blend >= 2, depthWrite: w.depthWrite, side: src.side,
         blending: w.blend === 2 ? T.NormalBlending : T.NoBlending
@@ -2563,8 +2634,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       renderer = new T.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: "low-power" });
       renderer.setClearColor(0x000000, 0);
       U = {
-        glow: { value: 0 }, flare: { value: 0 }, hover: { value: 0 }, scan: { value: 0 }, scanY: { value: -1e4 }, wash: { value: 0 },
-        tilt: { value: 0 }, dpr: { value: 1 }, size: { value: new T.Vector2(1, 1) },
+        glow: { value: 0 }, flare: { value: 0 }, hover: { value: 0 },
         ambient: { value: new T.Vector3(.36, .39, .48) },
         keyDir: { value: new T.Vector3(-.45, .62, .64).normalize() }, key: { value: new T.Vector3(.9, .8, .7) },
         fillDir: { value: new T.Vector3(.2, -.88, .42).normalize() }, fill: { value: new T.Vector3(.14, .44, .4) },
@@ -2665,8 +2735,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var dpr = Math.min(2, window.devicePixelRatio || 1), w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
       renderer.setPixelRatio(dpr);
       renderer.setSize(w, h, false);
-      U.dpr.value = dpr;
-      U.size.value.set(w, h);
       camera.aspect = w / h;
       placeCamera(camera, 0, PITCH, size.x, size.y, .4);
       if (ready && !running) draw(performance.now());
@@ -2696,27 +2764,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }
 
     function step(dt, now) {
-      var scanning = scanAt >= 0, since = scanning ? (now - scanAt) / 1000 : 0;
-      speed += ((scanning ? .15 : 1) - speed) * Math.min(1, dt * 5);
+      // Drawing the light in, the model slows and its gem charges up to a flash as the hub appears, then settles
+      if (drawAt >= 0 && now - drawAt > 2600) drawAt = -1;
+      var drawing = drawAt >= 0, since = drawing ? (now - drawAt) / 1000 : 0;
+      speed += ((drawing ? .15 : 1) - speed) * Math.min(1, dt * 5);
       t += dt * speed;
       pose(reduced ? 1.2 : t);
-      if (pointer.on && !scanning) setGemHover(gemAt(pointer.x, pointer.y)); // the gem moves under a still cursor too
+      if (pointer.on && !drawing) setGemHover(gemAt(pointer.x, pointer.y)); // the gem moves under a still cursor too
       hover += ((gemHover || focused ? 1 : 0) - hover) * Math.min(1, dt * 6);
       aim(dt);
       U.hover.value = hover;
       U.glow.value = .5 + .5 * Math.sin(now / 1000 * Math.PI * 2 / 3.4);
-      U.flare.value = Math.max(scanning ? (since < .34 ? since / .34 : 1 - .7 * Math.min(1, (since - .34) / 1.56)) : 0,
-                               .4 * Math.exp(-(now - absorbAt) / 260)); // a wisp just arrived
-      if (scanning && beam) {
-        var b = beam.getBoundingClientRect(), r = canvas.getBoundingClientRect(), m = getComputedStyle(tiltEl).transform;
-        var mx = m && m !== "none" && window.DOMMatrixReadOnly ? new DOMMatrixReadOnly(m) : null;
-        U.scanY.value = b.bottom - 1 - (r.top + r.height / 2);
-        U.tilt.value = mx ? Math.atan2(mx.b, mx.a) : 0;
-        U.scan.value = since < 1.45 ? 1 : Math.max(0, 1 - (since - 1.45) / .4);
-        U.wash.value = .14 * U.scan.value;
-      } else {
-        U.scan.value = U.wash.value = 0;
-      }
+      U.flare.value = Math.max(drawing ? (since < 1.35 ? .2 + .8 * Math.pow(since / 1.35, 2) : 1 - Math.min(1, (since - 1.35) / 1.2)) : 0,
+                               .4 * Math.exp(-(now - absorbAt) / 260)); // something just arrived
       if (liftAmp && bone0) {
         liftNow = (bone0.position.y - liftMin) / liftAmp;
         var lift = liftNow.toFixed(2);
@@ -2789,8 +2849,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       last = performance.now();
       raf = requestAnimationFrame(frame);
     };
-    api.pause = function () { stop(); scanAt = -1; };
-    api.scan = function () { if (ready && !reduced) scanAt = performance.now(); };
+    api.pause = function () { stop(); drawAt = -1; };
+    api.charge = function () { if (ready && !reduced) drawAt = performance.now(); };
     api.absorb = function () { absorbAt = performance.now(); };
     api.lift = function () { return liftNow; };
     api.gemAt = gemAt;
@@ -2807,32 +2867,28 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return api;
   })();
 
-  // ---------- Scan, and the hub it reveals ----------
-  // The scan sweeps the construct; as the beam reaches the bottom, the three choices appear beneath it. A scan
-  // started from the keyboard moves the focus to the first of them.
-  var scanning = false, hubShown = false;
-  function scan(keyboard) {
-    if (scanning || el.archive.open) return;
-    scanning = true;
-    el.stage.classList.add("is-scanning");
+  // ---------- Drawing the light in, and the hub it reveals ----------
+  // A click on the gem draws in everything drifting in the dark: the wisps, the flares, the nearer motes and a last
+  // rush from the edges, spiralling in while the gem charges. As it flashes, a ring of light leaves it and the three
+  // choices appear beneath it. Started from the keyboard, the focus moves to the first of them.
+  var drawing = false, hubShown = false;
+  function summon(keyboard) {
+    if (drawing || el.archive.open) return;
+    drawing = true;
+    el.stage.classList.add("is-drawing");
     var reveal, done;
     if (reduced) {
       reveal = done = wait(250);
     } else {
-      el.scan.hidden = false;
-      void el.scan.offsetWidth;
-      el.scan.classList.add("run");
-      model3d.scan();
+      model3d.charge();
       motes.gather();
       reveal = wait(1350);
       done = wait(1950);
     }
-    reveal.then(function () { showHub(keyboard); });
+    reveal.then(function () { if (!reduced) motes.pulse(); showHub(keyboard); });
     done.then(function () {
-      el.scan.classList.remove("run");
-      el.scan.hidden = true;
-      el.stage.classList.remove("is-scanning");
-      scanning = false;
+      el.stage.classList.remove("is-drawing");
+      drawing = false;
     });
   }
   function showHub(focus) {
@@ -2847,8 +2903,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
 
   // ---------- Events ----------
-  // Only the gem starts a scan. A pointer click has to land on it; keyboard activation of the button
-  // (Enter or Space, which reports detail 0) always scans.
+  // Only the gem wakes the construct. A pointer click has to land on it; keyboard activation of the button
+  // (Enter or Space, which reports detail 0) always does.
   var gemHover = false;
   function setGemHover(on) { if (on === gemHover) return; gemHover = on; el.stage.classList.toggle("on-gem", on); }
   function onGem(x, y) {
@@ -2857,8 +2913,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var dx = x - (g.left + g.width / 2), dy = y - (g.top + g.height / 2);
     return dx * dx + dy * dy < Math.pow(g.width * .25, 2);
   }
-  el.construct.addEventListener("click", function (e) { if (e.detail === 0) scan(true); });
-  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && !e.target.closest(".hub") && onGem(e.clientX, e.clientY)) scan(false); });
+  el.construct.addEventListener("click", function (e) { if (e.detail === 0) summon(true); });
+  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && !e.target.closest(".hub") && onGem(e.clientX, e.clientY)) summon(false); });
   el.hub.addEventListener("click", function (e) { var b = e.target.closest(".hub-opt"); if (b) openArchive({ book: b.dataset.book }); });
   el.tabs.addEventListener("click", function (e) {
     var t = e.target.closest(".tab");
@@ -2866,7 +2922,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (FORMS[currentView]) { toast("Finish or cancel the form first."); return; } // a tab would throw away what is written
     openBook(t.dataset.book); // the open chapter's own tab goes back to its start
   });
-  el.stage.addEventListener("pointermove", function (e) { if (!scanning) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
+  el.stage.addEventListener("pointermove", function (e) { if (!drawing) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
   el.stage.addEventListener("pointerleave", function () { setGemHover(false); });
   el.btnClose.addEventListener("click", function () { el.archive.close(); });
   el.archive.addEventListener("click", function (e) {
@@ -2909,7 +2965,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.plEdit.addEventListener("click", function () { openArtForm(plateId); });
   el.plBack.addEventListener("click", showPlates);
 
-  // A shared address opens its chapter at once, without the scan: #about, #art, #knowledge, #art/<plate>, #knowledge/<record>
+  // A shared address opens its chapter at once, without waking the construct: #about, #art, #knowledge, #art/<plate>, #knowledge/<record>
   function route() {
     var m = /^#(about|art|knowledge)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
     if (!m || (el.archive.open && FORMS[currentView])) return;
