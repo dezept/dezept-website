@@ -8,8 +8,7 @@
    Both inputs are pinned exactly in package.json, and package-lock.json holds their sha512, which npm checks on
    install: three (the npm package, unchanged) and esbuild (which bundles and minifies it). The same versions give the
    same file, byte for byte. To move to a newer three.js, change its version in package.json, run npm install and this
-   tool, then python3 build.py (the preview takes jsDelivr's copy of the version named in this file's banner) and the
-   smoke test. */
+   tool, then python3 build.py and the smoke test. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

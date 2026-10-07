@@ -7,8 +7,8 @@
 Environment:
   CHROME       path to a Chromium/Chrome binary (default: Playwright's own install)
   CHROME_ARGS  extra browser flags, space-separated
-  HTTPS_PROXY  used for the CDN requests when set
-  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, stats, browser, preview, sites
+  HTTPS_PROXY  used for the browser's requests beyond this machine when set
+  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, stats, browser, build, sites
   CADDY        a caddy binary, for the sites checks' run behind Caddy (else one on the PATH; skipped without)
 
 Checks:
@@ -84,12 +84,7 @@ Checks:
      the keeper's own does not; a visitor has no Statistics tab, and their address shows them Character Knowledge;
      sealed, the numbers leave the page; the keeper's address of them opens them after a reload; on a phone the
      keeper's panel leads there.
-  3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
-     network requests at all): the model, the example forms and their plates, GIF and video load from the page; an
-     art piece whose main image is mature, opened from the list by keyboard, asks first and leaves the focus on its
-     cover; the X mark warns first, then a real link opens X; the stand-in server accepts only "preview", the About
-     page can be amended and records and plates added, and a reload forgets them; the Statistics tab shows made-up
-     numbers, said to be examples. The real page carries no trace of the stand-in.
+  3. dist/index.html carries none of the source's comments: minified, its script and style are the source's code.
   4. ../hosting/sites.mjs, in a directory of its own with the system's commands only shown: what it refuses, what it
      writes for this site and for copies of it without a centerpiece (as a friend's site is made), each way a site has
      its certificate (Cloudflare, Let's Encrypt, its own), list, password, restart and unlink; with CADDY, the three
@@ -118,17 +113,7 @@ const NEWER_WORD = 'a newer long smoke-test passphrase';
 const ORIGIN = 'https://archive.test';
 // A browser as visitors have it: the statistics count no headless one (Chromium here calls itself HeadlessChrome)
 const BROWSER_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
-// The viewer plays media embedded in the page (its contract says muted autoplay works), so media-src takes data: and
-// blob: here; if it ever does not, the page says the preview could not play the video.
-const ARTIFACT_CSP = "default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net/npm/ https://unpkg.com " +
-  "https://cdn.tailwindcss.com https://code.jquery.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; " +
-  "img-src data:; media-src data: blob:; connect-src 'none'";
 const FIXTURES = path.join(__dirname, 'fixtures'); // smoke.webm (96 x 64, 1.5 s) and smoke.gif (48 x 32, four frames)
-const ARTIFACT_SKELETON = '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">' +
-  `<meta http-equiv="Content-Security-Policy" content="${ARTIFACT_CSP}">` +
-  '<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}' +
-  'html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}' +
-  'img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>\n';
 const failures = [];
 function check(ok, what) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${what}`); if (!ok) failures.push(what); }
 
@@ -368,12 +353,12 @@ async function apiChecks() {
     const evil = '</script><script>alert(1)</script><img src=x onerror=alert(2)>';
     const made = await write('POST', '/api/records', {
       title: evil + 'x'.repeat(300), date: '2020-13-45', note: 'line one\nline\u0000 two\u0007',
-      source: 'A book', encounter: 'no-such-encounter', id: '../../etc', example: true, added: 1, extra: 'ignored',
+      source: 'A book', encounter: 'no-such-encounter', id: '../../etc', added: 1, extra: 'ignored',
     });
     const rec = made.json && made.json.archive.records.find((r) => r.id === made.json.id);
     check(made.status === 200 && rec && rec.title.length === 120 && rec.date === '' && rec.encounter === '' &&
-      rec.note === 'line one\nline two' && rec.example === false && rec.id !== '../../etc' && !('extra' in rec) && rec.added > 1,
-      'a new record is cleaned: lengths capped, unknown fields dropped, a bad date and an unknown encounter left empty, control characters stripped, id and flags set by the server');
+      rec.note === 'line one\nline two' && rec.id !== '../../etc' && !('extra' in rec) && rec.added > 1,
+      'a new record is cleaned: lengths capped, unknown fields dropped, a bad date and an unknown encounter left empty, control characters stripped, id and time set by the server');
     check((await write('POST', '/api/records', { title: '   ' })).status === 400, 'a record without a title is refused');
     const dated = async (date) => { const r = await write('POST', '/api/records', { title: 'Dated', date }); await write('DELETE', '/api/records/' + r.json.id); return r.json.archive.records.find((x) => x.id === r.json.id).date; };
     check((await dated('2024-02-30')) === '' && (await dated('2023-02-29')) === '' && (await dated('2024-02-29')) === '2024-02-29', 'a date that does not exist (30 February) is left empty, a leap day kept');
@@ -435,7 +420,7 @@ async function apiChecks() {
     check(sMade.status === 200 && sSeen && sSeen.sealed === true && sSeen.title === sTitle && sSeen.date === '2026-03-04' && sSeen.text === sText && !('private' in sSeen),
       "an encounter can be recorded only for the keeper, and the keeper's answer shows it");
     const sRaw = fs.readFileSync(path.join(s.dataDir, 'archive.json'), 'utf8'), sStored = JSON.parse(sRaw).encounters.find((e) => e.id === sId);
-    check(sStored && Object.keys(sStored).sort().join() === 'added,example,id,sealed' && Buffer.from(sStored.sealed.iv, 'base64').length === 12 &&
+    check(sStored && Object.keys(sStored).sort().join() === 'added,id,sealed' && Buffer.from(sStored.sealed.iv, 'base64').length === 12 &&
       ![sTitle, sText, sPriv].some((t) => sRaw.includes(t)), 'it is stored as one encrypted box: archive.json holds only its id and when it was added');
     const sRec = await write('POST', '/api/records', { title: 'Learned in secret', encounter: sId });
     const vPage = await call('GET', '/'), vApi = await call('GET', '/api/archive');
@@ -552,9 +537,9 @@ async function apiChecks() {
 
     // his forms: each holds plates ("art pieces" on the page)
     check((await write('POST', '/api/galleries', { name: '  ' })).status === 400, 'a form needs a name');
-    const formA = await write('POST', '/api/galleries', { name: 'Smoke (Dracthyr) ' + 'n'.repeat(100), id: 'gnope', example: true });
+    const formA = await write('POST', '/api/galleries', { name: 'Smoke (Dracthyr) ' + 'n'.repeat(100), id: 'gnope', extra: true });
     const ga = formA.json && formA.json.archive.galleries.find((g) => g.id === formA.json.id);
-    check(formA.status === 200 && ga && ga.name.length === 80 && /^g[\w-]{12}$/.test(ga.id) && ga.example === false, 'a form is cleaned: its name capped, its id and flags set by the server');
+    check(formA.status === 200 && ga && ga.name.length === 80 && /^g[\w-]{12}$/.test(ga.id) && !('extra' in ga), 'a form is cleaned: its name capped, its id set by the server, unknown fields dropped');
     const gb = (await write('POST', '/api/galleries', { name: 'Smoke (visage)' })).json.id;
     check((await write('POST', '/api/art', { gallery: 'gnot-a-form', versions: [img(upA)] })).status === 400, 'a plate cannot name a form that does not exist');
     const inForm = await write('POST', '/api/art', { gallery: ga.id, title: 'In a form', versions: [img(upA)] });
@@ -1144,12 +1129,11 @@ async function browserChecks() {
     await page.click('#btn-add-encounter');
     await page.fill('#ef-title', onlyMe);
     await page.check('#ef-sealed');
-    const helpSays = await page.textContent('#ef-text-help');
     await page.fill('#ef-text', 'Nobody else. ' + xss);
     await page.click('#ef-submit');
     await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 10000 });
     const onlyHash = await page.evaluate(() => location.hash);
-    check((await page.textContent('#enc-title')) === onlyMe && await page.$('#enc-sealed:not([hidden])') !== null && /^Only you can read this/.test(helpSays) &&
+    check((await page.textContent('#enc-title')) === onlyMe && await page.$('#enc-sealed:not([hidden])') !== null &&
       await page.evaluate(() => !window.__xss), 'an encounter can be recorded only for the keeper, and its page says so');
     await page.click('#enc-back');
     check((await page.$$eval('#encounters .entry', (n, t) => n.filter((x) => x.textContent.includes(t) && x.querySelector('.entry-meta').textContent.startsWith('Only for you')).length, onlyMe)) === 1,
@@ -1232,7 +1216,7 @@ async function browserChecks() {
     // once the keeper's archive has arrived.
     await page.click('#btn-inscribe');
     await page.fill('#f-title', 'Kept to himself');
-    await page.selectOption('#f-encounter', { label: onlyMe + ', only for you' });
+    await page.selectOption('#f-encounter', { label: onlyMe + ' (private)' });
     await page.click('#f-submit');
     await page.waitForSelector('#view-detail:not([hidden])', { timeout: 10000 });
     const linked = await page.evaluate(() => (document.querySelector('#det-source .link-to') || {}).textContent);
@@ -1272,7 +1256,7 @@ async function browserChecks() {
     await page.click('#det-edit');
     await page.fill('#f-note', "Revised before the keeper's archive came.");
     release();
-    await page.waitForFunction((t) => (document.getElementById('f-encounter').selectedOptions[0] || {}).textContent === t + ', only for you', onlyMe, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction((t) => (document.getElementById('f-encounter').selectedOptions[0] || {}).textContent === t + ' (private)', onlyMe, { timeout: 10000 }).catch(() => {});
     await page.unroute('**/api/private');
     await page.click('#f-submit');
     await page.waitForSelector('#view-detail:not([hidden])', { timeout: 10000 }).catch(() => {});
@@ -1509,7 +1493,7 @@ async function browserChecks() {
     await page.bringToFront();
     const xStayed = await page.waitForFunction(() => document.getElementById('gate').hidden && !document.getElementById('tome').inert && document.getElementById('archive').open &&
       !document.getElementById('view-plate').hidden && document.activeElement.id === 'x-tome', null, { timeout: 3000 }).then(() => true, () => false);
-    check(xReady && xReady.overTome && !xReady.asks && xReady.text === '@dezeptdrac on X contains mature content. It opens in a new tab.' && xReady.focus === 'gate-x' &&
+    check(xReady && xReady.overTome && !xReady.asks && xReady.text === '@dezeptdrac on X contains mature content.' && xReady.focus === 'gate-x' &&
       xReady.href === 'https://x.com/dezeptdrac' && xReady.target === '_blank' && /\bnoopener\b/.test(xReady.rel) && /\bnoreferrer\b/.test(xReady.rel) &&
       xOut && xOut.url === 'https://x.com/dezeptdrac' && xOut.opener === null && xOut.referrer === '' && xStayed,
       `the tome's X mark warns too; with the age known, the warning holds the link at once, which opens x.com/dezeptdrac in a new tab without the opener or a referrer, and the tome stays as it was (${xOut ? xOut.url : 'no tab'})`);
@@ -1530,14 +1514,14 @@ async function browserChecks() {
     await minor.click('#gate-back');
     await minor.click('#pl-open');
     const askedAgain = await minor.$('#gate-field:not([hidden])') !== null;
-    check(/18 or older/.test(refusedText) && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
+    check(refusedText === '18+ only.' && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
       'under 18, the mature image stays covered for the visit and is never loaded');
     await minor.click('#gate-back');
     await minor.click('#x-tome');
     const xRefused = await minor.waitForSelector('#gate:not([hidden])', { timeout: 3000 }).then(() => minor.evaluate(() => ({
       text: document.getElementById('gate-text').textContent, asks: !document.getElementById('gate-field').hidden, link: !document.getElementById('gate-x').hidden }))).catch(() => null);
     await minor.click('#gate-back', { timeout: 3000 }).catch(() => {});
-    check(xRefused && xRefused.text === '@dezeptdrac on X is only for those 18 or older.' && !xRefused.asks && !xRefused.link && await minor.$('#gate[hidden]') !== null,
+    check(xRefused && xRefused.text === '18+ only.' && !xRefused.asks && !xRefused.link && await minor.$('#gate[hidden]') !== null,
       'under 18, the warning before X holds no link, and does not ask again');
     await minorCtx.close();
 
@@ -1587,7 +1571,7 @@ async function browserChecks() {
     const formAt = await page.evaluate(() => location.hash);
     await page.click('#btn-add-art');
     await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', path.join(FIXTURES, 'smoke.webm'));
-    await page.waitForFunction(() => /^A video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => /^Video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
     await page.fill('#af-title', 'Smoke cancelled');
     let letUploadGo, uploadHeld = new Promise((r) => { letUploadGo = r; });
     await page.route('**/api/uploads', async (route) => { await uploadHeld; route.continue().catch(() => {}); });
@@ -1611,11 +1595,11 @@ async function browserChecks() {
     // a video and a GIF, as one art piece in the same form: each plays in its own player
     await page.click('#btn-add-art');
     await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', path.join(FIXTURES, 'smoke.webm'));
-    await page.waitForFunction(() => /^A video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => /^Video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
     const loopOffered = await page.$('#af-versions .row >> nth=0 >> [data-k="loop-box"]:not([hidden])') !== null;
     await page.click('#af-add');
     await page.setInputFiles('#af-versions .row >> nth=1 >> [data-k="file"]', path.join(FIXTURES, 'smoke.gif'));
-    await page.waitForFunction(() => /^An animated GIF/.test(document.querySelectorAll('#af-versions [data-k="status"]')[1].textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => /^GIF/.test(document.querySelectorAll('#af-versions [data-k="status"]')[1].textContent), null, { timeout: 10000 }).catch(() => {});
     await page.fill('#af-title', 'Smoke animation');
     await page.click('#af-submit');
     await page.waitForFunction(() => document.getElementById('pl-title').textContent === 'Smoke animation' && !!document.querySelector('#pl-video video'), null, { timeout: 20000 }).catch(() => {});
@@ -1638,7 +1622,7 @@ async function browserChecks() {
     check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open .gif img'); return i && i.complete && i.naturalWidth === 48 && !document.querySelector('#pl-video video'); }, null, { timeout: 5000 }).then(() => true, () => false),
       'switching to the GIF takes the video away, and the GIF plays');
     await page.click('#pl-media > .play-btn');
-    check(!!(await page.$('#pl-open .gif canvas')) && (await page.getAttribute('#pl-media > .play-btn', 'aria-label')) === 'Play the animation', 'the GIF can be paused on the frame it is on');
+    check(!!(await page.$('#pl-open .gif canvas')) && (await page.getAttribute('#pl-media > .play-btn', 'aria-label')) === 'Play', 'the GIF can be paused on the frame it is on');
     await page.click('#pl-media > .play-btn');
     await page.click('#pl-later');
     check(await page.waitForFunction(() => document.getElementById('pl-no').textContent === 'Art piece II. · Version 2' && !!document.querySelector('#pl-open .gif') &&
@@ -1688,7 +1672,7 @@ async function browserChecks() {
       art: [...document.querySelectorAll('#st-art .st-row')].map((r) => r.querySelector('.st-name').textContent.replace(/^[IVXLCDM]+\.\s*/, '') + '=' + r.querySelector('.st-n').textContent).sort().join('|'),
       hash: location.hash,
     }));
-    check(statsShown && numbers.tallies === '1,1,1,1' && numbers.chapters === '1,1,1,0' && numbers.form === '1 visitor opened the form' && numbers.art === 'Smoke animation=1|Smoke plate=0' && numbers.hash === '#stats',
+    check(statsShown && numbers.tallies === '1,1,1,1' && numbers.chapters === '1,1,1,0' && numbers.form === '1 visitor' && numbers.art === 'Smoke animation=1|Smoke plate=0' && numbers.hash === '#stats',
       `the keeper's Statistics count a visitor's browsing, and nothing of the keeper's own: one visitor, the chapters, form and piece they opened (${JSON.stringify(numbers)})`);
     check(readerAtStats, 'a visitor has no Statistics tab, and the address of the statistics shows them Character Knowledge instead');
     await page.click('#clasp');
@@ -1829,7 +1813,7 @@ async function browserChecks() {
     await page.fill('#seal-word', FORGOT_WORD);
     await page.click('#seal-go');
     check(forgot.code === 0 && await page.waitForFunction(() => !document.getElementById('view-encounter').hidden &&
-      /can no longer be read/.test(document.getElementById('enc-text').textContent), null, { timeout: 15000 }).then(() => true, () => false) &&
+      /^Unreadable/.test(document.getElementById('enc-text').textContent), null, { timeout: 15000 }).then(() => true, () => false) &&
       await page.$('#enc-private[hidden]') !== null && await page.$('#enc-edit[hidden]') !== null,
       'an encounter only for the keeper written under a forgotten word says once that it can no longer be read, and can only be removed');
     check(errors.length === 0, `no console errors or CSP violations${errors.length ? ': ' + errors.join(' | ') : ''}`);
@@ -1847,148 +1831,23 @@ async function browserChecks() {
   }
 }
 
-// ---------- 3. the claude.ai Artifact preview ----------
-async function previewChecks() {
+// ---------- 3. the build ----------
+// build.py takes the comments out of the page's script and style. Minified, they must be the same code as the source's
+// (with the build's placeholders filled in), and no comment of the source may be left in the page.
+async function buildChecks() {
+  const esbuild = require('esbuild');
   const index = fs.readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8');
-  check(!/ca-preview|CA_PREVIEW =|ca-model|ca-files|ca-private/.test(index), 'the real page carries no preview stand-in, no embedded model, no example images and no example private text');
-  // build.py takes the comments out of the page's script and style. Minified, they must be the same code as the
-  // source's (with the build's placeholders filled in), and no comment of the source may be left in the page.
-  {
-    const esbuild = require('esbuild');
-    const source = fs.readFileSync(path.join(ROOT, 'src', 'page.html'), 'utf8');
-    const APP = /<script id="ca-app">([\s\S]*?)<\/script>/, STYLE = /<style id="ca-style">([\s\S]*?)<\/style>/;
-    const min = (code, loader) => esbuild.transformSync(code, { loader, minify: true, legalComments: 'none' }).code;
-    const app = index.match(APP)[1], filled = {};
-    for (const k of ['MODEL_URL', 'THREE_URL', 'GLTF_URL']) filled[k] = app.match(new RegExp(`var ${k} = "([^"]*)"`))[1];
-    const sameApp = min(source.match(APP)[1].replace(/__(MODEL_URL|THREE_URL|GLTF_URL)__/g, (_, k) => filled[k]), 'js') === min(app, 'js');
-    const sameStyle = min(source.match(STYLE)[1].replace('__FONTS__', ''), 'css') === min(index.match(STYLE)[1].replace(/^(?:\s*@font-face\s*\{[^}]*\})+/, ''), 'css');
-    const comments = [...source.matchAll(/^\s*(?:\/\/|\/\*)\s*(.{24,}?)\s*(?:\*\/)?$/gm)].map((m) => m[1]);
-    const left = comments.filter((c) => index.includes(c));
-    check(sameApp && sameStyle && comments.length > 200 && left.length === 0,
-      `the served page carries none of the source's comments, and its script and style are the source's code${left.length ? ': ' + left.slice(0, 3).join(' | ') : ''}`);
-  }
-  const html = ARTIFACT_SKELETON + fs.readFileSync(path.join(ROOT, 'dist', 'preview.html'), 'utf8') + '</body></html>';
-  const server = http.createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html); });
-  await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  const browser = await launch();
-  try {
-    const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
-    const errors = [];
-    page.on('pageerror', (e) => errors.push(e.message));
-    page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });
-    const open = () => enter(page, 'knowledge');
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);
-    check(await open().then(() => true, () => false), 'preview: the 3D model loads from the page itself under the Artifact CSP, and the hub opens the tome');
-    await page.click('.tab[data-book="art"]');
-    check(await page.waitForFunction(() => [...document.querySelectorAll('#galleries .gallery-btn b')].map((b) => b.textContent).join('|') === 'Example: Character (OC)|Example: Character (Dracthyr)',
-      null, { timeout: 5000 }).then(() => true, () => false), 'preview: Art opens on his example forms');
-    await page.click('#galleries .gallery-btn >> nth=1');
-    check(await page.waitForFunction(() => {
-      const imgs = [...document.querySelectorAll('#plates img')];
-      return imgs.length === 2 && imgs.every((i) => i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/jpeg')) && document.querySelectorAll('#plates .spoiler').length === 1;
-    }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: the example plates load from the page itself, and the one flagged mature shows only its cover');
-    await page.focus('#plates .plate-btn:has(.spoiler)'); // by keyboard: the age check, and going back from it, leave the focus on the piece's cover
-    await page.keyboard.press('Enter');
-    const asked = await page.waitForSelector('#gate:not([hidden]) #gate-field:not([hidden])', { timeout: 3000 }).then(() => true, () => false);
-    await page.click('#gate-back');
-    check(asked && await page.evaluate(() => document.activeElement === document.getElementById('pl-open') && !!document.querySelector('#pl-open .spoiler')),
-      'preview: opened from the list, an art piece whose main image is mature asks first, and going back leaves the focus on its cover');
-    await page.click('#pl-back');
-    await page.click('#plates .plate-btn >> nth=0');
-    await page.click('#pl-versions .ver-btn >> nth=2');
-    await page.fill('#gate-age', '30');
-    await page.click('#gate-go');
-    check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false),
-      'preview: the age check works without storage');
-    // The viewer opens no window a script asks for, so X has to open from a real link, followed by hand
-    await page.context().route('https://x.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'X' }));
-    await page.click('#x-tome');
-    const xLink = await page.waitForSelector('#gate:not([hidden]) #gate-x:not([hidden])', { timeout: 3000 }).then(() => page.$eval('#gate-x', (a) => a.tagName + ' ' + a.getAttribute('href') + ' ' + a.target), () => '');
-    const [xTab] = await Promise.all([page.context().waitForEvent('page', { timeout: 5000 }).catch(() => null), page.click('#gate-x')]);
-    if (xTab) await xTab.waitForLoadState('domcontentloaded').catch(() => {});
-    const xUrl = xTab ? xTab.url() : '';
-    if (xTab) await xTab.close();
-    check(xLink === 'A https://x.com/dezeptdrac _blank' && xUrl === 'https://x.com/dezeptdrac' && await page.waitForSelector('#gate', { state: 'hidden', timeout: 3000 }).then(() => true, () => false),
-      `preview: the X mark on the tome warns first, then a real link opens X (${xUrl || 'no tab'})`);
-    await page.click('#pl-back');
-    await page.click('#gl-back');
-    await page.click('#galleries .gallery-btn >> nth=0');
-    check((await page.$$eval('#plates .media-badge', (n) => n.map((x) => x.textContent).join('|'))) === 'GIF|Video', 'preview: the GIF and the video are marked in the list');
-    await page.click('#plates .plate-btn >> nth=1');
-    await page.click('#pl-video .vid-big');
-    check(await page.waitForFunction(() => { const v = document.querySelector('#pl-video video'); return v && !v.paused && v.currentTime > 0.3 && v.src.startsWith('data:video/webm'); }, null, { timeout: 10000 }).then(() => true, () => false),
-      'preview: the example video plays from the page itself');
-    await page.click('#pl-back');
-    await page.click('#plates .plate-btn >> nth=0');
-    check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open .gif img'); return i && i.complete && i.naturalWidth > 0 && i.src.startsWith('data:image/gif'); }, null, { timeout: 5000 }).then(() => true, () => false),
-      'preview: the example GIF plays from the page itself');
-    await page.screenshot({ path: path.join(OUT, 'preview-gif.png') });
-    await page.click('.tab[data-book="about"]');
-    check((await page.textContent('#ab-dir')).includes('Dracthyr') && !(await page.$('#leaf-about img')) && (await page.$$('#ab-traits .trait')).length > 0 &&
-      (await page.$$('#ab-sections h6')).length > 0, 'preview: the About page shows its example profile');
-    await page.click('.tab[data-book="encounters"]');
-    const sealedBefore = await page.$$eval('#encounters .entry-title', (n) => n.some((x) => x.textContent === 'Example: an encounter only for you'));
-    await page.click('.tab[data-book="knowledge"]');
-    await page.click('#clasp');
-    check((await page.textContent('#seal-text')).includes('preview'), 'preview: the seal panel says it is the preview and gives the word');
-    await page.fill('#seal-word', 'not the word');
-    await page.click('#seal-go');
-    await page.waitForSelector('#seal-error:not([hidden])', { timeout: 5000 });
-    await page.fill('#seal-word', 'preview');
-    await page.click('#seal-go');
-    check(await page.waitForSelector('#btn-inscribe:not([hidden])', { timeout: 5000 }).then(() => true, () => false), 'preview: a wrong word is refused, "preview" unseals');
-    await page.click('.tab[data-book="about"]');
-    await page.click('#btn-amend');
-    await page.fill('#abf-title', 'Preview title');
-    await page.click('#abf-submit');
-    check(await page.waitForFunction(() => document.getElementById('ab-title').textContent === 'Preview title' && !document.getElementById('view-about').hidden, null, { timeout: 5000 }).then(() => true, () => false) &&
-      (await page.$$('#ab-traits .trait')).length > 0, 'preview: the About page can be amended');
-    await page.click('.tab[data-book="encounters"]');
-    await page.click('#encounters .entry >> nth=0');
-    check(await page.waitForSelector('#enc-private:not([hidden])', { timeout: 5000 }).then(() => true, () => false) &&
-      (await page.textContent('#enc-private-text')).includes('example private section'), "preview: the example encounter's private section shows once unsealed");
-    check(!sealedBefore && (await page.$$eval('#encounters .entry-title', (n) => n.some((x) => x.textContent === 'Example: an encounter only for you'))),
-      'preview: the example encounter only for the keeper shows only once unsealed');
-    await page.click('.tab[data-book="knowledge"]');
-    await page.click('#btn-inscribe');
-    await page.fill('#f-title', 'Preview record');
-    await page.click('#f-submit');
-    await page.waitForSelector('#view-detail:not([hidden])', { timeout: 5000 });
-    check((await page.textContent('#det-title')) === 'Preview record', 'preview: records can be inscribed');
-    await page.click('.tab[data-book="art"]');
-    await page.click('#galleries .gallery-btn >> nth=0');
-    await page.click('#btn-add-art');
-    await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', { name: 'preview.png', mimeType: 'image/png', buffer: makePng(120, 90) });
-    await page.waitForFunction(() => /120 × 90/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 10000 }).catch(() => {});
-    await page.click('#af-add');
-    await page.setInputFiles('#af-versions .row >> nth=1 >> [data-k="file"]', path.join(FIXTURES, 'smoke.gif'));
-    await page.waitForFunction(() => /^An animated GIF/.test(document.querySelectorAll('#af-versions [data-k="status"]')[1].textContent), null, { timeout: 10000 }).catch(() => {});
-    await page.fill('#af-title', 'Preview plate');
-    await page.click('#af-submit');
-    check(await page.waitForFunction(() => {
-      const i = document.querySelector('#pl-open img');
-      return document.getElementById('pl-title').textContent === 'Preview plate' && i && i.complete && i.naturalWidth === 120 && i.src.startsWith('data:image/webp');
-    }, null, { timeout: 10000 }).then(() => true, () => false), 'preview: a plate can be uploaded and is shown from memory');
-    await page.click('#pl-versions .ver-btn >> nth=1');
-    check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open .gif img'); return i && i.complete && i.naturalWidth === 48 && i.src.startsWith('data:image/gif'); }, null, { timeout: 5000 }).then(() => true, () => false),
-      'preview: a GIF can be uploaded too');
-    await page.click('#tab-stats');
-    check(await page.waitForFunction(() => !document.getElementById('st-body').hidden && /^Example numbers/.test(document.getElementById('st-note').textContent) &&
-      document.querySelectorAll('#st-chart .st-cols li').length === 30 && [...document.querySelectorAll('#st-art .st-name')].some((n) => /Example: a video/.test(n.textContent)), null, { timeout: 5000 })
-      .then(() => true, () => false), 'preview: the Statistics tab shows made-up numbers, said to be examples, for the example art');
-    await page.click('.tab[data-book="knowledge"]');
-    await page.screenshot({ path: path.join(OUT, 'preview.png') });
-    await page.evaluate(() => history.replaceState(null, '', location.pathname)); // reload the page itself, not a chapter's address
-    await page.reload();
-    await open();
-    await page.waitForTimeout(500);
-    check(await page.$('#btn-inscribe[hidden]') !== null && !(await page.$$eval('#records .entry-title', (n) => n.some((x) => x.textContent === 'Preview record'))) &&
-      (await page.textContent('#ab-title')) === 'Archivist', 'preview: a reload forgets the changes and seals the archive again');
-    check(errors.length === 0, `preview: no console errors or CSP violations${errors.length ? ': ' + errors.join(' | ') : ''}`);
-  } finally {
-    await browser.close();
-    server.close();
-  }
+  const source = fs.readFileSync(path.join(ROOT, 'src', 'page.html'), 'utf8');
+  const APP = /<script id="ca-app">([\s\S]*?)<\/script>/, STYLE = /<style id="ca-style">([\s\S]*?)<\/style>/;
+  const min = (code, loader) => esbuild.transformSync(code, { loader, minify: true, legalComments: 'none' }).code;
+  const app = index.match(APP)[1], filled = {};
+  for (const k of ['MODEL_URL', 'THREE_URL', 'GLTF_URL']) filled[k] = app.match(new RegExp(`var ${k} = "([^"]*)"`))[1];
+  const sameApp = min(source.match(APP)[1].replace(/__(MODEL_URL|THREE_URL|GLTF_URL)__/g, (_, k) => filled[k]), 'js') === min(app, 'js');
+  const sameStyle = min(source.match(STYLE)[1].replace('__FONTS__', ''), 'css') === min(index.match(STYLE)[1].replace(/^(?:\s*@font-face\s*\{[^}]*\})+/, ''), 'css');
+  const comments = [...source.matchAll(/^\s*(?:\/\/|\/\*)\s*(.{24,}?)\s*(?:\*\/)?$/gm)].map((m) => m[1]);
+  const left = comments.filter((c) => index.includes(c));
+  check(sameApp && sameStyle && comments.length > 200 && left.length === 0,
+    `the served page carries none of the source's comments, and its script and style are the source's code${left.length ? ': ' + left.slice(0, 3).join(' | ') : ''}`);
 }
 
 // ---------- the sites on one machine ----------
@@ -2070,7 +1929,7 @@ async function sitesChecks() {
   leaf('origin-ca', path.join(certs, 'friends'), ['*.friends.test', 'friends.test'], 60);
   leaf('origin-ca', path.join(certs, 'friend.friends.test'), ['friend.friends.test'], 20); // shorter, but named for the domain: it goes first
   const friend = path.join(sitesDir, 'friend');
-  for (const part of ['build.py', 'src', 'server', 'assets/fonts', 'assets/vendor', 'assets/examples']) fs.cpSync(path.join(ROOT, part), path.join(friend, part), { recursive: true });
+  for (const part of ['build.py', 'src', 'server', 'assets/fonts', 'assets/vendor']) fs.cpSync(path.join(ROOT, part), path.join(friend, part), { recursive: true });
   const built = spawnSync('python3', ['build.py'], { cwd: friend, encoding: 'utf8' });
   fs.symlinkSync(friend, path.join(sitesDir, 'mine')); // a third site, from the same copy
   const one = sites('link', 'dezept', 'archive.test'), two = sites('link', 'friend', 'friend.friends.test');
@@ -2267,7 +2126,7 @@ function launch() {
   fs.mkdirSync(OUT, { recursive: true });
   const only = (process.env.SMOKE_ONLY || '').split(',').filter(Boolean);
   for (const [key, name, fn] of [['api', 'API checks', apiChecks], ['private', 'private section checks', privateChecks], ['race', 'word race checks', wordRaceChecks],
-    ['stats', 'statistics checks', statsChecks], ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks], ['sites', 'sites checks', sitesChecks]]) {
+    ['stats', 'statistics checks', statsChecks], ['browser', 'browser checks', browserChecks], ['build', 'build checks', buildChecks], ['sites', 'sites checks', sitesChecks]]) {
     if (only.length && !only.includes(key)) { console.log(`SKIP  ${name} (SMOKE_ONLY)`); continue; }
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }
