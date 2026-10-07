@@ -1514,14 +1514,14 @@ async function browserChecks() {
     await minor.click('#gate-back');
     await minor.click('#pl-open');
     const askedAgain = await minor.$('#gate-field:not([hidden])') !== null;
-    check(/18 or older/.test(refusedText) && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
+    check(refusedText === '18+ only.' && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
       'under 18, the mature image stays covered for the visit and is never loaded');
     await minor.click('#gate-back');
     await minor.click('#x-tome');
     const xRefused = await minor.waitForSelector('#gate:not([hidden])', { timeout: 3000 }).then(() => minor.evaluate(() => ({
       text: document.getElementById('gate-text').textContent, asks: !document.getElementById('gate-field').hidden, link: !document.getElementById('gate-x').hidden }))).catch(() => null);
     await minor.click('#gate-back', { timeout: 3000 }).catch(() => {});
-    check(xRefused && xRefused.text === '@dezeptdrac on X is only for those 18 or older.' && !xRefused.asks && !xRefused.link && await minor.$('#gate[hidden]') !== null,
+    check(xRefused && xRefused.text === '18+ only.' && !xRefused.asks && !xRefused.link && await minor.$('#gate[hidden]') !== null,
       'under 18, the warning before X holds no link, and does not ask again');
     await minorCtx.close();
 
