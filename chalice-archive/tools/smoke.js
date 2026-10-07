@@ -76,16 +76,19 @@ Checks:
      section once the tome is closed. An encounter only for the keeper written under a forgotten word says once that
      it can no longer be read. A drag to select text, let go outside the tome, does not close it. Cancel while an art
      piece uploads stops it: nothing is saved, and the page stays where the keeper went. A session check answered after
-     the tab was sealed does not unseal it again. The X link sits in the stage's corner and opens x.com/dezeptdrac in a
-     new tab without the opener or a referrer, waking nothing. A visitor's browsing shows in the keeper's Statistics,
+     the tab was sealed does not unseal it again. The X marks, in the stage's corner and on the tome in every chapter
+     (also on a phone's screen), warn of mature content first and ask the age unless it is known; only at 18 or older
+     does the warning hold the link, which opens x.com/dezeptdrac in a new tab without the opener or a referrer, and
+     under 18 there is none; nothing wakes the construct. A visitor's browsing shows in the keeper's Statistics,
      the keeper's own does not; a visitor has no Statistics tab, and their address shows them Character Knowledge;
      sealed, the numbers leave the page; the keeper's address of them opens them after a reload; on a phone the
      keeper's panel leads there.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model, the example forms and their plates, GIF and video load from the page; an
      art piece whose main image is mature, opened from the list by keyboard, asks first and leaves the focus on its
-     cover; the stand-in server accepts only "preview", the About page can be amended and records and plates added, and a reload
-     forgets them; the Statistics tab shows made-up numbers, said to be examples. The real page carries no trace of the stand-in.
+     cover; the X mark warns first, then a real link opens X; the stand-in server accepts only "preview", the About
+     page can be amended and records and plates added, and a reload forgets them; the Statistics tab shows made-up
+     numbers, said to be examples. The real page carries no trace of the stand-in.
 Screenshots go to tools/.smoke/.
 */
 const fs = require('fs');
@@ -991,21 +994,36 @@ async function browserChecks() {
     check(await page.evaluate(() => window.crossOriginIsolated === true), 'the page is isolated from every other site (COOP and COEP), and still loads everything it needs');
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(OUT, 'landing.png') });
-    // The keeper's X account: a small mark in the stage's corner, apart from the construct. A click on it opens a tab
-    // (x.com answered here, not asked) and does not wake the construct.
+    // The keeper's X account, which holds mature content: a small mark in the stage's corner, apart from the construct.
+    // A click on it warns first, over the landing, and asks the age, which nobody has given yet; there is no way on to
+    // X until it is answered. Go back and Escape leave the landing as it was, and nothing wakes the construct.
+    await ctx.route('https://x.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'X' })); // answered here, not asked
+    const tabsOpened = [], onTab = (p) => tabsOpened.push(p);
+    ctx.on('page', onTab);
     const social = await page.evaluate(() => {
-      const a = document.querySelector('#stage a.social'), r = a && a.getBoundingClientRect(), c = document.getElementById('construct').getBoundingClientRect();
-      return a && { href: a.getAttribute('href'), target: a.target, rel: a.rel, name: a.getAttribute('aria-label'), corner: r.right > innerWidth - 60 && r.bottom > innerHeight - 60, apart: r.left > c.right || r.top > c.bottom };
+      const b = document.getElementById('x-stage'), r = b.getBoundingClientRect(), c = document.getElementById('construct').getBoundingClientRect();
+      return { tag: b.tagName, href: b.hasAttribute('href'), name: b.getAttribute('aria-label'), corner: r.right > innerWidth - 60 && r.bottom > innerHeight - 60, apart: r.left > c.right || r.top > c.bottom };
     });
-    await ctx.route('https://x.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'X' }));
-    const [xTab] = await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), page.click('#stage a.social')]);
-    if (xTab) await xTab.waitForLoadState('domcontentloaded').catch(() => {});
-    const xUrl = xTab ? xTab.url() : '';
-    if (xTab) await xTab.close();
-    await page.bringToFront();
-    check(social && social.href === 'https://x.com/dezeptdrac' && social.target === '_blank' && /\bnoopener\b/.test(social.rel) && /\bnoreferrer\b/.test(social.rel) &&
-      social.name === '@dezeptdrac on X' && social.corner && social.apart && xUrl === 'https://x.com/dezeptdrac' && await page.$('#hub[hidden]') !== null,
-      `the X link sits in the stage's corner, apart from the construct, and opens x.com/dezeptdrac in a new tab without the opener or a referrer, waking nothing (${xUrl || 'no tab'})`);
+    await page.click('#x-stage');
+    const gateNow = () => page.evaluate(() => {
+      const g = document.getElementById('gate');
+      return { open: !g.hidden, overLanding: g.parentElement === document.body && document.getElementById('stage').inert, title: document.getElementById('gate-title').textContent,
+        text: document.getElementById('gate-text').textContent, asks: !document.getElementById('gate-field').hidden, link: !document.getElementById('gate-x').hidden, focus: document.activeElement.id };
+    });
+    const warned = await page.waitForFunction(() => !document.getElementById('gate').hidden && document.activeElement.id === 'gate-age', null, { timeout: 3000 }).then(gateNow, () => gateNow());
+    await page.click('#gate-back');
+    const wentBack = await gateNow();
+    await page.click('#x-stage');
+    await page.waitForSelector('#gate:not([hidden])', { timeout: 3000 }).catch(() => {});
+    await page.keyboard.press('Escape'); // at once, maybe before the card has the focus
+    const escaped = await gateNow();
+    if (escaped.open) await page.click('#gate-back'); // so that a failure here does not take every check after it down too
+    ctx.off('page', onTab);
+    check(social.tag === 'BUTTON' && !social.href && social.name === '@dezeptdrac on X' && social.corner && social.apart &&
+      warned && warned.open && warned.overLanding && warned.title === 'Mature content' && warned.text === '@dezeptdrac on X contains mature content. How old are you?' &&
+      warned.asks && !warned.link && warned.focus === 'gate-age' && !wentBack.open && wentBack.focus === 'x-stage' && !escaped.open && escaped.focus === 'x-stage' &&
+      !(await page.evaluate(() => document.getElementById('stage').inert)) && tabsOpened.length === 0 && await page.$('#hub[hidden]') !== null,
+      "the X mark sits in the stage's corner, apart from the construct; it warns of mature content first and asks the age, with no way on to X yet, and Go back or Escape leave the landing as it was, waking nothing");
 
     const box = await (await page.$('#construct')).boundingBox();
     const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
@@ -1464,6 +1482,26 @@ async function browserChecks() {
       'uncovered there, it leaves the focus in the full-size view, and the arrow keys go on stepping');
     await page.keyboard.press('Escape');
     check(await page.$('#lightbox[hidden]') !== null && await page.$('#archive[open]') !== null, 'Escape closes only the full-size view');
+    // The tome carries the X mark too. The age is known by now, so the warning holds the link at once, and the link
+    // opens X in a new tab, without the opener or a referrer; the tome stays where it was.
+    await page.click('#x-tome');
+    const xReady = await page.waitForFunction(() => !document.getElementById('gate-x').hidden && document.activeElement.id === 'gate-x', null, { timeout: 3000 }).then(() => page.evaluate(() => {
+      const a = document.getElementById('gate-x');
+      return { overTome: document.getElementById('archive').contains(document.getElementById('gate')) && document.getElementById('tome').inert, asks: !document.getElementById('gate-field').hidden,
+        text: document.getElementById('gate-text').textContent, focus: document.activeElement.id, href: a.getAttribute('href'), target: a.target, rel: a.rel };
+    }), () => null);
+    const [xTab] = xReady ? await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), page.click('#gate-x')]) : [null];
+    if (!xReady) await page.click('#gate-back', { timeout: 3000 }).catch(() => {});
+    if (xTab) await xTab.waitForLoadState('domcontentloaded').catch(() => {});
+    const xOut = xTab ? await xTab.evaluate(() => ({ url: location.href, opener: window.opener, referrer: document.referrer })).catch(() => null) : null;
+    if (xTab) await xTab.close();
+    await page.bringToFront();
+    const xStayed = await page.waitForFunction(() => document.getElementById('gate').hidden && !document.getElementById('tome').inert && document.getElementById('archive').open &&
+      !document.getElementById('view-plate').hidden && document.activeElement.id === 'x-tome', null, { timeout: 3000 }).then(() => true, () => false);
+    check(xReady && xReady.overTome && !xReady.asks && xReady.text === '@dezeptdrac on X contains mature content. It opens in a new tab.' && xReady.focus === 'gate-x' &&
+      xReady.href === 'https://x.com/dezeptdrac' && xReady.target === '_blank' && /\bnoopener\b/.test(xReady.rel) && /\bnoreferrer\b/.test(xReady.rel) &&
+      xOut && xOut.url === 'https://x.com/dezeptdrac' && xOut.opener === null && xOut.referrer === '' && xStayed,
+      `the tome's X mark warns too; with the age known, the warning holds the link at once, which opens x.com/dezeptdrac in a new tab without the opener or a referrer, and the tome stays as it was (${xOut ? xOut.url : 'no tab'})`);
 
     // someone under 18, in a browser of their own
     const minorCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -1483,7 +1521,55 @@ async function browserChecks() {
     const askedAgain = await minor.$('#gate-field:not([hidden])') !== null;
     check(/18 or older/.test(refusedText) && !askedAgain && await minor.$('#gate:not([hidden])') !== null && await minor.$('#pl-open .spoiler') !== null && !loadedMature(minorSeen),
       'under 18, the mature image stays covered for the visit and is never loaded');
+    await minor.click('#gate-back');
+    await minor.click('#x-tome');
+    const xRefused = await minor.waitForSelector('#gate:not([hidden])', { timeout: 3000 }).then(() => minor.evaluate(() => ({
+      text: document.getElementById('gate-text').textContent, asks: !document.getElementById('gate-field').hidden, link: !document.getElementById('gate-x').hidden }))).catch(() => null);
+    await minor.click('#gate-back', { timeout: 3000 }).catch(() => {});
+    check(xRefused && xRefused.text === '@dezeptdrac on X is only for those 18 or older.' && !xRefused.asks && !xRefused.link && await minor.$('#gate[hidden]') !== null,
+      'under 18, the warning before X holds no link, and does not ask again');
     await minorCtx.close();
+
+    // On a phone, the X mark on the landing warns and asks; at 18 or older the warning then holds the link, which opens
+    // X. The tome's mark is in every chapter, on the screen and clear of the corner, the ribbon and the clasp, even with
+    // the tome pushed down by a tab on two lines (Character Knowledge's, as it is open).
+    const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await phoneCtx.route('https://x.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'X' }));
+    const phone = watch(await phoneCtx.newPage());
+    await phone.goto(s.url);
+    await settle(phone);
+    await phone.tap('#x-stage');
+    await phone.waitForSelector('#gate:not([hidden]) #gate-field:not([hidden])', { timeout: 3000 }).catch(() => {});
+    await phone.fill('#gate-age', '30');
+    await phone.keyboard.press('Enter');
+    const phoneReady = await phone.waitForFunction(() => !document.getElementById('gate-x').hidden && document.getElementById('gate-field').hidden && document.activeElement.id === 'gate-x', null, { timeout: 3000 }).then(() => true, () => false);
+    const [phoneTab] = phoneReady ? await Promise.all([phoneCtx.waitForEvent('page', { timeout: 5000 }).catch(() => null), phone.tap('#gate-x')]) : [null];
+    if (phoneTab) await phoneTab.waitForLoadState('domcontentloaded').catch(() => {});
+    const phoneUrl = phoneTab ? phoneTab.url() : '';
+    if (phoneTab) await phoneTab.close();
+    await phone.bringToFront();
+    check(phoneReady && phoneUrl === 'https://x.com/dezeptdrac' && await phone.waitForFunction(() => document.getElementById('gate').hidden && !document.getElementById('stage').inert, null, { timeout: 3000 }).then(() => true, () => false),
+      `on a phone, at 18 or older, the warning on the landing then holds the link to X, which opens it (${phoneUrl || 'no tab'})`);
+    await phone.evaluate(() => { location.hash = '#knowledge'; });
+    await phone.waitForSelector('#archive[open]', { timeout: 10000 }).catch(() => {});
+    await phone.waitForTimeout(700); // the tome's entrance
+    const markAt = () => phone.evaluate(() => {
+      const box = (n) => n.getBoundingClientRect(), x = box(document.getElementById('x-tome')), apart = (a) => x.right <= a.left || x.left >= a.right || x.bottom <= a.top || x.top >= a.bottom;
+      const hit = document.elementFromPoint(x.left + x.width / 2, x.top + x.height / 2);
+      return x.width >= 24 && x.left >= 0 && x.right <= innerWidth && x.top >= 0 && x.bottom <= innerHeight && apart(box(document.querySelector('#tome .corner.br'))) &&
+        apart(box(document.querySelector('#tome .ribbon'))) && apart(box(document.getElementById('clasp'))) && !!hit && !!hit.closest('#x-tome');
+    });
+    const markSeen = [];
+    for (const [w, h] of [[390, 844], [320, 568], [844, 390]]) {
+      await phone.setViewportSize({ width: w, height: h });
+      for (const book of ['about', 'art', 'knowledge', 'encounters']) {
+        await phone.tap(`.tab[data-book="${book}"]`);
+        if (!(await markAt())) markSeen.push(`${w}×${h} ${book}`);
+      }
+    }
+    check(markSeen.length === 0, `the tome's X mark is in every chapter, on the screen of a phone and clear of the corner, the ribbon and the clasp${markSeen.length ? ': not at ' + markSeen.join(', ') : ''}`);
+    await phone.screenshot({ path: path.join(OUT, 'phone-x.png') });
+    await phoneCtx.close();
 
     // Cancel while an art piece is uploading stops it. The upload used to go on, the piece was saved anyway, and the
     // page then jumped to it from wherever the keeper was, throwing away the record being written there.
@@ -1804,6 +1890,16 @@ async function previewChecks() {
     await page.click('#gate-go');
     check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false),
       'preview: the age check works without storage');
+    // The viewer opens no window a script asks for, so X has to open from a real link, followed by hand
+    await page.context().route('https://x.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'X' }));
+    await page.click('#x-tome');
+    const xLink = await page.waitForSelector('#gate:not([hidden]) #gate-x:not([hidden])', { timeout: 3000 }).then(() => page.$eval('#gate-x', (a) => a.tagName + ' ' + a.getAttribute('href') + ' ' + a.target), () => '');
+    const [xTab] = await Promise.all([page.context().waitForEvent('page', { timeout: 5000 }).catch(() => null), page.click('#gate-x')]);
+    if (xTab) await xTab.waitForLoadState('domcontentloaded').catch(() => {});
+    const xUrl = xTab ? xTab.url() : '';
+    if (xTab) await xTab.close();
+    check(xLink === 'A https://x.com/dezeptdrac _blank' && xUrl === 'https://x.com/dezeptdrac' && await page.waitForSelector('#gate', { state: 'hidden', timeout: 3000 }).then(() => true, () => false),
+      `preview: the X mark on the tome warns first, then a real link opens X (${xUrl || 'no tab'})`);
     await page.click('#pl-back');
     await page.click('#gl-back');
     await page.click('#galleries .gallery-btn >> nth=0');

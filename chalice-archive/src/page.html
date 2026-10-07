@@ -95,7 +95,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .motes { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* the keeper's X (Twitter): a small, dim mark in the stage's corner, out of everyone's way */
-.social { position: absolute; z-index: 1; right: max(14px, env(safe-area-inset-right, 0px)); bottom: 14px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: var(--ink-faint); transition: color .3s; -webkit-tap-highlight-color: transparent; }
+.social { position: absolute; z-index: 1; right: max(14px, env(safe-area-inset-right, 0px)); bottom: 14px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; color: var(--ink-faint); background: none; transition: color .3s; -webkit-tap-highlight-color: transparent; }
 .social svg { width: 15px; height: 15px; }
 .social:hover, .social:focus-visible { color: var(--teal); }
 
@@ -208,6 +208,10 @@ button, input, textarea { font: inherit; color: inherit; }
 .clasp svg { width: 9px; height: 15px; }
 .clasp:hover, .clasp[aria-expanded="true"] { filter: brightness(1.15); }
 .clasp.is-open { color: var(--ink-verdigris); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5), 0 0 10px rgb(var(--teal-rgb) / .55); }
+/* the X mark again, in every chapter: a leather stud on the binding's lower edge, between the ribbon and the corner */
+.social-tome { position: absolute; z-index: 4; right: 62px; bottom: -12px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid rgb(var(--brass-rgb) / .6); border-radius: 50%; cursor: pointer; color: rgb(var(--brass-rgb) / .85); background: radial-gradient(circle at 40% 32%, #4e2a1a, var(--leather-dark) 80%); box-shadow: 0 0 0 1px var(--leather-dark), 0 2px 5px rgb(0 0 0 / .55); -webkit-tap-highlight-color: transparent; }
+.social-tome svg { width: 12px; height: 12px; }
+.social-tome:hover, .social-tome:focus-visible { color: var(--brass-light); border-color: var(--brass); }
 .seal { position: absolute; z-index: 6; right: 24px; top: 50%; translate: 0 -50%; box-sizing: border-box; display: grid; gap: 12px; width: min(340px, calc(100% - 44px)); padding: 20px 20px 18px; border: 1px solid rgb(var(--sepia-rgb) / .6); border-radius: 3px; background: var(--grain), var(--parchment); color: var(--sepia); box-shadow: 0 0 0 3px var(--brass), 0 0 0 4px var(--leather-dark), 0 18px 40px rgb(0 0 0 / .55); }
 .seal-title { margin: 0; font-family: var(--font-title); font-size: 17px; font-weight: 700; letter-spacing: .06em; color: var(--rubric); }
 .seal-text { margin: 0; font-size: 16px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
@@ -447,6 +451,8 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .gate-card .input { font-size: 20px; appearance: textfield; -moz-appearance: textfield; }
 .gate-card .input::-webkit-inner-spin-button, .gate-card .input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .gate-card .form-actions { justify-content: center; }
+.gate :focus-visible { outline-color: var(--rubric); } /* over the landing too, where the focus is teal */
+a.btn { text-decoration: none; }
 
 /* the full-size plate, on dark ground over the tome */
 .lightbox { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; box-sizing: border-box; padding: 58px 76px 22px; background: radial-gradient(ellipse at 50% 45%, rgb(14 18 30 / .95), rgb(4 6 11 / .97)); animation: lb-in .25s ease-out; }
@@ -648,6 +654,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   .lb-next { right: calc(50% - 62px); }
   .btn-close { top: -8px; right: -6px; width: 34px; height: 34px; }
   .clasp { right: -8px; width: 18px; height: 44px; }
+  .social-tome { right: 40px; bottom: -9px; width: 26px; height: 26px; } /* little room below the tome on a phone */
   .seal { right: 50%; translate: 50% -50%; }
 }
 @media (max-width: 640px) {
@@ -699,7 +706,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       </button>
     </nav>
   </div>
-  <a class="social" href="https://x.com/dezeptdrac" target="_blank" rel="noopener noreferrer" aria-label="@dezeptdrac on X" title="@dezeptdrac on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"></path></svg></a>
+  <button class="social" id="x-stage" type="button" aria-label="@dezeptdrac on X" title="@dezeptdrac on X" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"></path></svg></button>
 </main>
 <dialog class="archive" id="archive" aria-labelledby="ar-title">
   <nav class="tabs" id="tabs" aria-label="Chapters">
@@ -1146,6 +1153,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
         </section>
       </div>
     </div>
+    <button class="social-tome" id="x-tome" type="button" aria-label="@dezeptdrac on X" title="@dezeptdrac on X" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"></path></svg></button>
   </div>
   <form class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" novalidate hidden>
     <div class="gate-card">
@@ -1159,6 +1167,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       <p class="form-error" id="gate-error" role="alert" hidden></p>
       <div class="form-actions">
         <button class="btn" id="gate-go" type="submit">Continue</button>
+        <a class="btn" id="gate-x" href="https://x.com/dezeptdrac" target="_blank" rel="noopener noreferrer" hidden>Continue to X</a>
         <button class="btn" id="gate-back" type="button">Go back</button>
       </div>
     </div>
@@ -1802,6 +1811,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     opts = opts || {};
     renderAll();
     if (!el.archive.open) {
+      closeGate(); // the warning before X, over the landing, as an address opens the tome
       try { el.archive.showModal(); } catch (e) { el.archive.setAttribute("open", ""); }
     }
     motes.pause();
@@ -2541,12 +2551,15 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   el.plEarlier.addEventListener("click", function () { movePlate(-1, el.plEarlier); });
   el.plLater.addEventListener("click", function () { movePlate(1, el.plLater); });
 
-  // ---------- Mature images and the age check ----------
+  // ---------- Mature images, the X account and the age check ----------
   // A mature image is never loaded until the visitor chooses to see it, and it is covered again as soon as another
   // image takes its place or the visitor moves on. The first time, they are asked their age; the answer holds for
   // this tab until it is closed. Under 18, mature images stay covered.
+  // The X marks, on the landing and on the tome, lead to @dezeptdrac on X, which holds mature content. Each time,
+  // the same card warns of it first, asking the age unless it is known; only then does it hold the link itself (in
+  // the preview's viewer, a link is the one way out). Under 18, there is no link.
   var shown = null; // the id of the one mature image on view, uncovered
-  var ageMemo = "", gateThen = null, gateFrom = null;
+  var ageMemo = "", gateThen = null, gateFrom = null, gateX = false;
   function ageAnswer() { try { return sessionStorage.getItem("ca-age") || ageMemo; } catch (e) { return ageMemo; } }
   function setAge(answer) { ageMemo = answer; try { sessionStorage.setItem("ca-age", answer); } catch (e) {} }
   function showMature(v) {
@@ -2561,23 +2574,38 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function askAge(then) {
     var answer = ageAnswer();
     if (answer === "adult") { then(); return; }
+    openGate(false, answer === "minor" ? "denied" : "ask", then);
+  }
+  function askX() {
+    var answer = ageAnswer();
+    openGate(true, answer === "minor" ? "denied" : answer === "adult" ? "go" : "ask", null);
+  }
+  // The card lies over the tome while it is open, and over the landing otherwise (as the toast does)
+  function openGate(x, mode, then) {
     gateFrom = document.activeElement;
     gateThen = then;
-    renderGate(answer === "minor" ? "denied" : "ask");
+    gateX = x;
+    (el.archive.open ? el.archive : root).append(el.gate);
+    renderGate(mode);
     el.gate.hidden = false;
-    el.tome.inert = el.tabs.inert = el.lightbox.inert = true;
-    setTimeout(function () { (answer === "minor" ? el.gateBack : el.gateAge).focus(); }, 30);
+    if (el.archive.open) el.tome.inert = el.tabs.inert = el.lightbox.inert = true;
+    else el.stage.inert = true;
+    setTimeout(function () { (mode === "ask" ? el.gateAge : mode === "go" ? el.gateX : el.gateBack).focus(); }, 30);
   }
   function renderGate(mode) {
-    el.gateText.textContent = mode === "ask" ? "This image is marked as mature. How old are you?" : "Mature images are only for those 18 or older.";
+    el.gateTitle.textContent = gateX ? "Mature content" : "Mature art";
+    el.gateText.textContent = !gateX ? (mode === "ask" ? "This image is marked as mature. How old are you?" : "Mature images are only for those 18 or older.")
+      : mode === "denied" ? "@dezeptdrac on X is only for those 18 or older."
+      : "@dezeptdrac on X contains mature content. " + (mode === "ask" ? "How old are you?" : "It opens in a new tab.");
     el.gateField.hidden = el.gateGo.hidden = mode !== "ask";
+    el.gateX.hidden = mode !== "go";
     el.gateAge.value = "";
     el.gateError.hidden = true;
   }
   function closeGate() {
     if (el.gate.hidden) return;
     el.gate.hidden = true;
-    el.lightbox.inert = false;
+    el.stage.inert = el.lightbox.inert = false;
     el.tome.inert = el.tabs.inert = !el.lightbox.hidden;
     gateThen = null;
     if (gateFrom && gateFrom.isConnected) gateFrom.focus();
@@ -2588,11 +2616,18 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     if (!/^\d{1,3}$/.test(text) || age < 1 || age > 130) { el.gateError.textContent = "Enter your age in years."; el.gateError.hidden = false; el.gateAge.focus(); return; }
     if (age < 18) { setAge("minor"); renderGate("denied"); el.gateBack.focus(); return; }
     setAge("adult");
+    if (gateX) { renderGate("go"); el.gateX.focus(); return; } // X opens only from the link: a page's own window is refused in the preview
     var then = gateThen;
     closeGate();
     if (then) then();
   });
   el.gateBack.addEventListener("click", closeGate);
+  el.gateX.addEventListener("click", function () { setTimeout(closeGate); }); // once X has opened in its new tab
+  // Over the tome, Escape is handled with the rest (closeTop). Over the landing, here, wherever the focus is: until the
+  // card takes it, it is nowhere, as the stage went inert under it.
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !el.gate.hidden && !el.archive.open) { e.preventDefault(); closeGate(); } });
+  el.xStage.addEventListener("click", askX);
+  el.xTome.addEventListener("click", askX);
 
   // ---------- The full-size view ----------
   // It steps through every image of every art piece of the same form, in order. A mature one arrives covered, as in
