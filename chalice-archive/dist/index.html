@@ -297,7 +297,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .det-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 18px 0 8px; font-family: var(--font-book-sc); font-size: 15px; color: var(--sepia-faint); }
 .det-title { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 3vw, 38px); line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
 .det-title::after { content: ""; display: block; width: 120px; height: 9px; margin-top: 12px; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
-.det-note { margin: 18px 0 0; max-width: 60ch; font-size: 19px; line-height: 1.6; white-space: pre-line; color: var(--sepia); }
+.det-note { margin: 18px 0 0; max-width: 60ch; font-size: 19px; line-height: 1.6; color: var(--sepia); }
 .det-note::first-letter { float: left; margin: .06em .1em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.3em; line-height: .82; color: var(--rubric); }
 .det-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 18px; margin: 24px 0 0; padding-top: 14px; border-top: 1px solid rgb(var(--sepia-rgb) / .2); font-size: 17px; }
 .det-facts dt { font-family: var(--font-book-sc); color: var(--rubric); }
@@ -346,9 +346,10 @@ button, input, textarea { font: inherit; color: inherit; }
 
 .glances { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px 18px; margin: 0; padding: 0; list-style: none; }
 .glance { padding: 12px 15px 14px; border: 1px solid rgb(var(--sepia-rgb) / .24); border-radius: 2px; background: rgb(255 246 218 / .3); }
-.glance h5 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; font-family: var(--font-book-sc); font-size: 17px; font-weight: 400; line-height: 1.25; color: var(--rubric); overflow-wrap: anywhere; }
-.glance h5::before { content: ""; flex: none; width: 7px; height: 7px; rotate: 45deg; background: var(--brass); box-shadow: 0 0 0 1px var(--sepia-soft); }
-.glance p { margin: 0; font-size: 16.5px; font-style: italic; line-height: 1.42; white-space: pre-line; overflow-wrap: anywhere; color: var(--sepia-soft); }
+.glance > h5 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; font-family: var(--font-book-sc); font-size: 17px; font-weight: 400; line-height: 1.25; color: var(--rubric); overflow-wrap: anywhere; }
+.glance > h5::before { content: ""; flex: none; width: 7px; height: 7px; rotate: 45deg; background: var(--brass); box-shadow: 0 0 0 1px var(--sepia-soft); }
+.glance-text { font-size: 16.5px; font-style: italic; line-height: 1.42; color: var(--sepia-soft); }
+.glance-text p { margin: 0 0 .5em; }
 
 .ab-sections { display: grid; gap: 40px; }
 .ab-heading { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 20px); margin: 0 0 .8em; font-family: var(--font-book); font-size: clamp(24px, 3vw, 30px); font-style: italic; font-weight: 400; line-height: 1.2; color: var(--ink-gold); }
@@ -372,6 +373,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .trp .al-r { text-align: right; }
 .trp a { color: var(--rubric); text-decoration-color: rgb(142 29 18 / .45); text-underline-offset: 3px; }
 .trp a:hover { text-decoration-color: currentColor; }
+.trp-line a { color: var(--rubric); text-decoration-color: rgb(142 29 18 / .45); text-underline-offset: 3px; }
+.trp-line a:hover { text-decoration-color: currentColor; }
 .trp .dropcap { display: flow-root; } 
 .trp .dropcap::first-letter { float: left; margin: .05em .09em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.4em; line-height: .8; color: var(--rubric); }
 
@@ -439,7 +442,7 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .plate-title { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.15; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
 .plate-credit { margin: 0; font-size: 17px; font-style: italic; color: var(--sepia-soft); overflow-wrap: anywhere; }
 .plate-credit a { color: var(--rubric); text-underline-offset: 3px; }
-.plate-note { margin: 8px 0 0; max-width: 46ch; font-size: 18px; line-height: 1.5; white-space: pre-line; text-align: left; overflow-wrap: anywhere; color: var(--sepia); }
+.plate-note { margin: 8px 0 0; max-width: 46ch; font-size: 18px; line-height: 1.5; text-align: left; overflow-wrap: anywhere; color: var(--sepia); }
 .plate-view .owner-row { justify-content: center; margin-top: 10px; }
 
 .spoiler { position: relative; display: grid; place-items: center; align-content: center; gap: 7px; box-sizing: border-box; width: 100%; aspect-ratio: 4 / 5; padding: 10px; overflow: hidden; text-align: center; color: var(--brass-light);
@@ -550,6 +553,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 .help-box { font-size: 15.5px; color: var(--sepia-soft); }
 .help-box summary { cursor: pointer; font-style: italic; }
 .help-box summary:hover { color: var(--rubric); }
+.help-list { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; margin: 10px 0 6px; padding: 12px 14px; border: 1px solid rgb(var(--sepia-rgb) / .2); background: rgb(255 248 225 / .3); }
+.help-list dt, .help-box code { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; font-size: 13px; color: var(--sepia); }
+.help-list dt { white-space: nowrap; }
+.help-list dd { margin: 0; line-height: 1.4; }
+.help-box > p { margin: 0; font-style: italic; }
 .row-tools { display: flex; gap: 3px; padding-bottom: 6px; }
 .icon-btn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid rgb(var(--sepia-rgb) / .35); border-radius: 2px; background: rgb(255 248 225 / .35); cursor: pointer; font-family: var(--font-book); font-size: 17px; line-height: 1; color: var(--sepia-soft); }
 .icon-btn:hover { border-color: var(--rubric); color: var(--rubric); }
@@ -729,27 +737,27 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   </nav>
   <div class="tome" id="tome">
     <i class="corner tl" aria-hidden="true"></i><i class="corner tr" aria-hidden="true"></i><i class="corner bl" aria-hidden="true"></i><i class="corner br" aria-hidden="true"></i>
-    <button class="clasp" id="clasp" type="button" aria-label="The keeper's lock" aria-expanded="false" aria-controls="seal"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="5" cy="5" r="3.3" fill="currentColor"></circle><path d="M3.5 7.4 2.4 15.2h5.2L6.5 7.4z" fill="currentColor"></path></svg></button>
+    <button class="clasp" id="clasp" type="button" aria-label="Edit Mode" aria-expanded="false" aria-controls="seal"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="5" cy="5" r="3.3" fill="currentColor"></circle><path d="M3.5 7.4 2.4 15.2h5.2L6.5 7.4z" fill="currentColor"></path></svg></button>
     <form class="seal" id="seal" hidden novalidate aria-labelledby="seal-title">
-      <h3 class="seal-title" id="seal-title">The keeper's word</h3>
+      <h3 class="seal-title" id="seal-title">Edit Mode</h3>
       <input id="seal-user" name="username" type="text" autocomplete="username" value="keeper" hidden>
       <div class="field" id="seal-f0" hidden>
-        <label for="seal-current">The current word</label>
+        <label for="seal-current">Current password</label>
         <input class="input" id="seal-current" name="current-password" type="password" maxlength="1024" autocomplete="current-password" spellcheck="false">
       </div>
       <div class="field" id="seal-f1">
-        <label for="seal-word" id="seal-word-label">Word</label>
+        <label class="sr-only" for="seal-word" id="seal-word-label">Password</label>
         <input class="input" id="seal-word" name="password" type="password" maxlength="1024" autocomplete="current-password" spellcheck="false">
       </div>
       <div class="field" id="seal-f2" hidden>
-        <label for="seal-again">The new word again</label>
+        <label for="seal-again">New password again</label>
         <input class="input" id="seal-again" name="password-again" type="password" maxlength="1024" autocomplete="new-password" spellcheck="false">
       </div>
       <p class="form-error" id="seal-error" role="alert" hidden></p>
       <div class="form-actions">
-        <button class="btn" id="seal-go" type="submit">Unseal</button>
-        <button class="btn" id="seal-lock" type="button" hidden>Seal it again</button>
-        <button class="btn" id="seal-change" type="button" hidden>Change the word</button>
+        <button class="btn" id="seal-go" type="submit">Unlock</button>
+        <button class="btn" id="seal-lock" type="button" hidden>Lock</button>
+        <button class="btn" id="seal-change" type="button" hidden>Change Password</button>
         <button class="btn" id="seal-stats" type="button" hidden>Statistics</button>
       </div>
     </form>
@@ -761,7 +769,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
           <h2 class="sr-only" id="ar-title"><span id="ar-chapter">Character Knowledge</span>, from the archive of <span id="ar-name">Unnamed Dracthyr</span></h2>
           <div class="leaf" id="leaf-knowledge">
             <div class="ar-tools">
-              <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
+              <button class="btn" id="btn-inscribe" type="button" hidden>Add Record</button>
             </div>
             <h3 class="sr-only">The records</h3>
             <ol class="entries" id="records"></ol>
@@ -773,14 +781,14 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               <h3 class="ab-name" id="ab-name"></h3>
               <p class="ab-epithet" id="ab-epithet"></p>
               <div class="ar-tools">
-                <button class="btn" id="btn-amend" type="button" hidden>Amend this page</button>
+                <button class="btn" id="btn-amend" type="button" hidden>Edit About</button>
               </div>
             </header>
           </div>
 
           <div class="leaf" id="leaf-encounters" hidden>
             <div class="ar-tools">
-              <button class="btn" id="btn-add-encounter" type="button" hidden>Record an encounter</button>
+              <button class="btn" id="btn-add-encounter" type="button" hidden>Add Encounter</button>
             </div>
             <h3 class="sr-only">The encounters</h3>
             <ol class="entries" id="encounters"></ol>
@@ -788,7 +796,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
           <div class="leaf" id="leaf-art" hidden>
             <div class="ar-tools">
-              <button class="btn" id="btn-add-gallery" type="button" hidden>Add a form</button>
+              <button class="btn" id="btn-add-gallery" type="button" hidden>Add OC</button>
             </div>
             <section aria-labelledby="galleries-title">
               <h3 class="rubric" id="galleries-title">Overview</h3>
@@ -811,7 +819,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
             <button class="back" id="det-back" type="button">← Return to Character Knowledge</button>
             <div class="det-meta"><time id="det-date"></time></div>
             <h3 class="det-title" id="det-title"></h3>
-            <p class="det-note" id="det-note"></p>
+            <div class="det-note trp" id="det-note"></div>
             <dl class="det-facts">
               <dt>Learned from</dt><dd id="det-source"></dd>
             </dl>
@@ -824,10 +832,10 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
           <section id="view-form" hidden>
             <form class="form" id="rec-form" novalidate>
               <button class="back" id="f-back" type="button">← Back</button>
-              <h3 id="form-heading">Inscribe a record</h3>
+              <h3 id="form-heading">Add Record</h3>
               <div class="field">
                 <label for="f-title">Title</label>
-                <input class="input" id="f-title" name="title" maxlength="120" autocomplete="off" placeholder="The Sundering">
+                <input class="input" id="f-title" name="title" maxlength="120" autocomplete="off">
               </div>
               <div class="field">
                 <label for="f-date">Date <span class="opt">(optional)</span></label>
@@ -847,7 +855,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               </div>
               <p class="form-error" id="f-error" role="alert" hidden></p>
               <div class="form-actions">
-                <button class="btn" id="f-submit" type="submit">Inscribe</button>
+                <button class="btn" id="f-submit" type="submit">Add Record</button>
                 <button class="btn" id="f-cancel" type="button">Cancel</button>
               </div>
             </form>
@@ -877,11 +885,23 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
           <section id="view-about-form" hidden>
             <form class="form" id="about-form" novalidate>
               <button class="back" id="abf-back" type="button">← Back</button>
-              <h3>Amend this page</h3>
+              <h3>Edit About</h3>
+              <p class="help">Unfilled fields won't show up</p>
+              <details class="help-box">
+                <summary>You can use TRP3 formatting here</summary>
+                <dl class="help-list">
+                  <dt>{h1}Title{/h1}</dt><dd>A heading. <code>{h2}</code> and <code>{h3}</code> are smaller. Add <code>:c</code> or <code>:r</code> to centre it or align it right, as in <code>{h2:c}</code>.</dd>
+                  <dt>{p:c}Text{/p}</dt><dd>A centred paragraph. <code>{p:r}</code> aligns it right.</dd>
+                  <dt>{col:ffd100}Text{/col}</dt><dd>Coloured text. The game's colour codes (<code>|cffffd100Text|r</code>) work too. Pale colours are darkened so they stay readable on parchment.</dd>
+                  <dt>{link*https://…*Text}</dt><dd>A link. Only http and https addresses become links.</dd>
+                  <dt>A blank line</dt><dd>Starts a new paragraph. A single line break stays a line break.</dd>
+                </dl>
+                <p>Icons and images (<code>{icon:…}</code>, <code>{img:…}</code>) are game files, so they are left out.</p>
+              </details>
               <div class="row-2">
                 <div class="field">
                   <label for="abf-title">Title</label>
-                  <input class="input" id="abf-title" name="title" maxlength="60" autocomplete="off" placeholder="Archivist">
+                  <input class="input" id="abf-title" name="title" maxlength="60" autocomplete="off">
                 </div>
                 <div class="field">
                   <label for="abf-name">Name</label>
@@ -896,8 +916,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
                 <legend>Directory</legend>
                 <div class="row-2" id="abf-directory"></div>
                 <div class="eye-pick">
-                  <label class="check"><input type="checkbox" id="abf-eye-on"> Show the eye colour</label>
-                  <input type="color" id="abf-eye-color" value="#e3a13a" aria-label="Eye colour">
+                  <label class="check"><input type="checkbox" id="abf-eye-on"> Show the eye color</label>
+                  <input type="color" id="abf-eye-color" value="#e3a13a" aria-label="Eye color">
                 </div>
               </fieldset>
               <fieldset class="field">
@@ -942,7 +962,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
             <h3 class="det-title" id="enc-title"></h3>
             <div class="trp enc-text" id="enc-text"></div>
             <section class="private" id="enc-private" aria-labelledby="enc-private-title" hidden>
-              <h4 class="private-head" id="enc-private-title"><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Private</h4>
+              <h4 class="private-head" id="enc-private-title"><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Private (Only you can read this)</h4>
               <div class="trp" id="enc-private-text"></div>
             </section>
             <section class="learned" id="enc-learned" aria-labelledby="enc-learned-title" hidden>
@@ -958,24 +978,24 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
           <section id="view-encounter-form" hidden>
             <form class="form" id="encounter-form" novalidate>
               <button class="back" id="ef-back" type="button">← Back</button>
-              <h3 id="ef-heading">Record an encounter</h3>
+              <h3 id="ef-heading">Add Encounter</h3>
               <div class="field">
                 <label for="ef-title">Title</label>
-                <input class="input" id="ef-title" name="title" maxlength="120" autocomplete="off" placeholder="An encounter with a druid">
+                <input class="input" id="ef-title" name="title" maxlength="120" autocomplete="off">
               </div>
               <div class="field">
                 <label for="ef-date">Date <span class="opt">(optional)</span></label>
                 <input class="input" id="ef-date" name="date" type="date">
               </div>
               <div class="field">
-                <label class="check only-check"><input type="checkbox" id="ef-sealed" name="sealed"> Only for me</label>
+                <label class="check only-check"><input type="checkbox" id="ef-sealed" name="sealed"> Private Encounter</label>
               </div>
-              <div class="field">
+              <div class="field" id="ef-text-field">
                 <label for="ef-text">What happened</label>
                 <textarea class="input long" id="ef-text" name="text" maxlength="20000"></textarea>
               </div>
               <div class="field">
-                <label for="ef-private">Private</label>
+                <label for="ef-private">Private (Only you can read this)</label>
                 <textarea class="input long" id="ef-private" name="private" maxlength="20000"></textarea>
               </div>
               <p class="form-error" id="ef-error" role="alert" hidden></p>
@@ -1007,14 +1027,14 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
           <section id="view-gallery-form" hidden>
             <form class="form" id="gallery-form" novalidate>
               <button class="back" id="gf-back" type="button">← Back</button>
-              <h3 id="gf-heading">Add a form</h3>
+              <h3 id="gf-heading">Add OC</h3>
               <div class="field">
                 <label for="gf-name">Name</label>
                 <input class="input" id="gf-name" name="name" maxlength="80" autocomplete="off" placeholder="Character (Dracthyr)">
               </div>
               <p class="form-error" id="gf-error" role="alert" hidden></p>
               <div class="form-actions">
-                <button class="btn" id="gf-submit" type="submit">Add the form</button>
+                <button class="btn" id="gf-submit" type="submit">Add OC</button>
                 <button class="btn" id="gf-cancel" type="button">Cancel</button>
               </div>
             </form>
@@ -1033,7 +1053,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               <figcaption>
                 <h3 class="plate-title" id="pl-title"></h3>
                 <p class="plate-credit" id="pl-credit"></p>
-                <p class="plate-note" id="pl-note"></p>
+                <div class="plate-note trp" id="pl-note"></div>
               </figcaption>
             </figure>
             <div class="owner-row" id="pl-tools" hidden>
@@ -1168,8 +1188,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   var MiB = 1024 * 1024;
   var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * MiB, gif: 40 * MiB, video: 90 * MiB };
   var ABOUT_TEXT = ["title", "race", "class", "age", "eyes", "height", "build", "birthplace", "residence"];
-  var DIRECTORY = [["race", "Race", "Dracthyr", 60], ["class", "Class", "Evoker", 60], ["age", "Age", "", 60], ["eyes", "Eyes", "Molten amber", 60],
-                   ["height", "Height", "", 60], ["build", "Build", "", 60], ["birthplace", "Birthplace", "The Forbidden Reach", 120], ["residence", "Residence", "Valdrakken", 120]];
+  var DIRECTORY = [["race", "Race", 60], ["class", "Class", 60], ["age", "Age", 60], ["eyes", "Eye Color", 60],
+                   ["height", "Height", 60], ["build", "Build", 60], ["birthplace", "Birthplace", 120], ["residence", "Residence", 120]];
   var FACT_LABELS = ["Motto", "Nickname", "House name", "Pronouns", "Voice", "Profession", "Guild", "Rank", "Languages", "Relationships"];
   var STANDARD_TRAITS = [["Chaotic", "Lawful"], ["Chaste", "Lustful"], ["Forgiving", "Vindictive"], ["Altruistic", "Selfish"], ["Sincere", "Deceitful"],
                          ["Gentle", "Brutish"], ["Superstitious", "Rational"], ["Renegade", "Paragon"], ["Cautious", "Impulsive"], ["Ascetic", "Bon vivant"],
@@ -1285,17 +1305,19 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   function entry(title, meta, note, open) {
     return h("li", null, h("button", { class: "entry", type: "button", onclick: open },
-      h("span", { class: "entry-meta", text: meta }), h("span", { class: "entry-title", text: title }), note ? h("span", { class: "entry-note", text: note }) : null));
+      h("span", { class: "entry-meta", text: meta }), h("span", { class: "entry-title", text: plain(title) }), note ? h("span", { class: "entry-note", text: note }) : null));
   }
   function plain(text) {
     var out = [];
     trp(text).childNodes.forEach(function (n) { var t = n.textContent.replace(/\s+/g, " ").trim(); if (t) out.push(t); });
     return out.join(" ");
   }
+  function line(text, tag) { return trpInline(String(text || ""), h(tag || "span", { class: "trp-line" })); }
   var OTHER = "other";
   function groupOf(a) { return a.gallery || OTHER; }
   function piecesOf(gid) { return state.art.filter(function (a) { return groupOf(a) === gid; }); }
   function galleryOf(id) { return id === OTHER ? { id: OTHER, name: "Other art", other: true } : state.galleries.find(function (g) { return g.id === id; }) || null; }
+  function nameOf(g) { return plain(g.name) || g.name; }
   function pieces(n) { return n + (n === 1 ? " art piece" : " art pieces"); }
   function plateNo(a) { return "Art piece " + roman(piecesOf(groupOf(a)).indexOf(a) + 1) + "."; }
   function kindOf(v) { return /\.gif$/.test(v.file) ? "gif" : /\.(mp4|webm)$/.test(v.file) ? "video" : "image"; }
@@ -1306,7 +1328,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   function versionIn(a, id) { return a.versions.find(function (v) { return v.id === id; }) || a.versions[0]; }
   function verName(a, v) { var i = a.versions.indexOf(v); return v.label || (i ? "Version " + (i + 1) : "Main"); }
-  function altOf(a, v) { return (a.title || "Untitled art piece") + (a.versions.length > 1 ? ", " + verName(a, v) : ""); }
+  function altOf(a, v) { return (plain(a.title) || "Untitled art piece") + (a.versions.length > 1 ? ", " + verName(a, v) : ""); }
   function spoiler(v, big) {
     var box = h("span", { class: "spoiler" + (big ? " spoiler-big" : "") },
       h("span", { class: "spoiler-seal", text: "18+" }), h("span", { class: "spoiler-label", text: "Mature" }),
@@ -1501,7 +1523,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
   var CENTERPIECE = !el.construct.hidden;
   function renderLanding() {
-    var name = state.profile.name || "Unnamed Dracthyr";
+    var name = plain(state.profile.name) || "Unnamed Dracthyr";
     el.pfName.textContent = name;
     el.construct.setAttribute("aria-label", "Open the archive of " + name);
   }
@@ -1514,10 +1536,10 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
   function renderArchive() {
     var p = state.profile;
-    el.arName.textContent = p.name || "Unnamed Dracthyr";
+    el.arName.textContent = plain(p.name) || "Unnamed Dracthyr";
     fill(el.records, state.records.length ? newest(state.records).map(function (r) {
-      var e = r.encounter && findEnc(r.encounter), from = e ? e.title : r.source;
-      return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), r.note, function () { showDetail(r.id); });
+      var e = r.encounter && findEnc(r.encounter), from = plain(e ? e.title : r.source);
+      return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), plain(r.note), function () { showDetail(r.id); });
     }) : [h("li", null, h("p", { class: "empty", text: "No records yet." }))]);
     renderDetail();
   }
@@ -1539,32 +1561,32 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
 
   function trait(t) {
-    var v = t.value / 20, lean = t.value < 10 ? t.left : t.value > 10 ? t.right : "", d = Math.abs(t.value - 10);
-    var fill = h("i", { class: "t-fill" }), mark = h("i", { class: "t-mark" });
+    var v = t.value / 20, lean = plain(t.value < 10 ? t.left : t.value > 10 ? t.right : ""), d = Math.abs(t.value - 10);
+    var fill = h("i", { class: "t-fill" }), mark = h("i", { class: "t-mark" }), left = line(t.left), right = line(t.right);
     fill.style.left = Math.min(v, .5) * 100 + "%";
     fill.style.width = Math.abs(v - .5) * 100 + "%";
     mark.style.left = v * 100 + "%";
+    left.className += " t-pole t-left" + (t.value < 10 ? " is-lean" : "");
+    right.className += " t-pole t-right" + (t.value > 10 ? " is-lean" : "");
     var words = !lean ? "evenly between the two" : (d <= 3 ? "slightly " : d <= 6 ? "fairly " : d < 10 ? "strongly " : "entirely ") + lean;
     return h("li", { class: "trait", title: words.charAt(0).toUpperCase() + words.slice(1) },
-      h("span", { class: "t-pole t-left" + (t.value < 10 ? " is-lean" : ""), text: t.left }),
-      h("span", { class: "t-bar", "aria-hidden": "true" }, fill, mark),
-      h("span", { class: "t-pole t-right" + (t.value > 10 ? " is-lean" : ""), text: t.right }),
+      left, h("span", { class: "t-bar", "aria-hidden": "true" }, fill, mark), right,
       h("span", { class: "sr-only", text: ": " + words }));
   }
   var QUOTES = /^["'“”‘’„«»]+|["'“”‘’„«»]+$/g;
   function sectionHeading(x) {
-    var head = h("h4", { class: "ab-heading" }, h("i", { class: "flourish", "aria-hidden": "true" }), h("span", { text: x.heading.replace(QUOTES, "") || x.heading }), h("i", { class: "flourish", "aria-hidden": "true" }));
+    var head = h("h4", { class: "ab-heading" }, h("i", { class: "flourish", "aria-hidden": "true" }), line(x.heading.replace(QUOTES, "") || x.heading), h("i", { class: "flourish", "aria-hidden": "true" }));
     if (x.color) head.style.color = ink(x.color.slice(1));
     return head;
   }
   function renderAbout() {
     var p = state.profile, ab = state.about;
-    el.abTitle.textContent = ab.title;
+    fill(el.abTitle, [line(ab.title)]);
     el.abTitle.hidden = !ab.title;
-    el.abName.textContent = p.name || "Unnamed Dracthyr";
-    el.abEpithet.textContent = p.epithet;
+    fill(el.abName, [line(p.name || "Unnamed Dracthyr")]);
+    fill(el.abEpithet, [line(p.epithet)]);
     el.abEpithet.hidden = !p.epithet;
-    function row(label, value, before) { return h("div", { class: "dir-row" }, h("dt", { text: label }), h("dd", null, before, value)); }
+    function row(label, value, before) { return h("div", { class: "dir-row" }, h("dt", null, line(label)), h("dd", null, before, line(value))); }
     var dir = DIRECTORY.filter(function (d) { return ab[d[0]]; });
     fill(el.abDir, dir.map(function (d) {
       var swatch = null;
@@ -1576,7 +1598,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     el.abFactsWrap.hidden = !ab.facts.length;
     fill(el.abTraits, ab.traits.map(trait));
     el.abTraitsWrap.hidden = !ab.traits.length;
-    fill(el.abGlances, ab.glances.map(function (g) { return h("li", { class: "glance" }, g.title ? h("h5", { text: g.title }) : null, g.text ? h("p", { text: g.text }) : null); }));
+    fill(el.abGlances, ab.glances.map(function (g) { return h("li", { class: "glance" }, g.title ? line(g.title, "h5") : null, g.text ? h("div", { class: "glance-text" }, trp(g.text)) : null); }));
     el.abGlancesWrap.hidden = !ab.glances.length;
     fill(el.abSections, ab.sections.map(function (x) {
       return h("section", { class: "ab-section" }, x.heading ? sectionHeading(x) : null, h("div", { class: "trp" }, trp(x.body)));
@@ -1595,20 +1617,20 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       var all = piecesOf(g.id), main = all.length && all[0].versions[0];
       return h("li", null, h("button", { class: "plate-btn gallery-btn", type: "button", "data-id": g.id, onclick: function () { showGallery(g.id); } },
         h("span", { class: "mount" }, !main ? h("span", { class: "mount-empty", text: "No art yet" }) : main.mature ? spoiler(main) : verImg(main, "thumb", "")),
-        h("span", { class: "plate-cap" }, h("b", { text: g.name }), h("span", { class: "plate-more", text: all.length ? pieces(all.length) : "Empty" }))));
+        h("span", { class: "plate-cap" }, h("b", { text: nameOf(g) }), h("span", { class: "plate-more", text: all.length ? pieces(all.length) : "Empty" }))));
     }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: "No Art has been uploaded yet." }))]);
     renderGallery();
     renderPlate();
   }
   function renderGallery() {
     var g = galleryOf(galleryId), all = g ? piecesOf(g.id) : [], at = g && !g.other ? state.galleries.indexOf(g) : -1;
-    el.glTitle.textContent = g ? g.name : "";
+    fill(el.glTitle, g ? [line(g.name)] : []);
     el.platesCount.textContent = all.length ? pieces(all.length) : "";
     fill(el.plates, all.length ? all.map(function (a, i) {
       var main = a.versions[0], count = a.versions.length;
       return h("li", null, h("button", { class: "plate-btn", type: "button", "data-id": a.id, onclick: function () { openPlate(a.id); } },
         h("span", { class: "mount" }, main.mature ? spoiler(main) : verImg(main, "thumb", ""), main.mature ? null : badge(main)),
-        h("span", { class: "plate-cap" }, h("b", { text: roman(i + 1) + "." }), " " + (a.title || "Untitled"),
+        h("span", { class: "plate-cap" }, h("b", { text: roman(i + 1) + "." }), " " + (plain(a.title) || "Untitled"),
           count > 1 ? h("span", { class: "plate-more", text: count + " images" }) : null)));
     }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: "No art pieces yet." }))]);
     el.glTools.hidden = !(canPost() && at >= 0);
@@ -1624,7 +1646,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     disarm(el.plDelete);
     if (!a) { clearMedia(); fill(el.plVersions, []); return; }
     var group = piecesOf(groupOf(a)), i = group.indexOf(a), v = versionIn(a, versionId), covered = v.mature && shown !== v.id;
-    el.plBack.textContent = "← Return to " + galleryOf(groupOf(a)).name;
+    el.plBack.textContent = "← Return to " + nameOf(galleryOf(groupOf(a)));
     el.plNo.textContent = plateNo(a) + (a.versions.length > 1 ? " · " + verName(a, v) : "");
     if (currentView === "plate") renderMedia(a, v, covered); else clearMedia();
     var focused = el.plVersions.contains(document.activeElement) ? document.activeElement.dataset.vid : null;
@@ -1636,12 +1658,12 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     }));
     var back = focused && Array.prototype.find.call(el.plVersions.children, function (b) { return b.dataset.vid === focused; });
     if (back) back.focus();
-    el.plTitle.textContent = a.title || "Untitled";
+    fill(el.plTitle, [a.title ? line(a.title) : "Untitled"]);
     var credit = [];
-    if (a.artist || a.link) credit.push("by ", a.link ? h("a", { href: a.link, target: "_blank", rel: "noopener noreferrer nofollow", text: a.artist || hostOf(a.link) }) : a.artist, " · ");
+    if (a.artist || a.link) credit.push("by ", a.link ? h("a", { href: a.link, target: "_blank", rel: "noopener noreferrer nofollow", text: plain(a.artist) || hostOf(a.link) }) : line(a.artist), " · ");
     credit.push(h("time", { datetime: a.date, text: fmtDate(a.date) }));
     fill(el.plCredit, credit);
-    el.plNote.textContent = a.note;
+    fill(el.plNote, [trp(a.note)]);
     el.plNote.hidden = !a.note;
     el.plEarlier.disabled = i === 0;
     el.plLater.disabled = i === group.length - 1;
@@ -1746,18 +1768,18 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   function renderDetail() {
     var r = find(detailId);
-    if (!r) { el.detDate.textContent = el.detTitle.textContent = el.detNote.textContent = ""; fill(el.detSource, []); return; }
+    if (!r) { el.detDate.textContent = ""; fill(el.detTitle, []); fill(el.detNote, []); fill(el.detSource, []); return; }
 
     el.detDate.textContent = r.date ? fmtDate(r.date) : "";
     el.detDate.setAttribute("datetime", r.date);
-    el.detTitle.textContent = r.title;
-    el.detNote.textContent = r.note;
+    fill(el.detTitle, [line(r.title)]);
+    fill(el.detNote, [trp(r.note)]);
     el.detNote.hidden = !r.note;
     var e = r.encounter && findEnc(r.encounter);
     fill(el.detSource, [
-      e ? h("button", { class: "link-to", type: "button", text: e.title, onclick: function () { showEncounter(e.id); } }) : null,
+      e ? h("button", { class: "link-to", type: "button", text: plain(e.title), onclick: function () { showEncounter(e.id); } }) : null,
       e && e.sealed ? h("span", { class: "opt", text: " (private)" }) : null,
-      e && r.source ? "; " : null, r.source || null, !e && !r.source ? "Unknown" : null
+      e && r.source ? "; " : null, r.source ? line(r.source) : null, !e && !r.source ? "Unknown" : null
     ].filter(Boolean));
   }
   var encounterId = null, encEditing = null;
@@ -1766,7 +1788,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     if (!e) return;
     el.encDate.textContent = e.date ? fmtDate(e.date) : "";
     el.encDate.setAttribute("datetime", e.date);
-    el.encTitle.textContent = e.title;
+    fill(el.encTitle, [line(e.title)]);
     el.encSealed.hidden = !e.sealed;
     el.encEdit.hidden = e.unreadable;
     fill(el.encText, e.unreadable ? [h("p", { class: "empty", text: "Unreadable." })] : e.text ? [trp(e.text)] : []);
@@ -1775,7 +1797,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     fill(el.encPrivateText, priv === null ? [h("p", { class: "empty", text: "Unreadable." })] : priv ? [trp(priv)] : []);
     var learned = newest(state.records.filter(function (r) { return r.encounter === e.id; }));
     el.encLearned.hidden = !learned.length;
-    fill(el.encRecords, learned.map(function (r) { return entry(r.title, r.date ? fmtDate(r.date) : "", r.note, function () { showDetail(r.id); }); }));
+    fill(el.encRecords, learned.map(function (r) { return entry(r.title, r.date ? fmtDate(r.date) : "", plain(r.note), function () { showDetail(r.id); }); }));
   }
   function showEncounter(id) {
     if (!findEnc(id)) { showView("encounters"); return; }
@@ -1835,8 +1857,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function openForm(id) {
     var r = id ? find(id) : null;
     editingId = r ? r.id : null;
-    el.formHeading.textContent = r ? "Revise record" : "Inscribe a record";
-    el.fSubmit.textContent = r ? "Save changes" : "Inscribe";
+    el.formHeading.textContent = r ? "Revise record" : "Add Record";
+    el.fSubmit.textContent = r ? "Save changes" : "Add Record";
     el.fTitle.value = r ? r.title : "";
     el.fDate.value = r ? r.date : "";
     el.fNote.value = r ? r.note : "";
@@ -1850,7 +1872,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   function encounterChoices() {
     fill(el.fEncounter, [h("option", { value: "", text: "None" })].concat(newest(state.encounters).map(function (e) {
-      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") + (e.sealed ? " (private)" : "") });
+      return h("option", { value: e.id, text: plain(e.title) + (e.date ? " (" + fmtDate(e.date) + ")" : "") + (e.sealed ? " (private)" : "") });
     })));
   }
   function refreshRecordForm() {
@@ -1871,7 +1893,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     var rec = recFromForm(), prev = editingId ? find(editingId) : null;
     if (!rec.title) { formError("form", "Title required."); el.fTitle.focus(); return; }
     save(prev ? "PUT" : "POST", prev ? "api/records/" + encodeURIComponent(prev.id) : "api/records", rec,
-      function (data) { if (find(data.id)) showDetail(data.id); else showView("overview"); }, el.fSubmit, prev ? "Saving…" : "Inscribing…", "Saved.");
+      function (data) { if (find(data.id)) showDetail(data.id); else showView("overview"); }, el.fSubmit, "Saving…", "Saved.");
   });
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
@@ -1880,6 +1902,15 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function encFromForm() {
     return { title: el.efTitle.value.trim(), date: isDate(el.efDate.value) ? el.efDate.value : "", text: el.efText.value.trim(), private: el.efPrivate.value.trim(), sealed: el.efSealed.checked };
   }
+  function syncSealed(move) {
+    var only = el.efSealed.checked;
+    if (only && move && el.efText.value.trim() && (!encEditing || privatesLoaded)) {
+      el.efPrivate.value = [el.efText.value.trim(), el.efPrivate.value.trim()].filter(Boolean).join("\n\n");
+      el.efText.value = "";
+    }
+    el.efTextField.hidden = only && !el.efText.value.trim();
+  }
+  el.efSealed.addEventListener("change", function () { syncSealed(true); });
   function fillPrivate(e) {
     var priv = e ? privates[e.id] : "";
     el.efPrivate.value = typeof priv === "string" ? priv : "";
@@ -1889,12 +1920,13 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function openEncounterForm(id) {
     var e = id ? findEnc(id) : null;
     encEditing = e ? e.id : null;
-    el.efHeading.textContent = e ? "Revise the encounter" : "Record an encounter";
+    el.efHeading.textContent = e ? "Revise the encounter" : "Add Encounter";
     el.efSubmit.textContent = e ? "Save changes" : "Save the encounter";
     el.efTitle.value = e ? e.title : "";
     el.efDate.value = e ? e.date : "";
     el.efText.value = e ? e.text : "";
     el.efSealed.checked = !!(e && e.sealed);
+    syncSealed(false);
     el.efError.hidden = true;
     fillPrivate(e);
     encWas = JSON.stringify(encFromForm());
@@ -1919,7 +1951,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       if (body.private !== undefined && owner) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
       if (findEnc(data.id)) showEncounter(data.id); else showView("encounters");
       loadPrivate();
-    }, el.efSubmit, id ? "Saving…" : "Recording…", "Saved.");
+    }, el.efSubmit, "Saving…", "Saved.");
   });
   el.efCancel.addEventListener("click", leaveCurrentForm);
   el.efBack.addEventListener("click", leaveCurrentForm);
@@ -2046,7 +2078,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   DIRECTORY.forEach(function (d) {
     el.abfDirectory.append(h("div", { class: "field" },
       h("label", { for: "abf-" + d[0], text: d[1] }),
-      h("input", { class: "input", id: "abf-" + d[0], name: d[0], maxlength: d[3], autocomplete: "off", placeholder: d[2] || null })));
+      h("input", { class: "input", id: "abf-" + d[0], name: d[0], maxlength: d[2], autocomplete: "off" })));
   });
   fill(el.factLabels, FACT_LABELS.map(function (l) { return h("option", { value: l }); }));
   el.abfEyeOn.addEventListener("change", function () { el.abfEyeColor.disabled = !el.abfEyeOn.checked; });
@@ -2207,7 +2239,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     artEditing = a ? a.id : null;
     el.afHeading.textContent = a ? "Revise the art piece" : "Add an art piece";
     el.afSubmit.textContent = a ? "Save changes" : "Add the art piece";
-    fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: g.name }); }).concat([h("option", { value: "", text: "Other art (no form)" })]));
+    fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: nameOf(g) }); }).concat([h("option", { value: "", text: "Other art (no form)" })]));
     el.afGallery.value = a ? a.gallery : galleryOf(galleryId) && galleryId !== OTHER ? galleryId : "";
     fill(el.afVersions, a ? a.versions.map(versionRow) : [versionRow(null, 0)]);
     updateVersionRows();
@@ -2315,8 +2347,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function openGalleryForm(id) {
     var g = id ? galleryOf(id) : null;
     galEditing = g && !g.other ? g.id : null;
-    el.gfHeading.textContent = galEditing ? "Rename the form" : "Add a form";
-    el.gfSubmit.textContent = galEditing ? "Save the name" : "Add the form";
+    el.gfHeading.textContent = galEditing ? "Rename the form" : "Add OC";
+    el.gfSubmit.textContent = galEditing ? "Save the name" : "Add OC";
     el.gfName.value = galEditing ? g.name : "";
     el.gfError.hidden = true;
     showView("galleryForm");
@@ -2490,8 +2522,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
         full.src = artUrl(v.file);
       }
     }
-    el.lbTitle.textContent = plateNo(a) + " " + (a.title || "Untitled") + (a.versions.length > 1 ? " · " + verName(a, v) : "");
-    el.lbCredit.textContent = a.artist ? "by " + a.artist : "";
+    el.lbTitle.textContent = plateNo(a) + " " + (plain(a.title) || "Untitled") + (a.versions.length > 1 ? " · " + verName(a, v) : "");
+    el.lbCredit.textContent = a.artist ? "by " + plain(a.artist) : "";
     el.lbPrev.hidden = el.lbNext.hidden = sequence().length < 2;
   }
   function stepLightbox(by) {
@@ -2618,7 +2650,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     var gone = {};
     state.encounters = state.encounters.filter(function (e) { if (e.sealed) gone[e.id] = true; return !e.sealed; });
     state.records.forEach(function (r) { if (gone[r.encounter]) r.encounter = ""; });
-    if (gone[encounterId]) { encounterId = null; el.encTitle.textContent = ""; fill(el.encText, []); fill(el.encPrivateText, []); el.encSealed.hidden = true; }
+    if (gone[encounterId]) { encounterId = null; fill(el.encTitle, []); fill(el.encText, []); fill(el.encPrivateText, []); el.encSealed.hidden = true; }
   }
   function wipeForms(all) {
     if (all || currentView !== "encounterForm") el.encounterForm.reset();
@@ -2650,18 +2682,19 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       if (lost && FORMS[currentView] && el.archive.open) sealedAgain();
     }, watchSession);
   }
-  var SEAL_TITLE = { unlock: "The keeper's word", change: "A new word", open: "Unsealed" };
+  var SEAL_TITLE = { unlock: "Edit Mode", change: "Change Password", open: "Unlocked" };
   function renderSeal(mode) {
     sealMode = mode;
     var change = mode === "change";
     el.sealTitle.textContent = SEAL_TITLE[mode];
     el.sealF0.hidden = el.sealF2.hidden = !change;
     el.sealF1.hidden = mode === "open";
-    el.sealWordLabel.textContent = change ? "The new word" : "Word";
+    el.sealWordLabel.textContent = change ? "New password" : "Password";
+    el.sealWordLabel.classList.toggle("sr-only", !change);
     el.sealWord.setAttribute("autocomplete", change ? "new-password" : "current-password");
     el.sealCurrent.value = el.sealWord.value = el.sealAgain.value = "";
     el.sealGo.hidden = mode === "open";
-    el.sealGo.textContent = change ? "Change the word" : "Unseal";
+    el.sealGo.textContent = change ? "Change Password" : "Unlock";
     el.sealLock.hidden = el.sealChange.hidden = el.sealStats.hidden = mode !== "open";
     el.sealError.hidden = true;
   }
@@ -2692,7 +2725,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       if (FORMS[currentView]) { leaveCurrentForm(); wipeForms(); }
       closeSeal(true);
       tellTabs();
-      toast("Sealed.");
+      toast("Locked.");
     }
     sealWorking(true, el.sealGo.textContent);
     call("POST", "api/logout").then(function () { sealWorking(false); sealed(); }, function (err) {
@@ -2710,8 +2743,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     if (sealBusy) return;
     var mode = sealMode, word = el.sealWord.value;
     if (mode === "unlock") {
-      if (!word) { sealError("Enter the word."); el.sealWord.focus(); return; }
-      sealWorking(true, "Testing…");
+      if (!word) { sealError("Enter the password."); el.sealWord.focus(); return; }
+      sealWorking(true, "Unlocking…");
       call("POST", "api/login", { password: word }).then(function (s) {
         sealWorking(false);
         setOwner(true, s.csrf);
@@ -2726,16 +2759,16 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     }
     if (mode === "change") {
       var current = el.sealCurrent.value;
-      if (!current) { sealError("Enter the current word."); el.sealCurrent.focus(); return; }
+      if (!current) { sealError("Enter the current password."); el.sealCurrent.focus(); return; }
       if (word.length < WORD_MIN) { sealError("At least " + WORD_MIN + " characters."); el.sealWord.focus(); return; }
-      if (word !== el.sealAgain.value) { sealError("The words don't match."); el.sealAgain.focus(); return; }
+      if (word !== el.sealAgain.value) { sealError("The passwords don't match."); el.sealAgain.focus(); return; }
       sealWorking(true, "Changing…");
       call("POST", "api/password", { current: current, next: word }).then(function (s) {
         sealWorking(false);
         setOwner(true, s.csrf);
         closeSeal(true);
         tellTabs();
-        toast("Word changed.");
+        toast("Password changed.");
       }, function (err) {
         sealWorking(false);
         if (err.status !== 401 && err.status !== 403) { sealError(err.message); return; }
@@ -2821,10 +2854,10 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     renderArtStats(d);
     var byCount = function (list) { return list.sort(function (a, b) { return b.n - a.n; }); };
     barList(el.stEncounters, "encounters", byCount(newest(state.encounters.filter(function (e) { return !e.sealed; })).map(function (e) {
-      return { label: e.title, n: d.items[e.id] || 0, open: function () { showEncounter(e.id); } };
+      return { label: plain(e.title), n: d.items[e.id] || 0, open: function () { showEncounter(e.id); } };
     })), "No encounters yet.");
     barList(el.stRecords, "records", byCount(newest(state.records).map(function (r) {
-      return { label: r.title, n: d.items[r.id] || 0, open: function () { showDetail(r.id); } };
+      return { label: plain(r.title), n: d.items[r.id] || 0, open: function () { showDetail(r.id); } };
     })), "No records yet.");
     barList(el.stFrom, "from", (d.from || []).map(function (f) {
       var name = placeName(f[0]);
@@ -2921,11 +2954,11 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       var list = h("div"), n = d.items[g.id] || 0;
       barList(list, "art/" + g.id, piecesOf(g.id).map(function (a, i) {
         var v = a.versions[0];
-        return { label: roman(i + 1) + ". " + (a.title || "Untitled"), n: d.items[a.id] || 0, open: function () { showPlate(a.id); },
+        return { label: roman(i + 1) + ". " + (plain(a.title) || "Untitled"), n: d.items[a.id] || 0, open: function () { showPlate(a.id); },
                  mark: h("span", { class: "mount st-thumb", "aria-hidden": "true" }, v.mature ? spoiler(v) : verImg(v, "thumb", "")) };
       }).sort(function (a, b) { return b.n - a.n; }), "No art pieces yet.", max);
       return h("section", { class: "st-group" },
-        h("h5", { class: "st-group-head" }, h("button", { class: "st-name", type: "button", onclick: function () { showGallery(g.id); } }, h("span", { text: g.name })),
+        h("h5", { class: "st-group-head" }, h("button", { class: "st-name", type: "button", onclick: function () { showGallery(g.id); } }, h("span", { text: nameOf(g) })),
           h("span", { text: plural(n, "visitor", "visitors") })),
         list);
     }));

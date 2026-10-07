@@ -1065,7 +1065,7 @@ async function browserChecks() {
     await page.fill('#seal-word', 'not the word at all');
     await page.click('#seal-go');
     await page.waitForSelector('#seal-error:not([hidden])', { timeout: 15000 });
-    check((await page.textContent('#seal-error')).includes('does not yield') && await page.$('#btn-inscribe[hidden]') !== null, 'a wrong word is refused and the tools stay hidden');
+    check((await page.textContent('#seal-error')).includes('Wrong password') && await page.$('#btn-inscribe[hidden]') !== null, 'a wrong word is refused and the tools stay hidden');
     check(await page.evaluate(() => document.cookie === ''), 'the page script cannot see any session cookie');
     await page.fill('#seal-word', WORD);
     await page.click('#seal-go');
@@ -1097,7 +1097,7 @@ async function browserChecks() {
     await page.screenshot({ path: path.join(OUT, 'record.png') });
     // A drag to select some of the record's text, let go on the dark ground beyond the tome, ends in a click on the
     // ground too: it closed the whole tome
-    const noteAt = await page.evaluate(() => { const r = document.createRange(), t = document.getElementById('det-note').firstChild; r.setStart(t, 3); r.setEnd(t, 4); const b = r.getBoundingClientRect(); return { x: b.x, y: b.y + b.height / 2 }; });
+    const noteAt = await page.evaluate(() => { const r = document.createRange(), t = document.createTreeWalker(document.getElementById('det-note'), NodeFilter.SHOW_TEXT).nextNode(); r.setStart(t, 3); r.setEnd(t, 4); const b = r.getBoundingClientRect(); return { x: b.x, y: b.y + b.height / 2 }; });
     await page.mouse.move(noteAt.x, noteAt.y);
     await page.mouse.down();
     await page.mouse.move(noteAt.x + 120, noteAt.y, { steps: 6 });

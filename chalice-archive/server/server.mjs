@@ -285,7 +285,7 @@ function validWord(word) {
   if (typeof word !== "string" || word.length < WORD.min) return `Use at least ${WORD.min} characters.`;
   if (word.length > WORD.max) return `Use at most ${WORD.max} characters.`;
   // An arrow key or Escape pressed while typing at set-password goes into the word, and no browser could send it back
-  if (/[\u0000-\u001f\u007f]/.test(word)) return "The word cannot hold control characters, such as an arrow key or Escape pressed while typing it.";
+  if (/[\u0000-\u001f\u007f]/.test(word)) return "The password cannot contain control characters, such as an arrow key or Escape pressed while typing it.";
   return "";
 }
 
@@ -1261,12 +1261,12 @@ async function login(req, res) {
   const auth = readAuth();
   const attempt = beginTry(ip, known);
   if (!word || !(await checkWord(word, auth))) {
-    throw new HttpError(401, "The seal does not yield.", attempt.secs ? { "Retry-After": String(attempt.secs) } : undefined);
+    throw new HttpError(401, "Wrong password.", attempt.secs ? { "Retry-After": String(attempt.secs) } : undefined);
   }
   forgive(attempt); // the word is right: nothing that happens next makes this try a miss
   // a word that was the word when it was checked, but was changed before the session began, is refused like any other
   const session = await unseal(word, auth);
-  if (!session) throw new HttpError(401, "The seal does not yield.");
+  if (!session) throw new HttpError(401, "Wrong password.");
   sendJson(req, res, 200, { owner: true, csrf: session.csrf }, { "Set-Cookie": [sessionCookie(session.token, CONFIG.sessionMs), deviceCookie(auth)] });
 }
 
@@ -1278,7 +1278,7 @@ async function changeWord(req, res, session) {
   if (!auth || auth.generation !== session.generation) throw new HttpError(401, "Unlock the archive first."); // changed while the request came in
   const attempt = beginTry(ip, true);
   if (!(await checkWord(typeof body.current === "string" ? body.current.slice(0, WORD.max) : "", auth))) {
-    throw new HttpError(401, "The current word is wrong.");
+    throw new HttpError(401, "The current password is wrong.");
   }
   forgive(attempt);
   const problem = validWord(body.next);
