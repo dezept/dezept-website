@@ -464,18 +464,19 @@ async function apiChecks() {
     // the About page
     const about = await write('PUT', '/api/about', {
       name: 'Smoke ' + evil, epithet: 'e'.repeat(400), title: 't'.repeat(99), race: 'Dracthyr', eyeColor: 'red; background: url(x)',
-      currently: 'line one\nline\u0000 two', admin: true,
+      currently: 'what he does now', ooc: 'a note', admin: true,
       facts: [{ label: 'Motto', value: 'v' }, { label: ' ', value: '' }, ...Array.from({ length: 30 }, (_, i) => ({ label: 'L' + i, value: 'v' }))],
       traits: [{ left: 'Chaotic', right: 'Lawful', value: 99 }, { left: 'A', right: 'B', value: -4 }, { left: 'C', right: 'D', value: 'x' }, { left: 'E', right: 'F', value: 7.6 }, { left: '', right: '' }],
-      glances: Array.from({ length: 8 }, (_, i) => ({ title: 'Glance ' + i, text: 't' })),
+      glances: Array.from({ length: 8 }, (_, i) => ({ title: 'Glance ' + i, text: i ? 't' : 'line one\nline\u0000 two' })),
       sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000), color: 'red; background: url(x)' }, 'junk', null, { heading: '', body: '' }],
     });
     const ab = about.json && about.json.archive;
     check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 &&
       ab.about.facts.length === 24 && ab.about.facts[0].label === 'Motto' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 40000 &&
       ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.sections[0].color === '' && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
-      ab.about.currently === 'line one\nline two' && ab.about.traits.map((t) => t.value).join() === '20,0,10,8' && ab.about.glances.length === 5 && !('admin' in ab.about),
-      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and an unknown field dropped, TRP markup kept as text');
+      ab.about.glances[0].text === 'line one\nline two' && ab.about.traits.map((t) => t.value).join() === '20,0,10,8' && ab.about.glances.length === 5 &&
+      !('admin' in ab.about) && !('currently' in ab.about) && !('ooc' in ab.about),
+      'the About page is cleaned: lengths and counts capped, empty rows dropped, control characters taken out (line breaks kept), traits kept within 0–20, a bad colour and unknown fields dropped (Currently and OOC among them, no longer kept), TRP markup kept as text');
     const aboutPage = await call('GET', '/');
     check(!aboutPage.text.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/)[1].includes('<') && archiveIn(aboutPage.text).profile.name.startsWith('Smoke </script>'),
       "markup in the About page is escaped in the page's data block");

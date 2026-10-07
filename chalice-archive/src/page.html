@@ -298,11 +298,6 @@ button, input, textarea { font: inherit; color: inherit; }
 #leaf-about .ar-tools { margin-top: 8px; }
 #view-about { display: grid; gap: 38px; }
 
-.now { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px 30px; padding: 16px 20px 17px; border: 1px solid rgb(var(--sepia-rgb) / .3); border-radius: 2px; background: rgb(255 246 218 / .38); box-shadow: inset 0 0 24px rgb(var(--sepia-rgb) / .08); }
-.now-label { margin: 0 0 3px; font-family: var(--font-book-sc); font-size: 16px; font-weight: 400; color: var(--rubric); }
-.now p { margin: 0; font-size: 17.5px; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
-.now .is-ooc p { font-style: italic; color: var(--sepia-soft); }
-
 .dir { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); column-gap: 36px; margin: 0; }
 .dir-wide { grid-template-columns: minmax(0, 1fr); }
 .dir-row { display: grid; grid-template-columns: 6.2em minmax(0, 1fr); gap: 14px; align-items: baseline; padding: 7px 0 8px; border-bottom: 1px solid rgb(var(--sepia-rgb) / .14); }
@@ -859,7 +854,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
           </section>
 
           <section id="view-about" hidden>
-            <div class="now" id="ab-now" hidden></div>
             <section id="ab-dir-wrap" aria-labelledby="dir-title" hidden>
               <h4 class="rubric" id="dir-title">Directory</h4>
               <dl class="dir" id="ab-dir"></dl>
@@ -898,16 +892,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               <div class="field">
                 <label for="abf-epithet">Full title</label>
                 <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280" placeholder="A line or two beneath his name"></textarea>
-              </div>
-              <div class="row-2">
-                <div class="field">
-                  <label for="abf-currently">Currently</label>
-                  <textarea class="input short" id="abf-currently" name="currently" maxlength="1000" placeholder="What he is doing right now"></textarea>
-                </div>
-                <div class="field">
-                  <label for="abf-ooc">Out of character</label>
-                  <textarea class="input short" id="abf-ooc" name="ooc" maxlength="1000" placeholder="Notes for other players"></textarea>
-                </div>
               </div>
               <fieldset class="field">
                 <legend>Directory</legend>
@@ -1207,7 +1191,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * MiB, gif: 40 * MiB, video: 90 * MiB };
   // The About page follows a Total RP 3 profile: the directory, additional information, personality traits, at first
   // glance and the description. server/server.mjs caps each field; the form uses the same limits.
-  var ABOUT_TEXT = ["title", "currently", "ooc", "race", "class", "age", "eyes", "height", "build", "birthplace", "residence"];
+  var ABOUT_TEXT = ["title", "race", "class", "age", "eyes", "height", "build", "birthplace", "residence"];
   var DIRECTORY = [["race", "Race", "Dracthyr", 60], ["class", "Class", "Evoker", 60], ["age", "Age", "", 60], ["eyes", "Eyes", "Molten amber", 60],
                    ["height", "Height", "", 60], ["build", "Build", "", 60], ["birthplace", "Birthplace", "The Forbidden Reach", 120], ["residence", "Residence", "Valdrakken", 120]];
   var FACT_LABELS = ["Motto", "Nickname", "House name", "Pronouns", "Voice", "Profession", "Guild", "Rank", "Languages", "Relationships"];
@@ -1652,11 +1636,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     el.abName.textContent = p.name || "Unnamed Dracthyr";
     el.abEpithet.textContent = p.epithet;
     el.abEpithet.hidden = !p.epithet;
-    fill(el.abNow, [
-      ab.currently ? h("div", null, h("h4", { class: "now-label", text: "Currently" }), h("p", { text: ab.currently })) : null,
-      ab.ooc ? h("div", { class: "is-ooc" }, h("h4", { class: "now-label", text: "Out of character" }), h("p", { text: ab.ooc })) : null
-    ].filter(Boolean));
-    el.abNow.hidden = !(ab.currently || ab.ooc);
     function row(label, value, before) { return h("div", { class: "dir-row" }, h("dt", { text: label }), h("dd", null, before, value)); }
     var dir = DIRECTORY.filter(function (d) { return ab[d[0]]; });
     fill(el.abDir, dir.map(function (d) {
@@ -1677,7 +1656,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     // a red capital opens the first plain paragraph of the description, if it is long enough to wrap around it
     var first = el.abSections.querySelector(".trp > p:not(.al-c):not(.al-r)");
     if (first && /^\p{L}/u.test(first.textContent) && first.textContent.length > 120) first.classList.add("dropcap");
-    var any = ab.currently || ab.ooc || dir.length || ab.facts.length || ab.traits.length || ab.glances.length || ab.sections.length;
+    var any = dir.length || ab.facts.length || ab.traits.length || ab.glances.length || ab.sections.length;
     el.abEmpty.hidden = !!any;
     el.abEmpty.textContent = canPost() ? "Nothing is written here yet. Amend this page to say who he is, or paste his Total RP 3 profile into it." : "Nothing is written here yet.";
   }
@@ -2208,7 +2187,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     var p = state.profile, ab = state.about;
     el.abfName.value = p.name;
     el.abfEpithet.value = p.epithet;
-    ["title", "currently", "ooc"].forEach(function (k) { el["abf" + k[0].toUpperCase() + k.slice(1)].value = ab[k]; });
+    el.abfTitle.value = ab.title;
     DIRECTORY.forEach(function (d) { byId("abf-" + d[0]).value = ab[d[0]]; });
     el.abfEyeOn.checked = !!ab.eyeColor;
     el.abfEyeColor.value = ab.eyeColor || "#e3a13a";
@@ -2226,7 +2205,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function aboutFromForm() {
     var body = {
       name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(),
-      title: el.abfTitle.value.trim(), currently: el.abfCurrently.value.trim(), ooc: el.abfOoc.value.trim(),
+      title: el.abfTitle.value.trim(),
       eyeColor: el.abfEyeOn.checked ? el.abfEyeColor.value : "",
       facts: rowsOf(el.abfFacts, ["label", "value"]),
       traits: rowsOf(el.abfTraits, ["left", "right", "value"], ["left", "right"]).map(function (t) { t.value = traitValue(t.value); return t; }),

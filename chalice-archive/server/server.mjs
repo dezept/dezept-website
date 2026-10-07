@@ -115,7 +115,7 @@ const LIMIT = {
 };
 // The About page follows a Total RP 3 profile. Its short text fields and their caps:
 const ABOUT_TEXT = {
-  title: 60, currently: 1000, ooc: 1000,
+  title: 60,
   race: 60, class: 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120,
 };
 // Art is stored under the first 32 hex digits of its SHA-256, so its name changes with its content. A still image,
@@ -604,10 +604,10 @@ function cleanGallery(input, prev) {
   return { id: prev ? prev.id : "g" + crypto.randomBytes(9).toString("base64url"), name, added: prev ? prev.added : Date.now(), example: false };
 }
 
-// The About page, laid out like a Total RP 3 profile: a short title, what he is
-// doing now and an OOC note, the directory (race, class, age …), additional information (the particulars, label
-// and value), personality traits (two opposites and a value from 0, all left, to 20, all right), up to five things
-// seen at first glance, and the description in sections. Section text keeps TRP's markup; the page renders it.
+// The About page, laid out like a Total RP 3 profile: a short title, the directory (race, class, age …), additional
+// information (the particulars, label and value), personality traits (two opposites and a value from 0, all left,
+// to 20, all right), up to five things seen at first glance, and the description in sections. Section text keeps
+// TRP's markup; the page renders it.
 function cleanAbout(input) {
   const a = input && typeof input === "object" ? input : {};
   const list = (v) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === "object");

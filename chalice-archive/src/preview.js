@@ -16,7 +16,7 @@
     artist: 80, link: 300, caption: 1000, facts: 24, factLabel: 40, factValue: 400, sections: 24, heading: 120, section: 40000,
     traits: 24, pole: 40, glances: 5, glanceTitle: 80, glanceText: 1000, aboutBody: 256 * 1024
   };
-  var ABOUT_TEXT = { title: 60, currently: 1000, ooc: 1000, race: 60, "class": 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120 };
+  var ABOUT_TEXT = { title: 60, race: 60, "class": 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120 };
   var UPLOAD_TYPES = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "video/mp4": "mp4", "video/webm": "webm" };
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png|gif|mp4|webm)$/, STILL_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
   function isVideo(name) { return /\.(mp4|webm)$/.test(name); }
