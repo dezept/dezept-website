@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Chalice Archive</title>
+<title>The Vigil Archives</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 7-6 7-6-7z' fill='%2366efdc' stroke='%230a0e1a' stroke-width='1.2'/%3E%3Cpath d='M8 1l3 7-3 7' fill='%23fff' fill-opacity='.35'/%3E%3C/svg%3E">
 <link rel="preload" href="__MODEL_URL__" as="fetch" crossorigin>
 <link rel="modulepreload" href="__THREE_URL__">
@@ -1586,7 +1586,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     fill(el.records, state.records.length ? newest(state.records).map(function (r) {
       var e = r.encounter && findEnc(r.encounter), from = e ? e.title : r.source;
       return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), r.note, function () { showDetail(r.id); });
-    }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." }))]);
+    }) : [h("li", null, h("p", { class: "empty", text: "No records yet." }))]);
     renderDetail(); // also out of sight: its link to an encounter only for the keeper must not stay behind once sealed
   }
 
@@ -1604,7 +1604,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       var li = entry(e.title, [e.sealed ? "Only for you" : "", e.date ? fmtDate(e.date) : "", n ? n + (n === 1 ? " record" : " records") : ""].filter(Boolean).join(" · "), plain(e.text), function () { showEncounter(e.id); });
       if (e.sealed) li.querySelector(".entry-meta").prepend(lockIcon());
       return li;
-    }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No encounters yet. Record the first." : "No encounters yet." }))]);
+    }) : [h("li", null, h("p", { class: "empty", text: "No encounters yet." }))]);
     if (currentView === "encounter") renderEncounter();
   }
 
@@ -1658,7 +1658,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     if (first && /^\p{L}/u.test(first.textContent) && first.textContent.length > 120) first.classList.add("dropcap");
     var any = dir.length || ab.facts.length || ab.traits.length || ab.glances.length || ab.sections.length;
     el.abEmpty.hidden = !!any;
-    el.abEmpty.textContent = canPost() ? "Nothing is written here yet. Amend this page to say who he is, or paste his Total RP 3 profile into it." : "Nothing is written here yet.";
+    el.abEmpty.textContent = "Nothing is written here yet.";
   }
 
   // Art: his forms, each with its first art piece as its cover, in the keeper's order; then "Other art", if any
@@ -1671,7 +1671,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       return h("li", null, h("button", { class: "plate-btn gallery-btn", type: "button", "data-id": g.id, onclick: function () { showGallery(g.id); } },
         h("span", { class: "mount" }, !main ? h("span", { class: "mount-empty", text: "No art yet" }) : main.mature ? spoiler(main) : verImg(main, "thumb", "")),
         h("span", { class: "plate-cap" }, h("b", { text: g.name }), h("span", { class: "plate-more", text: all.length ? pieces(all.length) : "Empty" }))));
-    }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: canPost() ? "No forms yet. Add one for each shape he takes, such as his Dracthyr form and his visage, then add art to it." : "No art yet." }))]);
+    }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: "No Art has been uploaded yet." }))]);
     renderGallery();
     renderPlate();
   }
