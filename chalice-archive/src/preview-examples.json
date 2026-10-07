@@ -2,8 +2,6 @@
   "_note": "Only for the claude.ai preview (dist/preview.html); never on the real site. build.py adds these to src/seed.json there. The About page is a made-up example laid out like a Total RP 3 profile, with TRP markup in its description; the images are rendered from the game's model by tools/example_plates.js, and the GIF and the video by tools/example_animations.js. The art is sorted into two example forms. None of them is mature; two are flagged so the preview shows how a mature image is covered. The encounters and records are examples too; the private text of the first encounter is kept apart, in \"private\", as the server keeps such text encrypted and gives it only to the keeper. The encounter in \"sealed\" is only for the keeper: it joins the archive only once the preview is unsealed, as the server sends such encounters only to the keeper's session.",
   "about": {
     "title": "Archivist",
-    "currently": "Cataloguing a shelf of the Valdrakken library he was not asked to catalogue. Ask him what year it is.",
-    "ooc": "An example page, only in the preview. Unseal the archive with the word “preview” and choose Amend this page to see how it is written; a reload brings the example back.",
     "race": "Dracthyr",
     "class": "Evoker",
     "age": "Older than he looks, by ten thousand years",

@@ -5,7 +5,8 @@
    except that the word is "preview", every change, uploads included, is lost when the page reloads, and GIFs and
    videos are kept as they come (the server strips their metadata). The example
    encounters' private sections, and the example encounter only for the keeper, come from #ca-private and are kept
-   apart from what visitors get, as the server keeps them; here they are only in memory, not encrypted. */
+   apart from what visitors get, as the server keeps them; here they are only in memory, not encrypted. Nothing is
+   counted: the statistics are made-up example numbers, the same on every load, for the example art and the rest. */
 (function () {
   "use strict";
   var MiB = 1024 * 1024;
@@ -15,7 +16,7 @@
     artist: 80, link: 300, caption: 1000, facts: 24, factLabel: 40, factValue: 400, sections: 24, heading: 120, section: 40000,
     traits: 24, pole: 40, glances: 5, glanceTitle: 80, glanceText: 1000, aboutBody: 256 * 1024
   };
-  var ABOUT_TEXT = { title: 60, currently: 1000, ooc: 1000, race: 60, "class": 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120 };
+  var ABOUT_TEXT = { title: 60, race: 60, "class": 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120 };
   var UPLOAD_TYPES = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "video/mp4": "mp4", "video/webm": "webm" };
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png|gif|mp4|webm)$/, STILL_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
   function isVideo(name) { return /\.(mp4|webm)$/.test(name); }
@@ -181,6 +182,41 @@
     return out;
   }
   function change(fields) { archive = Object.assign({}, data(), fields); return archive; }
+  // Made-up statistics in the shape the server gives them, naming the example forms, art, encounters and records
+  function exampleStats(a) {
+    var seed = 20261007;
+    function rand() { // mulberry32: the same numbers on every load
+      seed = seed + 0x6d2b79f5 | 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+    function between(lo, hi) { return lo + Math.floor(rand() * (hi - lo + 1)); }
+    function day(k) {
+      var d = new Date();
+      d.setDate(d.getDate() - k);
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+    var days = [];
+    for (var k = 29; k >= 0; k--) {
+      var v = Math.max(1, Math.round(9 + 5 * Math.sin(k / 3.2) + (k === 11 ? 31 : 0) + rand() * 6));
+      days.push({ day: day(k), visitors: v, visits: Math.round(v * (1.4 + rand() * .5)) });
+    }
+    function sum(list, key) { return list.reduce(function (n, x) { return n + x[key]; }, 0); }
+    var last = days[days.length - 1], week = days.slice(-7), month = sum(days, "visitors"), items = {};
+    a.galleries.forEach(function (g) { items[g.id] = between(60, 150); });
+    a.art.forEach(function (x) { items[x.id] = between(4, 110); });
+    a.encounters.forEach(function (e) { if (!e.sealed) items[e.id] = between(3, 40); });
+    a.records.forEach(function (r) { items[r.id] = between(1, 25); });
+    return {
+      example: true, since: day(45), today: last.day,
+      visitors: { today: last.visitors, week: Math.round(sum(week, "visitors") * .8), month: Math.round(month * .62), all: Math.round(month * .62) + 143 },
+      visits: { today: last.visits, week: sum(week, "visits"), month: sum(days, "visits"), all: sum(days, "visits") + 420 },
+      days: days, chapters: { about: 162, art: 214, knowledge: 71, encounters: 58 }, items: items,
+      from: [["", 131], ["t.co", 94], ["discord.com", 38], ["google.com", 11], ["bsky.app", 6], ["wowhead.com", 2]],
+      countries: [["DE", 84], ["GB", 61], ["US", 47], ["FR", 23], ["NL", 15], ["SE", 9], ["XX", 3]]
+    };
+  }
   function modelBytes() {
     if (!model) {
       var bin = atob(document.getElementById("ca-model").textContent.trim()), out = new Uint8Array(bin.length);
@@ -217,6 +253,7 @@
 
   function handle(method, path, body, sent) {
     var a = data();
+    if (method === "POST" && path === "api/hit") return Promise.resolve(new Response(null, { status: 204 })); // the preview counts nothing
     if (method === "GET" && path === "api/session") return reply(200, { owner: !!csrf, csrf: csrf });
     if (method === "GET" && path === "api/archive") return reply(200, { archive: publicView(a) });
     if (method === "POST" && path === "api/login") {
@@ -283,6 +320,7 @@
       a.encounters.forEach(function (e) { if (privates()[e.id] !== undefined) out[e.id] = privates()[e.id]; });
       return reply(200, { encounters: out, archive: a });
     }
+    if (method === "GET" && path === "api/stats") return reply(200, exampleStats(a));
     if (method === "POST" && path === "api/encounters") {
       if (JSON.stringify(body).length > LIMIT.encounterBody) return reply(413, { error: "That is too large." });
       var enc = cleanEncounter(body);
@@ -351,7 +389,7 @@
     fetch: function (url, opts) {
       opts = opts || {};
       var path = String(url).replace(/^\.?\//, ""), method = (opts.method || "GET").toUpperCase(), sent = (opts.headers || {})["X-CSRF-Token"] || "";
-      if (/^chalice\.[0-9a-f]{12}\.glb$/.test(path)) {
+      if (/^[a-z0-9_-]+\.[0-9a-f]{12}\.glb$/.test(path)) {
         return Promise.resolve(new Response(modelBytes(), { headers: { "Content-Type": "model/gltf-binary" } }));
       }
       if (typeof Blob !== "undefined" && opts.body instanceof Blob) {

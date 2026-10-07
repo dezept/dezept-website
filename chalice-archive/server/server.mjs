@@ -19,8 +19,9 @@
      TRUST_PROXY=true                      take the client IP from X-Real-IP (set by Caddy), only from a loopback peer
      COOKIE_SECURE=false                   only for local testing over plain http
      SESSION_HOURS=12                      how long a login lasts, 1 to 720 (anything else stops the server, as does a bad PORT)
+     TZ=Europe/Berlin                      the time zone the statistics count their days in (the system's, usually UTC, if unset)
 
-   Security, in short (deploy/README.md has the whole picture):
+   Security, in short (hosting/README.md, at the top of the repository, has the whole picture):
      - The keeper's word is stored only as a salted scrypt hash (N=2^17, r=8, p=1), set from the command line,
        so the web never offers a "choose a password" form an attacker could reach first.
      - A login gets a random 256-bit session token in an HttpOnly, SameSite=Strict, Secure cookie (__Host- prefix).
@@ -40,6 +41,9 @@
      - A write is checked against the session again once its body has arrived, so none lands after its session ended.
      - Only the page, the model, three.js, the fonts and the art the archive names are served, art only under its
        content hash. There is no static directory to wander through.
+     - Statistics count visitors by their address, which nothing on disk keeps: each is sealed to a key that only the
+       keeper's word unlocks, and is opened only to be counted, while the keeper reads them. The keeper's own browsers
+       and robots are not counted.
 */
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -105,10 +109,13 @@ const LIMIT = {
   art: 500, versions: 12, files: 2000, side: 10000, artist: 80, link: 300, caption: 1000, label: 60,
   facts: 24, factLabel: 40, factValue: 400, sections: 24, heading: 120, section: 40000,
   traits: 24, pole: 40, glances: 5, glanceTitle: 80, glanceText: 1000,
+  // statistics: a visitor's report of what it opened, and how much is counted of one address in a day (far more than
+  // anyone reads); the visits waiting for the keeper to look, and the places and countries kept apart
+  hitBody: 2 * 1024, hitsPerDay: 2000, visitsPerDay: 100, seen: 1000, pending: 20000, visitorsToday: 50000, hosts: 300, countries: 300,
 };
 // The About page follows a Total RP 3 profile. Its short text fields and their caps:
 const ABOUT_TEXT = {
-  title: 60, currently: 1000, ooc: 1000,
+  title: 60,
   race: 60, class: 60, age: 60, eyes: 60, height: 60, build: 60, birthplace: 120, residence: 120,
 };
 // Art is stored under the first 32 hex digits of its SHA-256, so its name changes with its content. A still image,
@@ -124,6 +131,7 @@ const FILES = {
   auth: path.join(CONFIG.dataDir, "auth.json"),
   backups: path.join(CONFIG.dataDir, "backups"),
   art: path.join(CONFIG.dataDir, "art"),
+  stats: path.join(CONFIG.dataDir, "stats.json"),
   seed: path.join(ROOT, "src", "seed.json"),
 };
 
@@ -267,6 +275,8 @@ function unseal(word, auth) {
       });
       if (!stillWord(auth)) return null;
     }
+    // the statistics' keys, made with the first login, so that visitors are told apart from then on
+    try { statsKeys(key); } catch (err) { console.error("The statistics' keys could not be made:", err); }
     return createSession(auth, key);
   });
 }
@@ -594,10 +604,10 @@ function cleanGallery(input, prev) {
   return { id: prev ? prev.id : "g" + crypto.randomBytes(9).toString("base64url"), name, added: prev ? prev.added : Date.now(), example: false };
 }
 
-// The About page, laid out like a Total RP 3 profile: a short title, what he is
-// doing now and an OOC note, the directory (race, class, age …), additional information (the particulars, label
-// and value), personality traits (two opposites and a value from 0, all left, to 20, all right), up to five things
-// seen at first glance, and the description in sections. Section text keeps TRP's markup; the page renders it.
+// The About page, laid out like a Total RP 3 profile: a short title, the directory (race, class, age …), additional
+// information (the particulars, label and value), personality traits (two opposites and a value from 0, all left,
+// to 20, all right), up to five things seen at first glance, and the description in sections. Section text keeps
+// TRP's markup; the page renders it.
 function cleanAbout(input) {
   const a = input && typeof input === "object" ? input : {};
   const list = (v) => (Array.isArray(v) ? v : []).filter((x) => x && typeof x === "object");
@@ -663,6 +673,7 @@ function commit(next) {
   archive = next;
   artFiles = filesOf(next);
   shared = null;
+  visible = null;
 }
 
 // What visitors get changes only with the archive, so the page and the archive as JSON are made once per change,
@@ -823,14 +834,279 @@ function throttleKey(ip) {
   return groups.slice(0, 4).map((g) => parseInt(g, 16).toString(16)).join(":") + "::/64";
 }
 
-function clientIp(req) {
+// A request through Caddy, whose headers about the visitor (X-Real-IP, and Cloudflare's CF-IPCountry) are believed
+function behindProxy(req) {
   const peer = req.socket.remoteAddress || "";
-  const loopback = peer === "127.0.0.1" || peer === "::1" || peer === "::ffff:127.0.0.1";
-  if (CONFIG.trustProxy && loopback) {
+  return CONFIG.trustProxy && (peer === "127.0.0.1" || peer === "::1" || peer === "::ffff:127.0.0.1");
+}
+function clientIp(req) {
+  if (behindProxy(req)) {
     const real = String(req.headers["x-real-ip"] || "").trim();
     if (/^[0-9a-fA-F:.]{2,45}$/.test(real)) return real;
   }
-  return peer;
+  return req.socket.remoteAddress || "";
+}
+
+// ---------- statistics ----------
+// How many people visit, and what they look at, for the keeper alone (GET /api/stats). Each visitor's page reports
+// that it was opened, and from where, and each chapter, art piece, form, encounter and record it opens (POST
+// /api/hit). Visitors are told apart by their address (an IPv6 address by its /64, as throttleKey takes it), which
+// nothing on disk keeps: it is sealed at once to the statistics' public key, whose private half, like the encounters'
+// private sections, is stored only encrypted under the archive key that the keeper's word unwraps. When the keeper
+// reads the statistics, the sealed addresses are opened, each is turned into a hash under a key locked away the same
+// way (so a visitor is counted once, over days and restarts), and they are let go. So a copy of the data directory
+// says how many came and what they looked at, never who they were. The keeper's own browsers (a session, or the
+// device cookie) and robots are not counted.
+const CHAPTERS = ["about", "art", "knowledge", "encounters"];
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/, VISITOR_RE = /^[A-Za-z0-9_-]{16}$/, COUNTRY_RE = /^[A-Z][A-Z0-9]$/;
+const HOST_RE = /^(?=.{1,100}$)[a-z0-9-]+(?:\.[a-z0-9-]+)*$/;
+// What a visit took in: a chapter (c:), an art piece, form, encounter or record (i:), the site it came from (f:, empty
+// when none is known) and its country (n:)
+const SEEN_RE = /^(?:c:(?:about|art|knowledge|encounters)|i:[A-Za-z0-9_-]{1,40}|f:(?:(?=.{1,100}$)[a-z0-9-]+(?:\.[a-z0-9-]+)*)?|n:[A-Z][A-Z0-9])$/;
+// Robots, link previews and headless browsers, by what they call themselves (a Cubot is a phone)
+const ROBOT = /(?<!cu)bot|crawl|spider|slurp|archiver|headless|lighthouse|facebookexternalhit|embedly|preview|monitor|curl\/|wget|python|httpclient|go-http|java\/|okhttp|axios|node-fetch|phantom|selenium|puppeteer|playwright/i;
+// Days in the server's time zone (TZ), so that the keeper's "today" can be their own
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// today and the days before it, n in all, newest first
+const daysBack = (n, now = new Date()) => Array.from({ length: n }, (_, k) => dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - k)));
+
+let stats = null, statsDirty = false;
+function emptyStats() {
+  return {
+    since: "",            // the day visitors began to be told apart: the statistics' keys were made
+    keys: null,           // { public, publicKey, secret }: the public half, and the rest encrypted under the archive key
+    pending: [],          // visits not counted yet: { day, who (the address, sealed), seen }
+    visitors: new Set(),  // everyone counted, each as a hash of their address
+    recent: new Map(),    // day -> its visitors, as hashes, for the last 31 days
+    days: new Map(),      // day -> { visitors, visits }
+    // and, each as the visitors (hashes) it had: chapters; art pieces, forms, encounters and records; the sites
+    // visitors came from ("" when none is known); their countries
+    chapters: new Map(CHAPTERS.map((c) => [c, new Set()])), items: new Map(), from: new Map(), countries: new Map(),
+  };
+}
+// Where each kind of thing a visit took in is counted, and how many of it are kept at most
+const SEEN_IN = { c: ["chapters", CHAPTERS.length], i: ["items", Infinity], f: ["from", LIMIT.hosts], n: ["countries", LIMIT.countries] };
+function loadStats() {
+  stats = emptyStats();
+  let raw;
+  try { raw = JSON.parse(fs.readFileSync(FILES.stats, "utf8")); } catch (err) {
+    if (err.code === "ENOENT") return;
+    const aside = `${FILES.stats}.unreadable-${Date.now()}`; // kept, not written over; counting starts afresh
+    try { fs.renameSync(FILES.stats, aside); } catch {}
+    console.error(`The statistics could not be read and start afresh (the file is kept as ${aside}):`, err.message);
+    return;
+  }
+  const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  const hashes = (v) => new Set((Array.isArray(v) ? v : []).filter((x) => typeof x === "string" && VISITOR_RE.test(x)));
+  const count = (n) => (Number.isSafeInteger(n) && n > 0 ? n : 0);
+  const sets = (v, ok, max) => new Map(Object.entries(obj(v)).filter(([k]) => ok(k)).slice(0, max).map(([k, list]) => [k, hashes(list)]));
+  raw = obj(raw);
+  stats.since = typeof raw.since === "string" && DAY_RE.test(raw.since) ? raw.since : "";
+  const k = obj(raw.keys);
+  if (typeof k.public === "string" && validBox(k.secret)) {
+    try {
+      const publicKey = crypto.createPublicKey({ key: Buffer.from(k.public, "base64"), format: "der", type: "spki" });
+      if (publicKey.asymmetricKeyType === "x25519") stats.keys = { public: k.public, publicKey, secret: box(k.secret) };
+    } catch {}
+  }
+  stats.pending = (Array.isArray(raw.pending) ? raw.pending : []).map(cleanVisit).filter(Boolean).slice(0, LIMIT.pending);
+  stats.visitors = hashes(raw.visitors);
+  for (const [d, list] of Object.entries(obj(raw.recent))) if (DAY_RE.test(d)) stats.recent.set(d, hashes(list));
+  for (const [d, n] of Object.entries(obj(raw.days))) if (DAY_RE.test(d)) stats.days.set(d, { visitors: count(obj(n).visitors), visits: count(obj(n).visits) });
+  for (const c of CHAPTERS) stats.chapters.set(c, hashes(obj(raw.chapters)[c]));
+  stats.items = sets(raw.items, validId, Infinity);
+  stats.from = sets(raw.from, (h) => h === "" || HOST_RE.test(h), LIMIT.hosts);
+  stats.countries = sets(raw.countries, (c) => COUNTRY_RE.test(c), LIMIT.countries);
+}
+// A visit waiting to be counted, as stored; null if it is not one
+function cleanVisit(v) {
+  if (!v || typeof v !== "object" || typeof v.day !== "string" || !DAY_RE.test(v.day)) return null;
+  return {
+    day: v.day,
+    who: v.who && validBox(v.who) && typeof v.who.epk === "string" ? { epk: v.who.epk, ...box(v.who) } : null,
+    seen: [...new Set((Array.isArray(v.seen) ? v.seen : []).filter((s) => typeof s === "string" && SEEN_RE.test(s)))].slice(0, LIMIT.seen),
+  };
+}
+// stats.json, written whole and atomically, as the archive is: every half minute while visits come in, and whenever
+// the keeper has read the statistics. A write that fails (a full disk) is tried again then, and never fails a request.
+function saveStats() {
+  const lists = (m) => Object.fromEntries([...m].map(([k, s]) => [k, [...s]]));
+  try {
+    writeAtomic(FILES.stats, JSON.stringify({
+      since: stats.since, keys: stats.keys && { public: stats.keys.public, secret: stats.keys.secret },
+      pending: stats.pending, visitors: [...stats.visitors], recent: lists(stats.recent), days: Object.fromEntries(stats.days),
+      chapters: lists(stats.chapters), items: lists(stats.items), from: lists(stats.from), countries: lists(stats.countries),
+    }) + "\n");
+    statsDirty = false;
+  } catch (err) {
+    statsDirty = true;
+    console.error("The statistics could not be saved:", err.message);
+  }
+}
+
+// An address sealed to the statistics' public key: X25519 with a key pair made for it alone, then AES-256-GCM under a
+// key derived from the shared secret. Only the private half, kept under the archive key, opens it again.
+const VISIT = "chalice-archive visitor";
+function sealVisitor(publicKey, ip) {
+  const once = crypto.generateKeyPairSync("x25519"), epk = once.publicKey.export({ type: "spki", format: "der" });
+  const key = Buffer.from(crypto.hkdfSync("sha256", crypto.diffieHellman({ privateKey: once.privateKey, publicKey }), epk, VISIT, 32));
+  return { epk: b64(epk), ...encrypt(key, Buffer.from(ip, "utf8"), VISIT) };
+}
+// Throws if it was sealed to another key, or altered
+function openVisitor(privateKey, b) {
+  const epk = Buffer.from(b.epk, "base64");
+  const shared = crypto.diffieHellman({ privateKey, publicKey: crypto.createPublicKey({ key: epk, format: "der", type: "spki" }) });
+  return decrypt(Buffer.from(crypto.hkdfSync("sha256", shared, epk, VISIT, 32)), b, VISIT).toString("utf8");
+}
+// The statistics' keys. The public half seals addresses as visits come; the private half, and the key that turns an
+// address into the hash a visitor is counted by, are stored only encrypted under the archive key. They are made with
+// the keeper's first login since there were statistics, and made anew if they were made under a word that was
+// forgotten (set-password --forget-private): who visited is then counted afresh.
+function statsKeys(archiveKey) {
+  if (stats.keys) {
+    try {
+      const s = JSON.parse(decrypt(archiveKey, stats.keys.secret, "statistics").toString("utf8"));
+      return { privateKey: crypto.createPrivateKey({ key: Buffer.from(s.private, "base64"), format: "der", type: "pkcs8" }), salt: Buffer.from(s.salt, "base64") };
+    } catch {}
+  }
+  const pair = crypto.generateKeyPairSync("x25519"), salt = crypto.randomBytes(32);
+  const secret = JSON.stringify({ private: b64(pair.privateKey.export({ type: "pkcs8", format: "der" })), salt: b64(salt) });
+  forgetVisitors();
+  stats.keys = { public: b64(pair.publicKey.export({ type: "spki", format: "der" })), publicKey: pair.publicKey, secret: encrypt(archiveKey, Buffer.from(secret, "utf8"), "statistics") };
+  stats.since = dayKey();
+  saveStats();
+  return { privateKey: pair.privateKey, salt };
+}
+// Visitors hashed under a key that is gone cannot be told apart from new ones, so who visited, what they opened, where
+// they came from and their countries are counted afresh. The visits and visitors by day stay.
+function forgetVisitors() {
+  const fresh = emptyStats();
+  for (const k of ["visitors", "recent", "chapters", "items", "from", "countries"]) stats[k] = fresh[k];
+  for (const e of stats.pending) e.who = null;
+  for (const v of visiting.by.values()) v.entry = null; // their next visits are sealed to the new key
+}
+
+// Today's visitors, in memory only, by a hash of their address under a key made afresh each day: how much each has
+// sent, and the visit being written down for them
+let visiting = { day: "", key: null, by: new Map() };
+// A visitor's page reports a visit (when it is opened, with the address of the page that linked to it) or a chapter,
+// art piece, form, encounter or record it opened. Whatever is done with it, it is answered the same way.
+function hit(req, body) {
+  if (sessionOf(req) || knownDevice(req, readAuth())) return; // the keeper, in their own archive
+  const agent = String(req.headers["user-agent"] || "");
+  if (!agent || ROBOT.test(agent)) return;
+  const day = dayKey();
+  if (visiting.day !== day) visiting = { day, key: crypto.randomBytes(32), by: new Map() };
+  const ip = throttleKey(clientIp(req)), tag = crypto.createHmac("sha256", visiting.key).update(ip).digest("base64url");
+  let v = visiting.by.get(tag);
+  if (!v) {
+    if (visiting.by.size >= LIMIT.visitorsToday) return;
+    v = { hits: 0, visits: 0, entry: null, seen: null };
+    visiting.by.set(tag, v);
+  }
+  if (++v.hits > LIMIT.hitsPerDay) return; // far more than anyone reads in a day
+  statsDirty = true;
+  if (body.visit === true && ++v.visits <= LIMIT.visitsPerDay) dayStats(day).visits += 1;
+  if (!v.entry) {
+    // without keys (before the keeper's first login), or unread for a long while: the visits are still counted
+    if (!stats.keys || stats.pending.length >= LIMIT.pending) return;
+    v.entry = { day, who: sealVisitor(stats.keys.publicKey, ip), seen: [] };
+    v.seen = new Set();
+    stats.pending.push(v.entry);
+  }
+  if (body.visit === true) {
+    seenBy(v, "f:" + fromHost(body.from, req));
+    const country = countryOf(req);
+    if (country) seenBy(v, "n:" + country);
+  }
+  const book = CHAPTERS.includes(body.book) ? body.book : "";
+  if (!book) return;
+  seenBy(v, "c:" + book);
+  if (typeof body.id === "string" && canSee(book, body.id)) seenBy(v, "i:" + body.id);
+}
+function seenBy(v, what) {
+  if (v.seen.has(what) || v.seen.size >= LIMIT.seen) return;
+  v.seen.add(what);
+  v.entry.seen.push(what);
+}
+function dayStats(day) {
+  if (!stats.days.has(day)) stats.days.set(day, { visitors: 0, visits: 0 });
+  return stats.days.get(day);
+}
+// What a visitor can open: an art piece, one of his forms with art in it ("other": the art in none), an encounter for
+// everyone, a record. Anything else (an encounter only for the keeper, an id that never was) is not counted.
+let visible = null; // made anew after each change of the archive
+function canSee(book, id) {
+  if (!visible) {
+    visible = {
+      about: new Set(),
+      art: new Set([...archive.art.map((a) => a.id), ...archive.art.map((a) => a.gallery || "other")]),
+      knowledge: new Set(archive.records.map((r) => r.id)),
+      encounters: new Set(archive.encounters.filter((e) => !e.sealed).map((e) => e.id)),
+    };
+  }
+  return visible[book].has(id);
+}
+// Where a visit came from: the host of the page that linked to it ("t.co", "discord.com"), nothing more, and not the
+// site itself
+function fromHost(v, req) {
+  if (typeof v !== "string" || !v || v.length > 2000) return "";
+  let u = null, own = "";
+  try { u = new URL(v); own = new URL(CONFIG.origin || `http://${req.headers.host}`).hostname; } catch {}
+  if (!u || !/^https?:$/.test(u.protocol)) return "";
+  const host = u.hostname.toLowerCase().replace(/^www\./, "");
+  return HOST_RE.test(host) && host !== own.toLowerCase().replace(/^www\./, "") ? host : "";
+}
+// The visitor's country as Cloudflare names it (CF-IPCountry: "DE"; "XX" when unknown, "T1" for Tor), believed only
+// from Caddy, as the address is
+function countryOf(req) {
+  const c = behindProxy(req) ? String(req.headers["cf-ipcountry"] || "").trim().toUpperCase() : "";
+  return COUNTRY_RE.test(c) ? c : "";
+}
+
+// The visits waiting since the keeper last looked are opened, counted and let go of
+function foldStats(archiveKey) {
+  const keys = statsKeys(archiveKey);
+  for (const e of stats.pending) {
+    let who = null; // sealed to a key that is gone (a forgotten word): not counted
+    if (e.who) { try { who = crypto.createHmac("sha256", keys.salt).update(openVisitor(keys.privateKey, e.who)).digest("base64url").slice(0, 16); } catch {} }
+    if (!who) continue;
+    if (!stats.recent.has(e.day)) stats.recent.set(e.day, new Set());
+    const ofDay = stats.recent.get(e.day).add(who);
+    stats.visitors.add(who);
+    dayStats(e.day).visitors = ofDay.size;
+    for (const s of e.seen) {
+      const [where, max] = SEEN_IN[s[0]], m = stats[where], key = s.slice(2);
+      if (!m.has(key)) { if (m.size >= max) continue; m.set(key, new Set()); }
+      m.get(key).add(who);
+    }
+  }
+  stats.pending = [];
+  for (const v of visiting.by.values()) v.entry = null;
+  // a day's visitors are kept as hashes only while the count of the last 30 days needs them
+  const keep = new Set(daysBack(31));
+  for (const d of stats.recent.keys()) if (!keep.has(d)) stats.recent.delete(d);
+  // what is no longer in the archive is no longer counted
+  const ids = new Set(["other", ...archive.art.map((a) => a.id), ...archive.galleries.map((g) => g.id), ...archive.encounters.map((e) => e.id), ...archive.records.map((r) => r.id)]);
+  for (const id of stats.items.keys()) if (!ids.has(id)) stats.items.delete(id);
+  saveStats();
+}
+// The statistics as the keeper reads them: visitors (each counted once) and visits today, in the last 7 and 30 days
+// and in all; each of the last 30 days; how many visitors opened each chapter, art piece, form, encounter and record;
+// where they came from, and their countries
+function statsFor(archiveKey) {
+  foldStats(archiveKey);
+  const days = daysBack(30), sizes = (m) => Object.fromEntries([...m].map(([k, s]) => [k, s.size]));
+  const visits = (list) => list.reduce((n, d) => n + ((stats.days.get(d) || {}).visits || 0), 0);
+  const visitors = (list) => { const all = new Set(); for (const d of list) for (const x of stats.recent.get(d) || []) all.add(x); return all.size; };
+  const top = (m) => [...m].map(([k, s]) => [k, s.size]).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 30);
+  return {
+    since: stats.since, today: days[0],
+    visitors: { today: visitors(days.slice(0, 1)), week: visitors(days.slice(0, 7)), month: visitors(days), all: stats.visitors.size },
+    visits: { today: visits(days.slice(0, 1)), week: visits(days.slice(0, 7)), month: visits(days), all: visits([...stats.days.keys()]) },
+    days: days.slice().reverse().map((d) => ({ day: d, visitors: (stats.days.get(d) || {}).visitors || 0, visits: (stats.days.get(d) || {}).visits || 0 })),
+    chapters: sizes(stats.chapters), items: sizes(stats.items), from: top(stats.from), countries: top(stats.countries),
+  };
 }
 
 // ---------- the site ----------
@@ -846,15 +1122,18 @@ function loadSite() {
   };
   const appHash = inline(/<script id="ca-app">([\s\S]*?)<\/script>/, "app script");
   const styleHash = inline(/<style id="ca-style">([\s\S]*?)<\/style>/, "style block");
-  // The files the page names, each by its hash, so they can be cached for good: the model, three.js and the fonts
+  // The files the page names, each by its hash, so they can be cached for good: the model, three.js and the fonts.
+  // A site whose landing has no centerpiece model has neither model nor three.js.
   const files = new Map();
-  const named = (re, type, what) => {
+  const named = (re, type, what, optional) => {
     const names = new Set([...page.matchAll(re)].map((m) => m[1]));
-    if (!names.size) throw new Error(`${pagePath} does not name ${what}; run python3 build.py`);
+    if (!names.size && !optional) throw new Error(`${pagePath} does not name ${what}; run python3 build.py`);
     for (const name of names) files.set(name, { type, body: fs.readFileSync(path.join(CONFIG.siteDir, name)) });
+    return names.size > 0;
   };
-  named(/"(chalice\.[0-9a-f]{12}\.glb)"/g, "model/gltf-binary", "a model file");
-  named(/"\.\/(three\.[0-9a-f]{12}\.js)"/g, "text/javascript; charset=utf-8", "its three.js file");
+  const model = named(/"([a-z0-9_-]+\.[0-9a-f]{12}\.glb)"/g, "model/gltf-binary", "a model file", true);
+  const three = named(/"\.\/(three\.[0-9a-f]{12}\.js)"/g, "text/javascript; charset=utf-8", "its three.js file", true);
+  if (model && !three) throw new Error(`${pagePath} names a model but not three.js to draw it; run python3 build.py`);
   named(/url\(([a-z0-9-]+\.[0-9a-f]{12}\.woff2)\)/g, "font/woff2", "its fonts");
   return {
     before: parts[0], after: parts[1],
@@ -862,8 +1141,9 @@ function loadSite() {
     csp: [
       "default-src 'none'",
       // The page's own script, by its hash, and three.js, which the site serves itself ('self': nothing else here is
-      // served as JavaScript, and every response says nosniff). No CDN can run code in the page.
-      `script-src ${appHash} 'self'`,
+      // served as JavaScript, and every response says nosniff). No CDN can run code in the page. Without a model,
+      // the page's own script alone.
+      `script-src ${appHash}${three ? " 'self'" : ""}`,
       // The page's own style, and its fonts, which the site serves too: nothing is asked of any other host
       `style-src ${styleHash}`,
       "font-src 'self'",
@@ -1150,6 +1430,13 @@ async function handle(req, res) {
       }
       return sendJson(req, res, 200, { encounters: out, archive: keeperArchive(s.privateKey) });
     }
+    // The statistics, for the keeper's session and its CSRF token alone: reading them counts the visits waiting
+    if (pathname === "/api/stats") {
+      const s = sessionOf(req);
+      if (!s) throw new HttpError(401, "Unlock the archive first.");
+      if (!csrfOk(req, s)) throw new HttpError(403, "The request was refused.");
+      return sendJson(req, res, 200, statsFor(s.privateKey));
+    }
     const art = pathname.match(/^\/art\/([^/]+)$/);
     if (art && ART_FILE.test(art[1])) return sendArt(req, res, art[1]);
     return sendJson(req, res, 404, { error: "Not found." });
@@ -1159,6 +1446,15 @@ async function handle(req, res) {
     throw new HttpError(405, "Not allowed.", { Allow: "GET, HEAD" });
   }
   if (req.method === "POST" && pathname === "/api/login") return login(req, res);
+  // A visitor's page reporting what it opened, for the statistics: from the site's own pages only, answered with
+  // nothing, whatever is done with it
+  if (req.method === "POST" && pathname === "/api/hit") {
+    if (!sameOrigin(req)) throw new HttpError(403, "The request was refused.");
+    const body = await readJson(req, LIMIT.hitBody);
+    try { hit(req, body); } catch (err) { console.error("A visit could not be counted:", err); }
+    res.writeHead(204, { "Cache-Control": "no-store" });
+    return res.end();
+  }
 
   const session = sessionOf(req);
   if (!session) throw new HttpError(401, "Unlock the archive first.");
@@ -1315,6 +1611,8 @@ function serve() {
   artFiles = filesOf(archive);
   sweepArt();
   setInterval(sweepArt, 6 * 3600e3).unref();
+  loadStats();
+  setInterval(() => { if (statsDirty) saveStats(); }, 30e3).unref(); // the visits counted meanwhile
   SITE = loadSite();
   if (!readAuth()) console.warn("No keeper's word yet: nobody can log in until you run `node server/server.mjs set-password`.");
 
@@ -1348,7 +1646,10 @@ function serve() {
     const { address, port } = server.address();
     console.log(`Chalice Archive listening on http://${address.includes(":") ? `[${address}]` : address}:${port}`);
   });
-  const stop = () => server.close(() => process.exit(0));
+  const stop = () => {
+    if (statsDirty) saveStats(); // the visits counted since the last save
+    server.close(() => process.exit(0));
+  };
   process.on("SIGTERM", stop);
   process.on("SIGINT", stop);
 }

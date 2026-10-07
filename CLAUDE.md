@@ -2,10 +2,10 @@
 
 ## chalice-archive/
 
-A one-page WoW RP site for a Dracthyr character. It is self-hosted on the owner's VPS: Cloudflare, then Caddy, then `chalice-archive/server/server.mjs`.
+A one-page WoW RP site for a Dracthyr character, the owner's own. It is self-hosted on the owner's VPS: Caddy (with Cloudflare in front, or not), then `chalice-archive/server/server.mjs`.
 
 - Read `chalice-archive/HANDOVER.md` before changing anything.
-- `chalice-archive/deploy/README.md` covers the VPS.
+- `hosting/README.md` covers the VPS.
 
 ### After every change to the page, publish the preview
 
@@ -27,3 +27,11 @@ The Artifact is only a preview.
 - In the preview, the word is `preview` and changes vanish on reload.
 - The real records and the real word live only on the VPS. Never put either into the Artifact.
 - Never bring back the old way of saving by republishing the Artifact.
+
+## hosting/ and friends' sites
+
+The VPS hosts several sites. Each is a folder in `/srv/sites`, put online with `sudo sites link <folder> <domain>` (`hosting/sites.mjs`).
+
+- `hosting/README.md` covers the VPS and the `sites` command. Read it before changing anything in `hosting/`.
+- A friend's site is a whole copy of `chalice-archive/` in a folder of its own beside it, changed freely for them. `hosting/README.md` ("Making a site") says what in the copy is the owner's, and what the hosting needs kept.
+- The Artifact above is chalice-archive's preview, the owner's alone. Never publish a friend's site to it.

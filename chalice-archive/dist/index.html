@@ -144,6 +144,9 @@ button, input, textarea { font: inherit; color: inherit; }
 .is-paused .nebula i { animation-play-state: paused; }
 .motes { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.social { position: absolute; z-index: 1; right: max(14px, env(safe-area-inset-right, 0px)); bottom: 14px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; color: var(--ink-faint); background: none; transition: color .3s; -webkit-tap-highlight-color: transparent; }
+.social svg { width: 15px; height: 15px; }
+.social:hover, .social:focus-visible { color: var(--teal); }
 
 .core { --size: min(58vmin, 460px); position: relative; display: grid; place-items: center; }
 .construct { position: relative; width: var(--size); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: none; cursor: inherit; -webkit-tap-highlight-color: transparent; }
@@ -205,6 +208,18 @@ button, input, textarea { font: inherit; color: inherit; }
   .hub-label { text-indent: 0; }
 }
 
+.stage.bare { align-content: center; gap: clamp(24px, 5vh, 44px); }
+.stage.bare .landing-title { position: static; width: auto; height: auto; max-width: min(900px, 100%); margin: 0; overflow: visible; clip-path: none; white-space: normal; text-align: center; text-wrap: balance;
+  font-family: var(--font-title); font-size: clamp(30px, 6.4vw, 56px); font-weight: 700; line-height: 1.12; letter-spacing: .04em; color: var(--ink); text-shadow: 0 0 28px rgb(var(--teal-rgb) / .32), 0 2px 18px rgb(var(--shade-rgb) / .9); }
+.stage.bare .landing-pre { display: block; margin-bottom: 12px; font-size: clamp(12px, 1.7vw, 14px); line-height: 1.4; letter-spacing: .32em; text-indent: .32em; text-transform: uppercase; color: rgb(var(--teal-rgb) / .78); text-shadow: none; }
+.stage.bare .core, .stage.bare.has-hub .core { translate: none; }
+.stage.bare .hub { position: static; translate: none; }
+@media (max-height: 560px) and (min-aspect-ratio: 5/4) { 
+  .stage.bare .hub { flex-direction: row; }
+  .stage.bare .hub-opt { width: clamp(100px, 21vw, 172px); justify-items: center; text-align: center; }
+  .stage.bare .hub-label { text-indent: .16em; }
+}
+
 .archive { width: min(980px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--sepia); overflow: visible; font-family: var(--font-book); }
 .archive::backdrop { background: radial-gradient(ellipse at 50% 45%, rgb(var(--umber-rgb) / .74), rgb(var(--umber-rgb) / .9)); backdrop-filter: blur(2px); }
 .archive :focus-visible { outline-color: var(--rubric); }
@@ -244,6 +259,9 @@ button, input, textarea { font: inherit; color: inherit; }
 .clasp svg { width: 9px; height: 15px; }
 .clasp:hover, .clasp[aria-expanded="true"] { filter: brightness(1.15); }
 .clasp.is-open { color: var(--ink-verdigris); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5), 0 0 10px rgb(var(--teal-rgb) / .55); }
+.social-tome { position: absolute; z-index: 4; right: 62px; bottom: -12px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid rgb(var(--brass-rgb) / .6); border-radius: 50%; cursor: pointer; color: rgb(var(--brass-rgb) / .85); background: radial-gradient(circle at 40% 32%, #4e2a1a, var(--leather-dark) 80%); box-shadow: 0 0 0 1px var(--leather-dark), 0 2px 5px rgb(0 0 0 / .55); -webkit-tap-highlight-color: transparent; }
+.social-tome svg { width: 12px; height: 12px; }
+.social-tome:hover, .social-tome:focus-visible { color: var(--brass-light); border-color: var(--brass); }
 .seal { position: absolute; z-index: 6; right: 24px; top: 50%; translate: 0 -50%; box-sizing: border-box; display: grid; gap: 12px; width: min(340px, calc(100% - 44px)); padding: 20px 20px 18px; border: 1px solid rgb(var(--sepia-rgb) / .6); border-radius: 3px; background: var(--grain), var(--parchment); color: var(--sepia); box-shadow: 0 0 0 3px var(--brass), 0 0 0 4px var(--leather-dark), 0 18px 40px rgb(0 0 0 / .55); }
 .seal-title { margin: 0; font-family: var(--font-title); font-size: 17px; font-weight: 700; letter-spacing: .06em; color: var(--rubric); }
 .seal-text { margin: 0; font-size: 16px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
@@ -308,11 +326,6 @@ button, input, textarea { font: inherit; color: inherit; }
 .ab-epithet { margin: 2px auto 0; max-width: 42ch; font-size: 19px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
 #leaf-about .ar-tools { margin-top: 8px; }
 #view-about { display: grid; gap: 38px; }
-
-.now { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px 30px; padding: 16px 20px 17px; border: 1px solid rgb(var(--sepia-rgb) / .3); border-radius: 2px; background: rgb(255 246 218 / .38); box-shadow: inset 0 0 24px rgb(var(--sepia-rgb) / .08); }
-.now-label { margin: 0 0 3px; font-family: var(--font-book-sc); font-size: 16px; font-weight: 400; color: var(--rubric); }
-.now p { margin: 0; font-size: 17.5px; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
-.now .is-ooc p { font-style: italic; color: var(--sepia-soft); }
 
 .dir { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); column-gap: 36px; margin: 0; }
 .dir-wide { grid-template-columns: minmax(0, 1fr); }
@@ -462,6 +475,8 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .gate-card .input { font-size: 20px; appearance: textfield; -moz-appearance: textfield; }
 .gate-card .input::-webkit-inner-spin-button, .gate-card .input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .gate-card .form-actions { justify-content: center; }
+.gate :focus-visible { outline-color: var(--rubric); } 
+a.btn { text-decoration: none; }
 
 .lightbox { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; box-sizing: border-box; padding: 58px 76px 22px; background: radial-gradient(ellipse at 50% 45%, rgb(14 18 30 / .95), rgb(4 6 11 / .97)); animation: lb-in .25s ease-out; }
 @keyframes lb-in { from { opacity: 0; } }
@@ -561,6 +576,63 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 .ver-preview .media-badge { left: 5px; bottom: 5px; padding: 0 4px; font-size: 9px; letter-spacing: .06em; }
 .back:disabled { opacity: .45; cursor: default; text-decoration: none; }
 
+.st-head { display: grid; gap: 12px; }
+.st-note { margin: 0; max-width: 62ch; font-size: 16px; font-style: italic; line-height: 1.45; color: var(--sepia-soft); }
+#view-stats, .st-body { display: grid; gap: 40px; }
+.st-body.is-loading { opacity: .55; } 
+.st-num, .tally-value, .st-n, .st-ticks, .st-tip b { font-family: var(--font-title); font-weight: 500; font-variant-numeric: lining-nums; } 
+.tallies { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.tally { display: grid; align-content: start; padding: 11px 14px 13px; border: 1px solid rgb(var(--sepia-rgb) / .24); border-radius: 2px; background: rgb(255 246 218 / .3); }
+.tally-label { font-family: var(--font-book-sc); font-size: 15.5px; line-height: 1.3; color: var(--rubric); }
+.tally-value { margin-top: 2px; font-size: clamp(26px, 3.6vw, 34px); font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; color: var(--sepia); }
+.tally-unit { font-size: 16px; font-style: italic; color: var(--sepia-soft); }
+.tally-more { margin-top: 6px; padding-top: 5px; border-top: 1px solid rgb(var(--sepia-rgb) / .14); font-size: 15.5px; color: var(--sepia-soft); }
+.st-chart { position: relative; }
+.st-plot { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 10px; }
+.st-ticks { position: relative; min-width: 1.6em; height: 150px; font-size: 12.5px; color: var(--sepia-faint); }
+.st-ticks span { position: absolute; right: 0; translate: 0 50%; line-height: 1; }
+.st-area { position: relative; height: 150px; border-bottom: 1px solid rgb(var(--sepia-rgb) / .5); }
+.st-line { position: absolute; left: 0; right: 0; height: 1px; background: rgb(var(--sepia-rgb) / .14); }
+.st-cols { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); column-gap: 2px; margin: 0; padding: 0; list-style: none; }
+.st-col { display: flex; align-items: flex-end; justify-content: center; min-width: 0; height: 100%; }
+.st-col:focus-visible { outline: 2px solid var(--rubric); outline-offset: 1px; }
+.st-col > i { display: block; width: min(14px, 70%); border-radius: 4px 4px 0 0; background: var(--ink-copper); }
+.st-col:hover > i, .st-col:focus-visible > i { background: #a8622f; }
+.st-axis { grid-column: 2; display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; font-family: var(--font-book-sc); font-size: 14px; color: var(--sepia-faint); }
+.st-tip { position: absolute; z-index: 3; translate: -50% -100%; display: grid; padding: 6px 11px 7px; border: 1px solid #9097a6; border-radius: 5px; pointer-events: none; white-space: nowrap; font-family: var(--font-title); font-size: 13px; line-height: 1.4; letter-spacing: .02em; color: var(--wow-gold); text-shadow: 0 1px 1px #000; background: rgb(6 8 16 / .93); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .8), 0 6px 20px rgb(0 0 0 / .45); }
+.st-tip b { font-size: 15.5px; font-weight: 700; color: #fff2a6; }
+.st-tip span:last-child { color: var(--ink-dim); }
+.st-table-box { margin-top: 14px; }
+.st-table { width: 100%; max-width: 30rem; margin: 10px 0 4px; border-collapse: collapse; font-size: 16px; }
+.st-table th, .st-table td { padding: 3px 12px; border-bottom: 1px solid rgb(var(--sepia-rgb) / .14); text-align: right; }
+.st-table td { font-family: var(--font-title); font-size: 14px; font-variant-numeric: lining-nums tabular-nums; }
+.st-table th:first-child { padding-left: 0; text-align: left; font-weight: 400; }
+.st-table thead th { font-family: var(--font-book-sc); color: var(--rubric); }
+.st-bars { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.st-bars:focus { outline: none; }
+.st-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: center; gap: 2px 18px; }
+.st-name { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 0; border: 0; background: none; text-align: left; font-family: var(--font-book); font-size: 17px; line-height: 1.25; color: var(--sepia); overflow-wrap: anywhere; }
+button.st-name { cursor: pointer; }
+button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: underline; text-decoration-color: rgb(142 29 18 / .45); text-underline-offset: 3px; }
+.st-name small { margin-left: 6px; font-size: 14.5px; font-style: italic; color: var(--sepia-faint); }
+.st-bar { display: flex; align-items: center; gap: 8px; width: calc(100% - 3.6em); min-height: 20px; } 
+.st-bar > i { flex: none; height: 8px; border-radius: 0 4px 4px 0; background: var(--ink-copper); }
+.st-n { flex: none; font-size: 15px; color: var(--sepia); }
+.st-thumb { flex: none; width: 34px; padding: 2px; }
+.st-thumb img, .st-thumb .spoiler { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; padding: 0; object-fit: cover; object-position: 50% 20%; }
+.st-thumb .spoiler-seal { font-size: 8px; }
+.st-thumb .spoiler-label { display: none; }
+.st-group + .st-group { margin-top: 26px; }
+.st-group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 0 0 12px; font-family: var(--font-title); font-size: 17px; font-weight: 700; line-height: 1.25; color: var(--sepia); }
+.st-group-head .st-name { font-family: inherit; font-size: inherit; font-weight: inherit; }
+.st-group-head > span { font-family: var(--font-book); font-size: 15.5px; font-style: italic; font-weight: 400; color: var(--sepia-faint); }
+.st-more { margin-top: 10px; }
+@media (max-width: 620px) { .tallies { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .st-row { grid-template-columns: minmax(0, 1fr); }
+  .st-cols { column-gap: 1px; }
+}
+
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 100; translate: -50% 0; box-sizing: border-box; max-width: calc(100% - 32px); padding: 9px 14px; border: 1px solid #9097a6; border-radius: 5px; background: rgb(6 8 16 / .93); color: var(--wow-gold); font-family: var(--font-title); font-size: 14px; line-height: 1.45; letter-spacing: .02em; text-shadow: 0 1px 1px #000; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .8), 0 6px 20px rgb(0 0 0 / .6); }
 .toast.show { animation: toast-in .3s ease-out; }
 @keyframes toast-in { from { opacity: 0; translate: -50% 10px; } to { opacity: 1; translate: -50% 0; } }
@@ -599,11 +671,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   .lb-next { right: calc(50% - 62px); }
   .btn-close { top: -8px; right: -6px; width: 34px; height: 34px; }
   .clasp { right: -8px; width: 18px; height: 44px; }
+  .social-tome { right: 40px; bottom: -9px; width: 26px; height: 26px; } 
   .seal { right: 50%; translate: 50% -50%; }
+}
+@media (max-width: 640px) {
+  #tab-stats { display: none; } 
 }
 @media (max-width: 560px) {
   .page { padding-inline: 14px; }
   .galleries { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
+}
+@media (max-width: 480px) { 
+  .tabs { gap: 2px; padding-left: 6px; }
+  .tab { padding-inline: clamp(4px, 1.5vw, 7px); letter-spacing: .02em; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fx-x, .fx-y, .fx-tilt, .gem, .halo, .pool, .nebula i, .hub-opt, .lightbox { animation: none !important; }
@@ -617,7 +697,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 <main class="stage" id="stage">
   <div class="nebula" aria-hidden="true"><i></i><i></i><i></i></div>
   <canvas class="motes" id="motes" aria-hidden="true"></canvas>
-  <h1 class="sr-only">The archive of <span id="pf-name">Unnamed Dracthyr</span></h1>
+  <h1 class="sr-only landing-title" id="landing-title"><span class="landing-pre">The archive of </span><span id="pf-name">Unnamed Dracthyr</span></h1>
   <div class="core" id="core">
     <button class="construct" id="construct" type="button" aria-label="Open the archive" aria-haspopup="dialog">
       <span class="fx fx-x"><span class="fx fx-y"><span class="fx fx-tilt">
@@ -643,6 +723,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       </button>
     </nav>
   </div>
+  <button class="social" id="x-stage" type="button" aria-label="@dezeptdrac on X" title="@dezeptdrac on X" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"></path></svg></button>
 </main>
 <dialog class="archive" id="archive" aria-labelledby="ar-title">
   <nav class="tabs" id="tabs" aria-label="Chapters">
@@ -650,6 +731,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     <button class="tab" type="button" data-book="art">Art</button>
     <button class="tab" type="button" data-book="knowledge">Character Knowledge</button>
     <button class="tab" type="button" data-book="encounters">Encounters</button>
+    <button class="tab" type="button" data-book="stats" id="tab-stats" hidden>Statistics</button>
   </nav>
   <div class="tome" id="tome">
     <i class="corner tl" aria-hidden="true"></i><i class="corner tr" aria-hidden="true"></i><i class="corner bl" aria-hidden="true"></i><i class="corner br" aria-hidden="true"></i>
@@ -675,6 +757,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         <button class="btn" id="seal-go" type="submit">Unseal</button>
         <button class="btn" id="seal-lock" type="button" hidden>Seal it again</button>
         <button class="btn" id="seal-change" type="button" hidden>Change the word</button>
+        <button class="btn" id="seal-stats" type="button" hidden>Statistics</button>
       </div>
     </form>
     <button class="btn-close" id="btn-close" type="button" aria-label="Close the archive" autofocus><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
@@ -719,6 +802,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
               <h3 class="rubric" id="galleries-title">Overview</h3>
               <ol class="plates galleries" id="galleries"></ol>
             </section>
+          </div>
+
+          <div class="leaf" id="leaf-stats" hidden>
+            <header class="st-head">
+              <h3 class="det-title">Statistics</h3>
+              <p class="st-note" id="st-note"></p>
+            </header>
           </div>
         </section>
 
@@ -773,7 +863,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
           </section>
 
           <section id="view-about" hidden>
-            <div class="now" id="ab-now" hidden></div>
             <section id="ab-dir-wrap" aria-labelledby="dir-title" hidden>
               <h4 class="rubric" id="dir-title">Directory</h4>
               <dl class="dir" id="ab-dir"></dl>
@@ -812,16 +901,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
               <div class="field">
                 <label for="abf-epithet">Full title</label>
                 <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280" placeholder="A line or two beneath his name"></textarea>
-              </div>
-              <div class="row-2">
-                <div class="field">
-                  <label for="abf-currently">Currently</label>
-                  <textarea class="input short" id="abf-currently" name="currently" maxlength="1000" placeholder="What he is doing right now"></textarea>
-                </div>
-                <div class="field">
-                  <label for="abf-ooc">Out of character</label>
-                  <textarea class="input short" id="abf-ooc" name="ooc" maxlength="1000" placeholder="Notes for other players"></textarea>
-                </div>
               </div>
               <fieldset class="field">
                 <legend>Directory</legend>
@@ -1038,9 +1117,49 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
             </form>
           </section>
 
+          <section id="view-stats" hidden>
+            <p class="empty" id="st-status" hidden></p>
+            <div class="st-body" id="st-body" hidden>
+              <ul class="tallies" id="st-tallies" aria-label="Visitors and visits"></ul>
+              <section aria-labelledby="st-days-title">
+                <h4 class="rubric" id="st-days-title">Visitors each day <span>the last 30 days</span></h4>
+                <div class="st-chart" id="st-chart"></div>
+                <details class="help-box st-table-box">
+                  <summary>The same as a table, with the visits</summary>
+                  <table class="st-table" id="st-days"></table>
+                </details>
+              </section>
+              <section aria-labelledby="st-chapters-title">
+                <h4 class="rubric" id="st-chapters-title">Chapters <span>visitors who opened each</span></h4>
+                <div id="st-chapters"></div>
+              </section>
+              <section aria-labelledby="st-art-title">
+                <h4 class="rubric" id="st-art-title">Art <span>visitors who opened each piece</span></h4>
+                <div id="st-art"></div>
+              </section>
+              <section aria-labelledby="st-enc-title">
+                <h4 class="rubric" id="st-enc-title">Encounters <span>visitors who opened each</span></h4>
+                <div id="st-encounters"></div>
+              </section>
+              <section aria-labelledby="st-rec-title">
+                <h4 class="rubric" id="st-rec-title">Character Knowledge <span>visitors who opened each record</span></h4>
+                <div id="st-records"></div>
+              </section>
+              <section aria-labelledby="st-from-title">
+                <h4 class="rubric" id="st-from-title">Where they came from <span>visitors from each site</span></h4>
+                <div id="st-from"></div>
+              </section>
+              <section aria-labelledby="st-countries-title">
+                <h4 class="rubric" id="st-countries-title">Countries <span>visitors from each</span></h4>
+                <div id="st-countries"></div>
+              </section>
+            </div>
+          </section>
+
         </section>
       </div>
     </div>
+    <button class="social-tome" id="x-tome" type="button" aria-label="@dezeptdrac on X" title="@dezeptdrac on X" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"></path></svg></button>
   </div>
   <form class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" novalidate hidden>
     <div class="gate-card">
@@ -1054,6 +1173,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       <p class="form-error" id="gate-error" role="alert" hidden></p>
       <div class="form-actions">
         <button class="btn" id="gate-go" type="submit">Continue</button>
+        <a class="btn" id="gate-x" href="https://x.com/dezeptdrac" target="_blank" rel="noopener noreferrer" hidden>Continue to X</a>
         <button class="btn" id="gate-back" type="button">Go back</button>
       </div>
     </div>
@@ -1073,11 +1193,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 <script id="ca-app">
 (function () {
   "use strict";
-  var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge", encounters: "Encounters" };
+  var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge", encounters: "Encounters", stats: "Statistics" };
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png|gif|mp4|webm)$/, STILL_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
   var MiB = 1024 * 1024;
   var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * MiB, gif: 40 * MiB, video: 90 * MiB };
-  var ABOUT_TEXT = ["title", "currently", "ooc", "race", "class", "age", "eyes", "height", "build", "birthplace", "residence"];
+  var ABOUT_TEXT = ["title", "race", "class", "age", "eyes", "height", "build", "birthplace", "residence"];
   var DIRECTORY = [["race", "Race", "Dracthyr", 60], ["class", "Class", "Evoker", 60], ["age", "Age", "", 60], ["eyes", "Eyes", "Molten amber", 60],
                    ["height", "Height", "", 60], ["build", "Build", "", 60], ["birthplace", "Birthplace", "The Forbidden Reach", 120], ["residence", "Residence", "Valdrakken", 120]];
   var FACT_LABELS = ["Motto", "Nickname", "House name", "Pronouns", "Voice", "Profession", "Guild", "Rank", "Languages", "Relationships"];
@@ -1411,6 +1531,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return "rgb(" + rgb(l).map(function (x) { return Math.round(x * 255); }).join(" ") + ")";
   }
 
+  var CENTERPIECE = !el.construct.hidden;
   function renderLanding() {
     var name = state.profile.name || "Unnamed Dracthyr";
     el.pfName.textContent = name;
@@ -1421,7 +1542,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var detailId = null, editingId = null, plateId = null, versionId = null, artEditing = null, galleryId = null, galEditing = null;
   var busy = false;
 
-  function renderAll() { renderLanding(); renderArchive(); renderEncounters(); renderAbout(); renderArt(); renderOwnerUI(); }
+  function renderAll() { renderLanding(); renderArchive(); renderEncounters(); renderAbout(); renderArt(); renderOwnerUI(); if (currentView === "stats") renderStats(); }
 
   function renderArchive() {
     var p = state.profile;
@@ -1478,11 +1599,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.abName.textContent = p.name || "Unnamed Dracthyr";
     el.abEpithet.textContent = p.epithet;
     el.abEpithet.hidden = !p.epithet;
-    fill(el.abNow, [
-      ab.currently ? h("div", null, h("h4", { class: "now-label", text: "Currently" }), h("p", { text: ab.currently })) : null,
-      ab.ooc ? h("div", { class: "is-ooc" }, h("h4", { class: "now-label", text: "Out of character" }), h("p", { text: ab.ooc })) : null
-    ].filter(Boolean));
-    el.abNow.hidden = !(ab.currently || ab.ooc);
     function row(label, value, before) { return h("div", { class: "dir-row" }, h("dt", { text: label }), h("dd", null, before, value)); }
     var dir = DIRECTORY.filter(function (d) { return ab[d[0]]; });
     fill(el.abDir, dir.map(function (d) {
@@ -1502,7 +1618,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }));
     var first = el.abSections.querySelector(".trp > p:not(.al-c):not(.al-r)");
     if (first && /^\p{L}/u.test(first.textContent) && first.textContent.length > 120) first.classList.add("dropcap");
-    var any = ab.currently || ab.ooc || dir.length || ab.facts.length || ab.traits.length || ab.glances.length || ab.sections.length;
+    var any = dir.length || ab.facts.length || ab.traits.length || ab.glances.length || ab.sections.length;
     el.abEmpty.hidden = !!any;
     el.abEmpty.textContent = canPost() ? "Nothing is written here yet. Amend this page to say who he is, or paste his Total RP 3 profile into it." : "Nothing is written here yet.";
   }
@@ -1592,7 +1708,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   function renderOwnerUI() {
     var on = canPost();
-    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = el.btnAddGallery.hidden = el.btnAddEncounter.hidden = el.encTools.hidden = !on;
+    el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = el.btnAddGallery.hidden = el.btnAddEncounter.hidden = el.encTools.hidden = el.tabStats.hidden = !on;
     el.plTools.hidden = !(on && findArt(plateId));
     var g = galleryOf(galleryId);
     el.glTools.hidden = !(on && g && !g.other);
@@ -1606,7 +1722,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     about: ["viewAbout", "about"], aboutForm: ["viewAboutForm", "about", 1],
     galleries: ["viewGallery", "art"], gallery: ["viewGallery", "art", 1], galleryForm: ["viewGalleryForm", "art", 1],
     plate: ["viewPlate", "art", 1], artForm: ["viewArtForm", "art", 1],
-    encounters: ["viewEncounter", "encounters"], encounter: ["viewEncounter", "encounters", 1], encounterForm: ["viewEncounterForm", "encounters", 1]
+    encounters: ["viewEncounter", "encounters"], encounter: ["viewEncounter", "encounters", 1], encounterForm: ["viewEncounterForm", "encounters", 1],
+    stats: ["viewStats", "stats"]
   };
   var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError", galleryForm: "gfError", encounterForm: "efError" };
   function showView(name) {
@@ -1625,6 +1742,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     Array.prototype.forEach.call(el.tabs.children, function (t) { if (t.dataset.book === book) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current"); });
     el.bookScroll.scrollTop = 0;
     setHash();
+    reportView(name);
   }
 
   function setHash() {
@@ -1638,6 +1756,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     opts = opts || {};
     renderAll();
     if (!el.archive.open) {
+      closeGate();
       try { el.archive.showModal(); } catch (e) { el.archive.setAttribute("open", ""); }
     }
     motes.pause();
@@ -1646,7 +1765,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     openBook(opts.book || "knowledge", opts.id);
   }
   function openBook(book, id) {
-    if (book === "about") showView("about");
+    if (book === "stats") showStats();
+    else if (book === "about") showView("about");
     else if (book === "art") { if (id && findArt(id)) showPlate(id); else if (id && galleryOf(id)) showGallery(id); else showGalleries(); }
     else if (book === "encounters") { if (id && findEnc(id)) showEncounter(id); else showView("encounters"); }
     else if (id && find(id)) showDetail(id);
@@ -1983,7 +2103,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var p = state.profile, ab = state.about;
     el.abfName.value = p.name;
     el.abfEpithet.value = p.epithet;
-    ["title", "currently", "ooc"].forEach(function (k) { el["abf" + k[0].toUpperCase() + k.slice(1)].value = ab[k]; });
+    el.abfTitle.value = ab.title;
     DIRECTORY.forEach(function (d) { byId("abf-" + d[0]).value = ab[d[0]]; });
     el.abfEyeOn.checked = !!ab.eyeColor;
     el.abfEyeColor.value = ab.eyeColor || "#e3a13a";
@@ -2001,7 +2121,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function aboutFromForm() {
     var body = {
       name: el.abfName.value.trim(), epithet: el.abfEpithet.value.trim(),
-      title: el.abfTitle.value.trim(), currently: el.abfCurrently.value.trim(), ooc: el.abfOoc.value.trim(),
+      title: el.abfTitle.value.trim(),
       eyeColor: el.abfEyeOn.checked ? el.abfEyeColor.value : "",
       facts: rowsOf(el.abfFacts, ["label", "value"]),
       traits: rowsOf(el.abfTraits, ["left", "right", "value"], ["left", "right"]).map(function (t) { t.value = traitValue(t.value); return t; }),
@@ -2324,7 +2444,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.plLater.addEventListener("click", function () { movePlate(1, el.plLater); });
 
   var shown = null;
-  var ageMemo = "", gateThen = null, gateFrom = null;
+  var ageMemo = "", gateThen = null, gateFrom = null, gateX = false;
   function ageAnswer() { try { return sessionStorage.getItem("ca-age") || ageMemo; } catch (e) { return ageMemo; } }
   function setAge(answer) { ageMemo = answer; try { sessionStorage.setItem("ca-age", answer); } catch (e) {} }
   function showMature(v) {
@@ -2338,23 +2458,38 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function askAge(then) {
     var answer = ageAnswer();
     if (answer === "adult") { then(); return; }
+    openGate(false, answer === "minor" ? "denied" : "ask", then);
+  }
+  function askX() {
+    var answer = ageAnswer();
+    openGate(true, answer === "minor" ? "denied" : answer === "adult" ? "go" : "ask", null);
+  }
+  function openGate(x, mode, then) {
     gateFrom = document.activeElement;
     gateThen = then;
-    renderGate(answer === "minor" ? "denied" : "ask");
+    gateX = x;
+    (el.archive.open ? el.archive : root).append(el.gate);
+    renderGate(mode);
     el.gate.hidden = false;
-    el.tome.inert = el.tabs.inert = el.lightbox.inert = true;
-    setTimeout(function () { (answer === "minor" ? el.gateBack : el.gateAge).focus(); }, 30);
+    if (el.archive.open) el.tome.inert = el.tabs.inert = el.lightbox.inert = true;
+    else el.stage.inert = true;
+    setTimeout(function () { (mode === "ask" ? el.gateAge : mode === "go" ? el.gateX : el.gateBack).focus(); }, 30);
   }
   function renderGate(mode) {
-    el.gateText.textContent = mode === "ask" ? "This image is marked as mature. How old are you?" : "Mature images are only for those 18 or older.";
+    el.gateTitle.textContent = gateX ? "Mature content" : "Mature art";
+    el.gateGo.textContent = gateX ? "Continue to X" : "Continue";
+    el.gateText.textContent = !gateX ? (mode === "ask" ? "This image is marked as mature. How old are you?" : "Mature images are only for those 18 or older.")
+      : mode === "denied" ? "@dezeptdrac on X is only for those 18 or older."
+      : "@dezeptdrac on X contains mature content. " + (mode === "ask" ? "How old are you?" : "It opens in a new tab.");
     el.gateField.hidden = el.gateGo.hidden = mode !== "ask";
+    el.gateX.hidden = mode !== "go";
     el.gateAge.value = "";
     el.gateError.hidden = true;
   }
   function closeGate() {
     if (el.gate.hidden) return;
     el.gate.hidden = true;
-    el.lightbox.inert = false;
+    el.stage.inert = el.lightbox.inert = false;
     el.tome.inert = el.tabs.inert = !el.lightbox.hidden;
     gateThen = null;
     if (gateFrom && gateFrom.isConnected) gateFrom.focus();
@@ -2365,11 +2500,16 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (!/^\d{1,3}$/.test(text) || age < 1 || age > 130) { el.gateError.textContent = "Enter your age in years."; el.gateError.hidden = false; el.gateAge.focus(); return; }
     if (age < 18) { setAge("minor"); renderGate("denied"); el.gateBack.focus(); return; }
     setAge("adult");
+    if (gateX) { el.gateX.click(); return; }
     var then = gateThen;
     closeGate();
     if (then) then();
   });
   el.gateBack.addEventListener("click", closeGate);
+  el.gateX.addEventListener("click", function () { setTimeout(closeGate); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !el.gate.hidden && !el.archive.open) { e.preventDefault(); closeGate(); } });
+  el.xStage.addEventListener("click", askX);
+  el.xTome.addEventListener("click", askX);
 
   var lb = null, lbFrom = null;
   function sequence() {
@@ -2514,11 +2654,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     sessionTurn += 1;
     owner = on;
     csrf = on ? token || "" : "";
-    if (!on) { privates = {}; privatesLoaded = false; forgetSealed(); wipeForms(); fill(el.encPrivateText, []); el.encPrivate.hidden = true; }
+    if (!on) { privates = {}; privatesLoaded = false; forgetSealed(); wipeForms(); fill(el.encPrivateText, []); el.encPrivate.hidden = true; forgetStats(); }
     renderAll();
     if (!on && currentView === "encounter" && !findEnc(encounterId)) showView("encounters");
     if (!on && currentView === "gallery" && !piecesOf(galleryId).length) showGalleries();
+    if (!on && currentView === "stats") showView("overview");
     if (on && awaited && currentView === "galleries" && galleryOf(awaited)) showGallery(awaited);
+    if (on && awaited === STATS && currentView === "overview") showStats();
     if (on) loadPrivate();
     watchSession();
   }
@@ -2584,7 +2726,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.sealCurrent.value = el.sealWord.value = el.sealAgain.value = "";
     el.sealGo.hidden = mode === "open";
     el.sealGo.textContent = change ? "Change the word" : "Unseal";
-    el.sealLock.hidden = el.sealChange.hidden = mode !== "open";
+    el.sealLock.hidden = el.sealChange.hidden = el.sealStats.hidden = mode !== "open";
     el.sealError.hidden = true;
   }
   function openSeal() {
@@ -2622,6 +2764,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     });
   });
   el.sealChange.addEventListener("click", function () { if (owner) { renderSeal("change"); el.sealCurrent.focus(); } });
+  el.sealStats.addEventListener("click", function () {
+    if (FORMS[currentView]) { toast("Finish or cancel the form first."); return; }
+    closeSeal(true);
+    showStats();
+  });
   el.seal.addEventListener("submit", function (e) {
     e.preventDefault();
     if (sealBusy) return;
@@ -2665,6 +2812,205 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       });
     }
   });
+
+  var STATS = "stats", reported = {}, unseen = null;
+  function report(body) {
+    if (document.prerendering) {
+      if (!unseen) {
+        unseen = [];
+        document.addEventListener("prerenderingchange", function () { var all = unseen; unseen = null; all.forEach(report); }, { once: true });
+      }
+      unseen.push(body);
+      return;
+    }
+    try {
+      var sent = request("api/hit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store", keepalive: true });
+      if (sent && sent.catch) sent.catch(function () {});
+    } catch (e) {}
+  }
+  function reportView(name) {
+    var book = VIEWS[name][1];
+    if (owner || FORMS[name] || book === STATS) return;
+    var id = (name === "detail" ? detailId : name === "gallery" ? galleryId : name === "plate" ? plateId : name === "encounter" ? encounterId : "") || "";
+    if (reported[book + "/" + id]) return;
+    reported[book + "/" + id] = true;
+    report(id ? { book: book, id: id } : { book: book });
+  }
+
+  var counts = null, countsAsked = 0, countsAll = {};
+  var SPANS = [["today", "Today"], ["week", "Last 7 days"], ["month", "Last 30 days"], ["all", "All time"]];
+  function num(n) { return Number(n || 0).toLocaleString("en-GB"); }
+  function plural(n, one, many) { return num(n) + " " + (n === 1 ? one : many); }
+  function showStats() {
+    if (!canPost()) { showView("overview"); return; }
+    showView(STATS);
+    loadStats();
+  }
+  function loadStats() {
+    var ask = ++countsAsked;
+    el.stBody.classList.add("is-loading");
+    if (!counts) { el.stStatus.textContent = "Counting…"; el.stStatus.hidden = false; }
+    call("GET", "api/stats").then(function (d) {
+      if (ask !== countsAsked || !owner) return;
+      counts = d;
+      renderStats();
+    }, function (err) {
+      if (ask !== countsAsked) return;
+      el.stBody.classList.remove("is-loading");
+      if (err.status === 401 || err.status === 403) { refused(err); return; }
+      el.stStatus.textContent = err.message;
+      el.stStatus.hidden = false;
+    });
+  }
+  function forgetStats() {
+    countsAsked++;
+    counts = null;
+    countsAll = {};
+    [el.stNote, el.stTallies, el.stChart, el.stDays, el.stChapters, el.stArt, el.stEncounters, el.stRecords, el.stFrom, el.stCountries].forEach(function (n) { fill(n, []); });
+    el.stBody.hidden = el.stStatus.hidden = true;
+  }
+  function renderStats() {
+    var d = counts;
+    if (!d) return;
+    el.stStatus.hidden = true;
+    el.stBody.hidden = false;
+    el.stBody.classList.remove("is-loading");
+    el.stNote.textContent = (d.example ? "Example numbers: the preview counts nothing. " : "") + (d.since ? "Counted since " + fmtDate(d.since) + ". " : "") +
+      "Each visitor counts once, told apart by an address the archive keeps nowhere. Your own visits do not count.";
+    fill(el.stTallies, SPANS.map(function (s) {
+      var v = d.visitors[s[0]] || 0, n = d.visits[s[0]] || 0;
+      return h("li", { class: "tally" }, h("span", { class: "tally-label", text: s[1] }), h("span", { class: "tally-value", text: num(v) }),
+        h("span", { class: "tally-unit", text: v === 1 ? "visitor" : "visitors" }), h("span", { class: "tally-more", text: plural(n, "visit", "visits") }));
+    }));
+    renderDays(d);
+    barList(el.stChapters, "chapters", ["about", "art", "knowledge", "encounters"].map(function (b) { return { label: BOOKS[b], n: d.chapters[b] || 0 }; }), "");
+    renderArtStats(d);
+    var byCount = function (list) { return list.sort(function (a, b) { return b.n - a.n; }); };
+    barList(el.stEncounters, "encounters", byCount(newest(state.encounters.filter(function (e) { return !e.sealed; })).map(function (e) {
+      return { label: e.title, n: d.items[e.id] || 0, open: function () { showEncounter(e.id); } };
+    })), "No encounters yet.");
+    barList(el.stRecords, "records", byCount(newest(state.records).map(function (r) {
+      return { label: r.title, n: d.items[r.id] || 0, open: function () { showDetail(r.id); } };
+    })), "No records yet.");
+    barList(el.stFrom, "from", (d.from || []).map(function (f) {
+      var name = placeName(f[0]);
+      return { label: name, more: f[0] && name !== f[0] ? f[0] : "", n: f[1] };
+    }), "No visitors yet.");
+    barList(el.stCountries, "countries", (d.countries || []).map(function (c) { return { label: countryName(c[0]), n: c[1] }; }),
+      d.visitors.all ? "No visitor's country is known. Cloudflare names it once IP Geolocation is switched on (under Network)." : "No visitors yet.");
+  }
+  function niceStep(v) {
+    if (!(v > 1)) return 1;
+    var p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+  }
+  function dayShort(iso) {
+    var p = iso.split("-").map(Number), d = new Date(2000, 0, 1);
+    d.setFullYear(p[0], p[1] - 1, p[2]);
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  }
+  function renderDays(d) {
+    var days = d.days || [], before = function (x) { return !!d.since && x.day < d.since; };
+    var max = Math.max.apply(null, [0].concat(days.map(function (x) { return before(x) ? 0 : x.visitors; })));
+    var step = niceStep(max / 3), top = Math.max(step, Math.ceil(max / step) * step), ticks = [], lines = [];
+    for (var t = 0; t <= top; t += step) {
+      var tick = h("span", { text: num(t) });
+      tick.style.bottom = t / top * 100 + "%";
+      ticks.push(tick);
+      if (t) { var line = h("i", { class: "st-line" }); line.style.bottom = t / top * 100 + "%"; lines.push(line); }
+    }
+    function says(x) {
+      return [before(x) ? "visitors not told apart yet" : plural(x.visitors, "visitor", "visitors"), plural(x.visits, "visit", "visits"), fmtDate(x.day)];
+    }
+    var tip = h("div", { class: "st-tip", "aria-hidden": "true", hidden: true });
+    var cols = h("ol", { class: "st-cols", "aria-label": "Visitors on each of the last 30 days" }, days.map(function (x, i) {
+      var bar = h("i"), s = says(x);
+      bar.style.height = (before(x) ? 0 : x.visitors / top * 100) + "%";
+      var col = h("li", { class: "st-col", tabindex: i === days.length - 1 ? "0" : "-1" }, bar, h("span", { class: "sr-only", text: [s[2], s[0], s[1]].join(", ") }));
+      col._says = s;
+      return col;
+    }));
+    function show(col) {
+      fill(tip, [h("b", { text: col._says[0] }), h("span", { text: col._says[1] }), h("span", { text: col._says[2] })]);
+      tip.hidden = false;
+      var box = el.stChart.getBoundingClientRect(), r = col.getBoundingClientRect(), half = tip.offsetWidth / 2;
+      tip.style.left = Math.min(box.width - half, Math.max(half, r.left + r.width / 2 - box.left)) + "px";
+      tip.style.top = Math.min(col.firstChild.getBoundingClientRect().top, r.bottom - 6) - box.top - 8 + "px";
+    }
+    function settle() {
+      var at = cols.contains(document.activeElement) ? document.activeElement : null;
+      if (at) show(at); else tip.hidden = true;
+    }
+    cols.addEventListener("pointerover", function (e) { var c = e.target.closest(".st-col"); if (c) show(c); });
+    cols.addEventListener("pointerleave", settle);
+    cols.addEventListener("focusin", function (e) { show(e.target); });
+    cols.addEventListener("focusout", function () { setTimeout(settle, 0); });
+    cols.addEventListener("keydown", function (e) {
+      var all = Array.prototype.slice.call(cols.children), at = all.indexOf(e.target);
+      var to = e.key === "ArrowLeft" ? at - 1 : e.key === "ArrowRight" ? at + 1 : e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : -2;
+      if (to === -2 || at < 0) return;
+      e.preventDefault();
+      to = Math.max(0, Math.min(all.length - 1, to));
+      all.forEach(function (c, k) { c.tabIndex = k === to ? 0 : -1; });
+      all[to].focus();
+    });
+    var axis = days.length ? [days[0], days[Math.floor(days.length / 2)], days[days.length - 1]].map(function (x, i) { return h("span", { text: i === 2 ? "Today" : dayShort(x.day) }); }) : [];
+    fill(el.stChart, [h("div", { class: "st-plot" }, h("div", { class: "st-ticks", "aria-hidden": "true" }, ticks), h("div", { class: "st-area" }, lines, cols),
+      h("div", { class: "st-axis", "aria-hidden": "true" }, axis)), tip]);
+    fill(el.stDays, [h("thead", null, h("tr", null, h("th", { scope: "col", text: "Day" }), h("th", { scope: "col", text: "Visitors" }), h("th", { scope: "col", text: "Visits" }))),
+      h("tbody", null, days.slice().reverse().map(function (x) {
+        return h("tr", null, h("th", { scope: "row", text: fmtDate(x.day) }), h("td", { text: before(x) ? "–" : num(x.visitors) }), h("td", { text: num(x.visits) }));
+      }))]);
+  }
+  var FEW = 10;
+  function barList(box, key, rows, empty, max) {
+    if (!rows.length) { fill(box, empty ? [h("p", { class: "empty", text: empty })] : []); return; }
+    max = max || Math.max.apply(null, rows.map(function (r) { return r.n; }));
+    var all = countsAll[key] || rows.length <= FEW + 2, list = h("ol", { class: "st-bars", tabindex: "-1" }, (all ? rows : rows.slice(0, FEW)).map(function (r) {
+      var bar = h("i"), label = [r.mark || null, h("span", null, r.label, r.more ? h("small", { text: r.more }) : null)];
+      bar.style.width = (max ? r.n / max * 100 : 0) + "%";
+      return h("li", { class: "st-row" }, r.open ? h("button", { class: "st-name", type: "button", onclick: r.open }, label) : h("span", { class: "st-name" }, label),
+        h("span", { class: "st-bar" }, bar, h("b", { class: "st-n", text: num(r.n) }), h("span", { class: "sr-only", text: r.n === 1 ? " visitor" : " visitors" })));
+    }));
+    fill(box, [list, all ? null : h("button", { class: "back add st-more", type: "button", text: "Show all " + num(rows.length), onclick: function () {
+      countsAll[key] = true;
+      barList(box, key, rows, empty, max);
+      box.querySelector(".st-bars").focus();
+    } })].filter(Boolean));
+  }
+  function renderArtStats(d) {
+    var groups = state.galleries.slice(), max = 0;
+    if (piecesOf(OTHER).length) groups.push(galleryOf(OTHER));
+    state.art.forEach(function (a) { max = Math.max(max, d.items[a.id] || 0); });
+    if (!groups.length) { fill(el.stArt, [h("p", { class: "empty", text: "No art yet." })]); return; }
+    fill(el.stArt, groups.map(function (g) {
+      var list = h("div"), n = d.items[g.id] || 0;
+      barList(list, "art/" + g.id, piecesOf(g.id).map(function (a, i) {
+        var v = a.versions[0];
+        return { label: roman(i + 1) + ". " + (a.title || "Untitled"), n: d.items[a.id] || 0, open: function () { showPlate(a.id); },
+                 mark: h("span", { class: "mount st-thumb", "aria-hidden": "true" }, v.mature ? spoiler(v) : verImg(v, "thumb", "")) };
+      }).sort(function (a, b) { return b.n - a.n; }), "No art pieces yet.", max);
+      return h("section", { class: "st-group" },
+        h("h5", { class: "st-group-head" }, h("button", { class: "st-name", type: "button", onclick: function () { showGallery(g.id); } }, h("span", { text: g.name })),
+          h("span", { text: plural(n, "visitor", "visitors") + " opened the form" })),
+        list);
+    }));
+  }
+  var PLACES = [[/^(t\.co|x\.com|twitter\.com|mobile\.twitter\.com)$/, "X (Twitter)"], [/(^|\.)discord(app)?\.com$/, "Discord"], [/(^|\.)google\.[a-z.]+$/, "Google"],
+    [/(^|\.)bing\.com$/, "Bing"], [/(^|\.)duckduckgo\.com$/, "DuckDuckGo"], [/(^|\.)reddit\.com$/, "Reddit"], [/(^|\.)bsky\.app$/, "Bluesky"],
+    [/(^|\.)tumblr\.com$/, "Tumblr"], [/(^|\.)facebook\.com$/, "Facebook"], [/(^|\.)instagram\.com$/, "Instagram"], [/(^|\.)wowhead\.com$/, "Wowhead"]];
+  function placeName(host) {
+    if (!host) return "Directly, or from a site that does not say";
+    var known = PLACES.find(function (p) { return p[0].test(host); });
+    return known ? known[1] : host;
+  }
+  var regions = null;
+  try { regions = new Intl.DisplayNames(["en-GB"], { type: "region" }); } catch (e) {}
+  function countryName(code) {
+    if (code === "XX") return "Unknown";
+    if (code === "T1") return "Tor";
+    try { return regions && regions.of(code) || code; } catch (e) { return code; }
+  }
 
   function toast(msg) {
     if (!msg) return;
@@ -3376,13 +3722,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var gemHover = false;
   function setGemHover(on) { if (on === gemHover) return; gemHover = on; el.stage.classList.toggle("on-gem", on); }
   function onGem(x, y) {
+    if (!CENTERPIECE) return false;
     if (el.core.classList.contains("is-3d")) return model3d.gemAt(x, y);
     var g = el.construct.querySelector(".gem").getBoundingClientRect();
     var dx = x - (g.left + g.width / 2), dy = y - (g.top + g.height / 2);
     return dx * dx + dy * dy < Math.pow(g.width * .25, 2);
   }
   el.construct.addEventListener("click", function (e) { if (e.detail === 0) summon(true); });
-  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && !e.target.closest(".hub") && onGem(e.clientX, e.clientY)) summon(false); });
+  el.stage.addEventListener("click", function (e) { if (e.detail !== 0 && !e.target.closest(".hub, .social") && onGem(e.clientX, e.clientY)) summon(false); });
   el.hub.addEventListener("click", function (e) { var b = e.target.closest(".hub-opt"); if (b) openArchive({ book: b.dataset.book }); });
   el.tabs.addEventListener("click", function (e) {
     var t = e.target.closest(".tab");
@@ -3426,8 +3773,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     motes.resume();
     model3d.resume();
     setHash();
-    hideHub();
-    el.construct.focus({ preventScroll: true });
+    if (CENTERPIECE) {
+      hideHub();
+      el.construct.focus({ preventScroll: true });
+    } else {
+      (el.hub.querySelector('.hub-opt[data-book="' + currentBook + '"]') || el.hub.querySelector(".hub-opt")).focus({ preventScroll: true });
+    }
   });
   el.detBack.addEventListener("click", function () { showView("overview"); });
   el.detEdit.addEventListener("click", function () { openForm(detailId); });
@@ -3445,17 +3796,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 
   var awaited = null;
   function route() {
-    var m = /^#(about|art|knowledge|encounters)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
+    var m = /^#(about|art|knowledge|encounters|stats)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
     if (!m || (el.archive.open && FORMS[currentView])) return;
     showHub(false);
     openArchive({ book: m[1], id: m[2] });
-    awaited = m[2] && (m[1] === "encounters" ? !findEnc(m[2]) && !privatesLoaded
+    awaited = m[1] === STATS ? (owner ? null : STATS) : m[2] && (m[1] === "encounters" ? !findEnc(m[2]) && !privatesLoaded
       : m[1] === "art" && m[2] !== OTHER && currentView === "galleries" && !!galleryOf(m[2])) ? m[2] : null;
   }
   window.addEventListener("hashchange", route);
 
   renderLanding();
+  if (!CENTERPIECE) { el.stage.classList.add("bare"); showHub(false); }
   motes.resume();
+  report({ visit: true, from: document.referrer });
   route();
 
   refreshSession();
