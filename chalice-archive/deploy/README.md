@@ -144,7 +144,7 @@ Then open the site:
   ```
 
   Sessions live in memory, so a restart signs the keeper out.
-  If `deploy/Caddyfile` changed (it did when art uploads were added, again when videos were, and again when its admin API was switched off), copy it again and restart Caddy, keeping your hostname:
+  If `deploy/Caddyfile` changes, copy it again and restart Caddy, keeping your hostname:
 
   ```sh
   sudo cp /opt/dezept-website/chalice-archive/deploy/Caddyfile /etc/caddy/Caddyfile

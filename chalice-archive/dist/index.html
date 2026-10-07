@@ -8,8 +8,6 @@
 <link rel="preload" href="chalice.fc0400a35d90.glb" as="fetch" crossorigin>
 <link rel="modulepreload" href="./three.31cad1f27a14.js">
 <style id="ca-style">
-/* The page's fonts, written by tools/vendor_fonts.mjs. Do not edit. */
-/* cinzel-latin-ext-500-normal.woff2, from @fontsource/cinzel 5.3.0 */
 @font-face {
   font-family: 'Cinzel';
   font-style: normal;
@@ -18,7 +16,6 @@
   src: url(cinzel-latin-ext-500-normal.08eac55c1178.woff2) format('woff2');
   unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
 }
-/* cinzel-latin-500-normal.woff2, from @fontsource/cinzel 5.3.0 */
 @font-face {
   font-family: 'Cinzel';
   font-style: normal;
@@ -27,7 +24,6 @@
   src: url(cinzel-latin-500-normal.2864b2c9db37.woff2) format('woff2');
   unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
 }
-/* cinzel-latin-ext-700-normal.woff2, from @fontsource/cinzel 5.3.0 */
 @font-face {
   font-family: 'Cinzel';
   font-style: normal;
@@ -36,7 +32,6 @@
   src: url(cinzel-latin-ext-700-normal.55b110958b9b.woff2) format('woff2');
   unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
 }
-/* cinzel-latin-700-normal.woff2, from @fontsource/cinzel 5.3.0 */
 @font-face {
   font-family: 'Cinzel';
   font-style: normal;
@@ -45,7 +40,6 @@
   src: url(cinzel-latin-700-normal.8efa224fe70f.woff2) format('woff2');
   unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
 }
-/* im-fell-english-latin-400-normal.woff2, from @fontsource/im-fell-english 5.3.0 */
 @font-face {
   font-family: 'IM Fell English';
   font-style: normal;
@@ -54,7 +48,6 @@
   src: url(im-fell-english-latin-400-normal.248300df1647.woff2) format('woff2');
   unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
 }
-/* im-fell-english-latin-400-italic.woff2, from @fontsource/im-fell-english 5.3.0 */
 @font-face {
   font-family: 'IM Fell English';
   font-style: italic;
@@ -63,7 +56,6 @@
   src: url(im-fell-english-latin-400-italic.8fc678575e83.woff2) format('woff2');
   unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
 }
-/* im-fell-english-sc-latin-400-normal.woff2, from @fontsource/im-fell-english-sc 5.3.0 */
 @font-face {
   font-family: 'IM Fell English SC';
   font-style: normal;
@@ -72,7 +64,6 @@
   src: url(im-fell-english-sc-latin-400-normal.f0f85c4edd2c.woff2) format('woff2');
   unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
 }
-/* Layout: one dark stage where the construct is the only bright object. A click on its gem draws in the light drifting around it and projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
 :root {
   --void: #0a0e1a;
   --void-2: #10172a;
@@ -92,7 +83,6 @@
   --copper-rgb: 207 138 85;
   --indigo-rgb: 74 82 170;
   --shade-rgb: 4 7 14;
-  /* the tome: leather binding, parchment leaves, sepia and red ink, brass fittings, and the game's red-and-gold buttons */
   --leather: #3b1e12;
   --leather-dark: #1d0e07;
   --parchment: #ead7aa;
@@ -110,7 +100,7 @@
   --ink-verdigris: #1d6a61;
   --ink-copper: #8a4a1d;
   --ink-ochre: #8f620b;
-  --ink-gold: #705c00; /* TRP's gold, {col:ffd100}, as ink() darkens it for parchment */
+  --ink-gold: #705c00; 
   --sepia-rgb: 47 31 16;
   --brass-rgb: 196 154 69;
   --umber-rgb: 16 9 4;
@@ -135,7 +125,6 @@ button, input, textarea { font: inherit; color: inherit; }
 ::selection { background: rgb(var(--teal-rgb) / .3); }
 
 
-/* ---------- Stage: nothing but the construct ---------- */
 .stage {
   position: relative; isolation: isolate; overflow: hidden; box-sizing: border-box; min-height: 100%;
   display: grid; place-items: center; padding: 16px;
@@ -144,7 +133,6 @@ button, input, textarea { font: inherit; color: inherit; }
     radial-gradient(ellipse 70% 70% at 50% 50%, var(--void-2) 0%, var(--void) 64%);
 }
 .stage::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgb(var(--shade-rgb) / .7)); }
-/* Ambient light. The haze drifts here in CSS; the motes, the light shafts and the anima wisps are drawn on #motes. */
 .nebula { position: absolute; inset: -25%; z-index: -2; pointer-events: none; }
 .nebula i { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
 .nebula i:nth-child(1) { left: 6%; top: 16%; width: 52%; height: 46%; background: radial-gradient(closest-side, rgb(var(--indigo-rgb) / .17), transparent); animation: haze-a 70s ease-in-out infinite alternate; }
@@ -159,7 +147,7 @@ button, input, textarea { font: inherit; color: inherit; }
 
 .core { --size: min(58vmin, 460px); position: relative; display: grid; place-items: center; }
 .construct { position: relative; width: var(--size); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: none; cursor: inherit; -webkit-tap-highlight-color: transparent; }
-.stage.on-gem { cursor: pointer; } /* only the gem wakes it */
+.stage.on-gem { cursor: pointer; } 
 .fx { position: absolute; inset: 0; display: block; }
 .fx-x { animation: drift-x 13s ease-in-out infinite alternate; }
 .fx-y { animation: bob 5.6s ease-in-out infinite; }
@@ -178,18 +166,16 @@ button, input, textarea { font: inherit; color: inherit; }
 .is-drawing .gem { animation: flare 1.9s ease-out forwards; }
 @keyframes flare { 0% { opacity: .8; scale: 1; } 18% { opacity: 1; scale: 2.6; } 100% { opacity: .9; scale: 1.3; } }
 .is-drawing .fx-y, .is-drawing .fx-x, .is-drawing .fx-tilt { animation-play-state: paused; }
-/* The 3D model: the canvas is twice the button so the construct can turn far toward the cursor without clipping. The cutout stays underneath until the first frame is drawn. */
 .construct-gl { position: absolute; left: -50%; top: -50%; width: 200%; height: 200%; pointer-events: none; opacity: 0; transition: opacity .8s; }
 .is-3d .construct-gl { opacity: 1; }
-.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } /* outranks .is-drawing .gem, whose flare would bring the overlay back */
+.core.is-3d .construct-img, .core.is-3d .gem { opacity: 0; animation: none; } 
 .core { --lift: .5; }
-.core.is-3d .fx { animation: none; } /* the model hovers on its own, and the canvas must not drift under the cursor it aims at */
-.is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); } /* both follow the model's hover */
+.core.is-3d .fx { animation: none; } 
+.is-3d .halo { animation: none; opacity: calc(.65 + .35 * var(--lift)); scale: calc(.96 + .08 * var(--lift)); } 
 .is-3d .pool { animation: none; opacity: calc(.9 - .45 * var(--lift)); scale: calc(1 - .2 * var(--lift)); }
 
-/* ---------- The hub: the choices the construct projects beneath it once it has drawn the light in; they go again when the tome closes ---------- */
 .core { transition: translate .9s cubic-bezier(.2, .8, .2, 1); }
-.stage.has-hub .core { translate: 0 -56px; } /* the construct rises to make room */
+.stage.has-hub .core { translate: 0 -56px; } 
 .hub { position: absolute; z-index: 2; top: calc(100% + 30px); left: 50%; translate: -50% 0; display: flex; justify-content: center; gap: clamp(8px, 1.8vw, 18px); width: max-content; max-width: calc(100vw - 32px); }
 .hub-opt { position: relative; display: grid; justify-items: center; align-content: center; box-sizing: border-box; width: clamp(100px, 29vw, 172px); padding: 19px 8px 18px; border: 1px solid rgb(var(--teal-rgb) / .16); border-radius: 2px; cursor: pointer; text-align: center; color: var(--ink);
   background: radial-gradient(ellipse 90% 80% at 50% 0%, rgb(var(--teal-rgb) / .1), transparent 72%), rgb(var(--shade-rgb) / .45); transition: border-color .3s, box-shadow .3s; -webkit-tap-highlight-color: transparent; }
@@ -204,7 +190,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .hub.show .hub-opt:nth-child(3) { animation-delay: .24s; }
 .hub.show .hub-opt:nth-child(4) { animation-delay: .36s; }
 @keyframes hub-in { 0% { opacity: 0; translate: 0 12px; filter: blur(6px) brightness(2.2); } 35% { opacity: .6; } 45% { opacity: .25; } 60% { opacity: 1; filter: blur(0) brightness(1.5); } 100% { opacity: 1; translate: 0 0; filter: none; } }
-@media (max-width: 620px) { /* two by two */
+@media (max-width: 620px) { 
   .hub { flex-wrap: wrap; width: min(380px, calc(100vw - 32px)); }
   .hub-opt { width: calc(50% - clamp(8px, 1.8vw, 18px) / 2); }
 }
@@ -212,28 +198,25 @@ button, input, textarea { font: inherit; color: inherit; }
   .hub-opt { padding: 16px 6px 15px; }
   .hub-label { font-size: 13px; letter-spacing: .1em; text-indent: .1em; }
 }
-@media (max-height: 560px) and (min-aspect-ratio: 5/4) { /* short landscape screens: the choices stand beside the construct */
+@media (max-height: 560px) and (min-aspect-ratio: 5/4) { 
   .stage.has-hub .core { translate: -96px 0; }
   .hub { top: 50%; left: calc(100% + 24px); translate: 0 -50%; flex-direction: column; }
   .hub-opt { width: 200px; padding: 12px 14px; justify-items: start; text-align: left; }
   .hub-label { text-indent: 0; }
 }
 
-/* ---------- The archive: an old tome ---------- */
 .archive { width: min(980px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--sepia); overflow: visible; font-family: var(--font-book); }
 .archive::backdrop { background: radial-gradient(ellipse at 50% 45%, rgb(var(--umber-rgb) / .74), rgb(var(--umber-rgb) / .9)); backdrop-filter: blur(2px); }
 .archive :focus-visible { outline-color: var(--rubric); }
 .archive[open] .tome, .archive[open] .tabs { animation: tome-in .5s cubic-bezier(.2, .8, .2, 1); }
 @keyframes tome-in { from { opacity: 0; transform: translateY(16px) scale(.97); } }
 
-/* the chapters: leather index tabs on the top edge; the open chapter's tab is a parchment leaf */
 .tabs { position: relative; display: flex; gap: 4px; margin-bottom: -7px; padding-left: clamp(26px, 5vw, 70px); }
 .tab { padding: 8px clamp(12px, 2vw, 20px) 14px; border: 1px solid var(--leather-dark); border-bottom: 0; border-radius: 7px 7px 0 0; cursor: pointer; font-family: var(--font-title); font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgb(var(--brass-rgb) / .9);
   background: var(--hide), linear-gradient(180deg, #4e2817, var(--leather) 70%); box-shadow: inset 0 1px 0 rgb(255 220 160 / .14), 0 -3px 8px rgb(0 0 0 / .35); transition: color .2s, translate .2s; }
 .tab:hover { color: var(--brass-light); translate: 0 -2px; }
 .tab[aria-current="true"] { color: var(--rubric); border-color: var(--parchment-edge); background: var(--grain), linear-gradient(180deg, var(--parchment), var(--parchment-deep)); translate: 0 -4px; }
 
-/* binding: tooled leather with brass corners */
 .tome { position: relative; padding: 16px; border-radius: 10px; background: var(--hide), linear-gradient(160deg, color-mix(in srgb, var(--leather) 82%, #fff 4%), var(--leather) 40%, var(--leather-dark)); box-shadow: 0 0 0 1px var(--leather-dark), inset 0 0 36px rgb(0 0 0 / .55), 0 34px 90px rgb(0 0 0 / .75); }
 .tome::before { content: ""; position: absolute; inset: 6px; border: 1px solid rgb(var(--brass-rgb) / .5); border-radius: 7px; pointer-events: none; }
 .corner { position: absolute; z-index: 3; width: 46px; height: 46px; background: var(--corner) center / contain no-repeat; pointer-events: none; filter: drop-shadow(0 2px 2px rgb(0 0 0 / .5)); }
@@ -241,27 +224,22 @@ button, input, textarea { font: inherit; color: inherit; }
 .corner.tr { top: -3px; right: -3px; transform: scaleX(-1); }
 .corner.bl { bottom: -3px; left: -3px; transform: scaleY(-1); }
 .corner.br { bottom: -3px; right: -3px; transform: scale(-1); }
-.ribbon { position: absolute; z-index: 0; left: 84px; bottom: -30px; width: 14px; height: 80px; pointer-events: none; background: linear-gradient(90deg, #4a0805, #7e130b 50%, #5a0a06); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%); filter: drop-shadow(0 3px 3px rgb(0 0 0 / .5)); } /* hangs out below the page */
+.ribbon { position: absolute; z-index: 0; left: 84px; bottom: -30px; width: 14px; height: 80px; pointer-events: none; background: linear-gradient(90deg, #4a0805, #7e130b 50%, #5a0a06); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%); filter: drop-shadow(0 3px 3px rgb(0 0 0 / .5)); } 
 
-/* The open book: one parchment page with a printed double rule, the page edges stacked below. It reads down one
-   centred column: the chapter's own leaf first (the About page's names, the plates, the recent
-   records), then the open view. A record, a plate or a form has the page to itself (data-solo). */
 .book { position: relative; z-index: 1; height: min(860px, calc(100vh - 116px)); height: min(860px, calc(100dvh - 116px)); border-radius: 3px;
   background: var(--grain), var(--mottle) center / cover no-repeat, var(--parchment);
   box-shadow: 0 0 0 1px rgb(var(--sepia-rgb) / .7), 0 3px 0 0 var(--parchment-edge), 0 5px 0 0 var(--parchment), 0 7px 0 0 var(--parchment-deep), 0 8px 0 1px rgb(var(--sepia-rgb) / .6), inset 0 0 90px rgb(var(--sepia-rgb) / .26); }
 .book::before { content: ""; position: absolute; z-index: 2; inset: 11px; border: 1px solid rgb(var(--sepia-rgb) / .3); outline: 1px solid rgb(var(--sepia-rgb) / .16); outline-offset: 3px; pointer-events: none; }
 .book-scroll { height: 100%; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--parchment-edge) transparent;
-  mask-image: linear-gradient(transparent 8px, #000 28px, #000 calc(100% - 28px), transparent calc(100% - 8px)); } /* text fades out at the rules */
+  mask-image: linear-gradient(transparent 8px, #000 28px, #000 calc(100% - 28px), transparent calc(100% - 8px)); } 
 .page { box-sizing: border-box; max-width: 800px; margin: 0 auto; padding: 0 clamp(24px, 6vw, 72px); font-size: 18px; line-height: 1.5; }
 .page-l { padding-top: clamp(34px, 4.4vw, 54px); }
 .page-r { padding-top: 36px; padding-bottom: clamp(36px, 4.4vw, 56px); }
 .book[data-solo] .page-l { display: none; }
 .book[data-solo] .page-r { padding-top: clamp(34px, 4.4vw, 54px); }
-/* the lists alone (his forms, records, encounters); each opens on a page of its own */
 .book[data-view="galleries"] .page-r, .book[data-view="overview"] .page-r, .book[data-view="encounters"] .page-r { display: none; }
 .book[data-view="galleries"] .page-l, .book[data-view="overview"] .page-l, .book[data-view="encounters"] .page-l { padding-bottom: clamp(36px, 4.4vw, 56px); }
 
-/* The keeper's clasp: a small brass keyhole on the fore-edge. The word it asks for shows or hides the editing tools. */
 .clasp { position: absolute; z-index: 4; right: -11px; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 22px; height: 52px; padding: 0; border: 1px solid var(--leather-dark); border-radius: 4px; cursor: pointer; color: var(--leather-dark); background: linear-gradient(90deg, #6a4714, var(--brass) 35%, var(--brass-light) 55%, #8a6420); box-shadow: 0 2px 4px rgb(0 0 0 / .5), inset 0 1px 0 rgb(255 240 200 / .5); }
 .clasp svg { width: 9px; height: 15px; }
 .clasp:hover, .clasp[aria-expanded="true"] { filter: brightness(1.15); }
@@ -271,17 +249,14 @@ button, input, textarea { font: inherit; color: inherit; }
 .seal-text { margin: 0; font-size: 16px; font-style: italic; line-height: 1.4; color: var(--sepia-soft); }
 .seal .input { font-size: 18px; }
 
-/* the game's round close button */
 .btn-close { position: absolute; top: -14px; right: -14px; z-index: 5; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 2px solid var(--brass); border-radius: 50%; cursor: pointer; color: var(--brass-light); background: radial-gradient(circle at 40% 32%, #c8301f, var(--wow-red) 55%, var(--wow-red-dark)); box-shadow: 0 0 0 1px var(--leather-dark), 0 3px 8px rgb(0 0 0 / .6), inset 0 1px 1px rgb(255 220 160 / .45); }
 .btn-close:hover { color: #fff; filter: brightness(1.15); }
 
-/* type */
 .rubric { display: flex; align-items: baseline; gap: 12px; margin: 0 0 14px; font-family: var(--font-title); font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--rubric); }
 .rubric::after { content: ""; flex: 1; height: 1px; align-self: center; background: linear-gradient(90deg, rgb(var(--sepia-rgb) / .45), transparent); }
 .rubric span { order: 2; font-family: var(--font-book); font-size: 15px; font-weight: 400; font-style: italic; letter-spacing: 0; text-transform: none; color: var(--sepia-faint); }
 .empty { margin: 0; padding: 10px 0; font-style: italic; color: var(--sepia-faint); }
 
-/* each chapter's own leaf, above its view; the owner's tools sit at its head */
 .leaf { display: flex; flex-direction: column; gap: 22px; }
 .ar-tools { display: flex; flex-wrap: wrap; gap: 10px; }
 .ar-tools:not(:has(.btn:not([hidden]))) { display: none; }
@@ -290,7 +265,6 @@ button, input, textarea { font: inherit; color: inherit; }
 .back { justify-self: start; }
 .back:hover { color: var(--rubric); text-decoration-color: currentColor; }
 
-/* the lists of records and encounters: newest first, each a title with its date and the start of its text */
 .entries { margin: 0; padding: 0; list-style: none; }
 .entries li + li { border-top: 1px solid rgb(var(--sepia-rgb) / .15); }
 .entry { display: grid; gap: 1px; width: 100%; padding: 11px 4px 12px 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; }
@@ -314,12 +288,10 @@ button, input, textarea { font: inherit; color: inherit; }
 .link-to { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: var(--rubric); text-decoration: underline; text-decoration-color: rgb(142 29 18 / .45); text-underline-offset: 3px; }
 .link-to:hover { text-decoration-color: currentColor; }
 .enc-text { margin-top: 20px; }
-/* an encounter's private section: only for the keeper, never sent to anyone else */
 .private { margin-top: 30px; padding: 16px 20px 18px; border: 1px dashed rgb(var(--sepia-rgb) / .5); border-radius: 2px; background: rgb(var(--sepia-rgb) / .06); }
 .private-head { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-family: var(--font-book-sc); font-size: 16px; font-weight: 400; color: var(--rubric); }
 .private-head svg { flex: none; width: 11px; height: 15px; }
 .private .trp { font-size: 18px; }
-/* an encounter only for the keeper: marked at its head, and in the list */
 .only-me { display: inline-flex; align-items: center; gap: 9px; justify-self: start; margin: 14px 0 0; padding: 4px 12px 5px 10px; border: 1px dashed rgb(var(--sepia-rgb) / .5); border-radius: 2px; background: rgb(var(--sepia-rgb) / .06); font-family: var(--font-book-sc); font-size: 15.5px; line-height: 1.3; color: var(--rubric); }
 .only-me svg { flex: none; width: 10px; height: 14px; }
 .only-me + .det-meta { margin-top: 12px; }
@@ -329,8 +301,6 @@ button, input, textarea { font: inherit; color: inherit; }
 .learned { margin-top: 34px; }
 .owner-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 
-/* About, laid out like a Total RP 3 profile: his names head the page; beneath them what he is doing
-   now, the directory, additional information, personality traits, at first glance, and the description */
 .ab-head { display: grid; justify-items: center; gap: 4px; text-align: center; }
 .ab-title { margin: 0; font-family: var(--font-book-sc); font-size: 18px; letter-spacing: .06em; color: var(--rubric); }
 .ab-name { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 4vw, 44px); line-height: 1.08; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
@@ -368,10 +338,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .glance h5::before { content: ""; flex: none; width: 7px; height: 7px; rotate: 45deg; background: var(--brass); box-shadow: 0 0 0 1px var(--sepia-soft); }
 .glance p { margin: 0; font-size: 16.5px; font-style: italic; line-height: 1.42; white-space: pre-line; overflow-wrap: anywhere; color: var(--sepia-soft); }
 
-/* the description: TRP markup made into headings, paragraphs, colours and links */
 .ab-sections { display: grid; gap: 40px; }
-/* A section's heading is set like a pull quote: large italic in curly quotes, centred between two flourishes that
-   fade out from a small diamond, in its own colour (TRP's gold unless the keeper picks another) */
 .ab-heading { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 20px); margin: 0 0 .8em; font-family: var(--font-book); font-size: clamp(24px, 3vw, 30px); font-style: italic; font-weight: 400; line-height: 1.2; color: var(--ink-gold); }
 .ab-heading > span { flex: 0 1 auto; min-width: 0; max-width: 80%; text-align: center; text-wrap: balance; overflow-wrap: anywhere; }
 .ab-heading > span::before { content: "\201C"; opacity: .6; }
@@ -393,11 +360,9 @@ button, input, textarea { font: inherit; color: inherit; }
 .trp .al-r { text-align: right; }
 .trp a { color: var(--rubric); text-decoration-color: rgb(142 29 18 / .45); text-underline-offset: 3px; }
 .trp a:hover { text-decoration-color: currentColor; }
-.trp .dropcap { display: flow-root; } /* holds the capital, so it never hangs into the next paragraph */
+.trp .dropcap { display: flow-root; } 
 .trp .dropcap::first-letter { float: left; margin: .05em .09em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.4em; line-height: .8; color: var(--rubric); }
 
-/* Art: his forms, each a gallery of art pieces (called plates in the code); a piece opens on its own page, and a
-   click shows it full size */
 .mount { display: block; box-sizing: border-box; padding: 6px; border: 1px solid rgb(var(--sepia-rgb) / .55); background: linear-gradient(160deg, var(--parchment), var(--parchment-deep)); box-shadow: inset 0 1px 0 rgb(255 250 230 / .45), 0 2px 7px rgb(var(--sepia-rgb) / .35); }
 button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .mount img { display: block; background: var(--void); }
@@ -414,7 +379,6 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .plate-cap b { font-weight: 400; color: var(--rubric); }
 .plate-btn:hover .plate-cap { color: var(--rubric); }
 .plate-btn .mount, .ver-btn .mount { position: relative; }
-/* his forms: larger cards, each with its first art piece as its cover */
 .galleries { grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 24px 18px; }
 .gallery-btn .plate-cap b { display: block; font-family: var(--font-title); font-size: 17px; font-weight: 700; line-height: 1.2; text-wrap: balance; color: var(--sepia); }
 .gallery-btn:hover .plate-cap b { color: var(--rubric); }
@@ -422,28 +386,24 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .gallery-view { display: grid; gap: 22px; }
 .gallery-view .det-title { margin-top: 6px; }
 .gallery-view .owner-row { margin-top: 6px; }
-/* a GIF or a video in a list: its still, marked */
 .media-badge { position: absolute; left: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px 2px 6px; border-radius: 2px; font-family: var(--font-title); font-size: 11px; font-weight: 700; letter-spacing: .1em; line-height: 1.5; color: var(--wow-gold); background: rgb(6 8 16 / .84); box-shadow: 0 0 0 1px rgb(var(--brass-rgb) / .7); pointer-events: none; }
 .media-badge svg { width: 8px; height: 8px; }
 .ver-btn .media-badge { left: 6px; bottom: 6px; padding: 0 4px; font-size: 9px; letter-spacing: .06em; }
 .ver-btn .media-badge span { display: none; }
 .plate-view { display: grid; gap: 14px; }
-.plate { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 14px; margin: 0; text-align: center; } /* one column no wider than the page, whatever is in it */
+.plate { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 14px; margin: 0; text-align: center; } 
 .plate-no { margin: 0; font-family: var(--font-book-sc); font-size: 17px; letter-spacing: .06em; color: var(--rubric); }
 .plate-open { padding: 9px; }
 .plate-open img { max-width: 100%; max-height: min(62vh, 600px); width: auto; height: auto; }
 .plate-media { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; max-width: 100%; }
-.plate-media > .play-btn { position: absolute; right: -13px; bottom: -13px; } /* on the frame's corner, as the tome's close button sits on its own */
+.plate-media > .play-btn { position: absolute; right: -13px; bottom: -13px; } 
 
-/* The GIF player: the GIF, and a button to pause it on the frame it is on and play it again */
 .gif { --frame: min(62vh, 600px); display: block; width: min(var(--w), calc(var(--frame) * var(--r))); max-width: 100%; aspect-ratio: var(--ar); }
 .gif > img, .gif > canvas { display: block; width: 100%; height: 100%; max-height: none; object-fit: contain; background: var(--void); }
 .play-btn { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 2px solid var(--brass); border-radius: 50%; cursor: pointer; color: var(--brass-light); background: radial-gradient(circle at 40% 32%, #c8301f, var(--wow-red) 55%, var(--wow-red-dark)); box-shadow: 0 0 0 1px var(--leather-dark), 0 3px 8px rgb(0 0 0 / .6), inset 0 1px 1px rgb(255 220 160 / .45); }
 .play-btn:hover { color: #fff; filter: brightness(1.15); }
 .play-btn svg { width: 15px; height: 15px; }
 
-/* The video player: the video with the archive's own controls beneath it, in the game's colours */
-/* its own size, or as large as fits the frame, but at least wide enough for its controls; no wider than the page */
 .player { --frame: min(62vh, 600px); display: grid; box-sizing: border-box; width: max(300px, min(var(--w), calc(var(--frame) * var(--r)))); max-width: 100%; background: var(--void); }
 .plate-video { box-sizing: border-box; max-width: 100%; }
 .vid-stage { position: relative; min-height: 0; }
@@ -470,21 +430,19 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .plate-note { margin: 8px 0 0; max-width: 46ch; font-size: 18px; line-height: 1.5; white-space: pre-line; text-align: left; overflow-wrap: anywhere; color: var(--sepia); }
 .plate-view .owner-row { justify-content: center; margin-top: 10px; }
 
-/* A mature image's cover. Nothing of the image is loaded until the visitor chooses to see it. */
 .spoiler { position: relative; display: grid; place-items: center; align-content: center; gap: 7px; box-sizing: border-box; width: 100%; aspect-ratio: 4 / 5; padding: 10px; overflow: hidden; text-align: center; color: var(--brass-light);
   background: repeating-linear-gradient(135deg, rgb(255 230 190 / .035) 0 10px, transparent 10px 20px), radial-gradient(ellipse at 50% 40%, #2c1310, #120706 75%); }
 .spoiler-seal { display: grid; place-items: center; width: 2.7em; height: 2.7em; border-radius: 50%; font-family: var(--font-title); font-size: 14px; font-weight: 700; color: var(--wow-gold); text-shadow: 0 1px 1px #000;
   background: radial-gradient(circle at 40% 32%, #c8301f, var(--wow-red) 55%, var(--wow-red-dark)); box-shadow: 0 0 0 2px var(--brass), 0 0 0 3px var(--leather-dark), 0 3px 8px rgb(0 0 0 / .6); }
 .spoiler-label { font-family: var(--font-title); font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-indent: .14em; text-transform: uppercase; }
 .spoiler-hint { font-size: 16px; font-style: italic; color: rgb(241 212 138 / .75); }
-.spoiler-big { width: calc(min(62vh, 600px) * var(--r, .8)); max-width: 100%; gap: 10px; } /* the image's own shape, at the size the image would have */
+.spoiler-big { width: calc(min(62vh, 600px) * var(--r, .8)); max-width: 100%; gap: 10px; } 
 .spoiler-big .spoiler-seal { font-size: 19px; }
 .spoiler-big .spoiler-label { font-size: 15px; }
 .plate-open.is-covered { cursor: pointer; }
 .plate-open.is-covered:hover .spoiler-seal { filter: brightness(1.15); }
 .plate-more { display: block; font-family: var(--font-book); font-size: 14px; font-style: italic; color: var(--sepia-faint); }
 
-/* the plate's other images, beneath the one shown */
 .versions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 10px; }
 .ver-btn { display: grid; justify-items: center; align-content: start; gap: 5px; width: 76px; padding: 0; border: 0; background: none; cursor: pointer; color: inherit; }
 .ver-btn .mount { padding: 3px; }
@@ -496,7 +454,6 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .ver-name { max-width: 100%; font-family: var(--font-book-sc); font-size: 13.5px; line-height: 1.2; overflow-wrap: anywhere; color: var(--sepia-soft); }
 .ver-btn:hover .ver-name, .ver-btn[aria-pressed="true"] .ver-name { color: var(--rubric); }
 
-/* the age check, over the tome or the full-size view */
 .gate { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; box-sizing: border-box; margin: 0; padding: 16px; background: rgb(var(--umber-rgb) / .74); }
 .gate-card { display: grid; gap: 12px; box-sizing: border-box; width: min(360px, 100%); padding: 30px 22px 20px; border: 1px solid rgb(var(--sepia-rgb) / .6); border-radius: 3px; text-align: center; color: var(--sepia);
   background: var(--grain), var(--parchment); box-shadow: 0 0 0 3px var(--brass), 0 0 0 4px var(--leather-dark), 0 18px 40px rgb(0 0 0 / .55); }
@@ -506,7 +463,6 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .gate-card .input::-webkit-inner-spin-button, .gate-card .input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .gate-card .form-actions { justify-content: center; }
 
-/* the full-size plate, on dark ground over the tome */
 .lightbox { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; box-sizing: border-box; padding: 58px 76px 22px; background: radial-gradient(ellipse at 50% 45%, rgb(14 18 30 / .95), rgb(4 6 11 / .97)); animation: lb-in .25s ease-out; }
 @keyframes lb-in { from { opacity: 0; } }
 .lightbox :focus-visible { outline-color: var(--wow-gold); }
@@ -526,7 +482,6 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .lb-gif { position: relative; }
 .lb-gif > .play-btn { position: absolute; right: -15px; bottom: -15px; }
 
-/* the game's red-and-gold buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 18px; border: 1px solid #2a0302; border-radius: 4px; cursor: pointer; font-family: var(--font-title); font-size: 13.5px; font-weight: 700; letter-spacing: .04em; color: var(--wow-gold); text-shadow: 0 1px 1px #000, 0 0 2px #000;
   background: linear-gradient(180deg, #b3241a 0%, var(--wow-red) 48%, var(--wow-red-dark) 100%); box-shadow: inset 0 0 0 1px rgb(var(--brass-rgb) / .95), inset 0 2px 0 rgb(255 200 120 / .3), 0 1px 3px rgb(var(--sepia-rgb) / .6); transition: filter .15s; }
 .btn:hover { filter: brightness(1.18); color: #fff2a6; }
@@ -534,7 +489,6 @@ button.mount { cursor: zoom-in; color: inherit; font: inherit; }
 .btn[data-armed] { color: #fff; background: linear-gradient(180deg, #e2481f, #a51c08 50%, #5e0c04); }
 .btn:disabled { filter: grayscale(.7) brightness(.85); cursor: progress; }
 
-/* forms: written on ruled parchment */
 .form { display: grid; gap: 18px; max-width: 36rem; }
 .form h3 { margin: 4px 0 0; font-family: var(--font-title); font-weight: 700; font-size: 30px; line-height: 1.1; color: var(--sepia); }
 .field { display: grid; gap: 4px; min-width: 0; margin: 0; padding: 0; border: 0; }
@@ -607,12 +561,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 .ver-preview .media-badge { left: 5px; bottom: 5px; padding: 0 4px; font-size: 9px; letter-spacing: .06em; }
 .back:disabled { opacity: .45; cursor: default; text-decoration: none; }
 
-/* notices look like the game's tooltips */
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 100; translate: -50% 0; box-sizing: border-box; max-width: calc(100% - 32px); padding: 9px 14px; border: 1px solid #9097a6; border-radius: 5px; background: rgb(6 8 16 / .93); color: var(--wow-gold); font-family: var(--font-title); font-size: 14px; line-height: 1.45; letter-spacing: .02em; text-shadow: 0 1px 1px #000; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .8), 0 6px 20px rgb(0 0 0 / .6); }
 .toast.show { animation: toast-in .3s ease-out; }
 @keyframes toast-in { from { opacity: 0; translate: -50% 10px; } to { opacity: 1; translate: -50% 0; } }
 
-/* narrow screens: a thinner binding and a narrower margin */
 @media (max-width: 860px) {
   .archive { width: calc(100% - 24px); }
   .tome { padding: 9px; }
@@ -630,7 +582,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   .row-trait [data-k="right"] { grid-column: 2; grid-row: 1; }
   .row-trait .range { grid-column: 1 / 3; grid-row: 2; }
   .row-trait .row-tools { grid-column: 3; grid-row: 1 / 3; align-self: center; }
-  .tabs { gap: 3px; padding: 0 30px 0 14px; margin-bottom: -6px; } /* clear of the close button */
+  .tabs { gap: 3px; padding: 0 30px 0 14px; margin-bottom: -6px; } 
   .tab { padding: 7px clamp(7px, 2.4vw, 12px) 12px; font-size: clamp(10px, 2.9vw, 12px); letter-spacing: .05em; }
   .row-fact { grid-template-columns: minmax(0, 1fr) auto; }
   .row-fact [data-k="value"] { grid-column: 1 / -1; grid-row: 2; }
@@ -1122,12 +1074,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 (function () {
   "use strict";
   var BOOKS = { about: "About", art: "Art", knowledge: "Character Knowledge", encounters: "Encounters" };
-  // an art piece's file: a picture, a GIF or a video; its thumbnail (a video's poster) is always a still picture
   var FILE_RE = /^[0-9a-f]{32}\.(webp|jpg|png|gif|mp4|webm)$/, STILL_RE = /^[0-9a-f]{32}\.(webp|jpg|png)$/;
   var MiB = 1024 * 1024;
   var MAX = { facts: 24, traits: 24, glances: 5, sections: 24, versions: 12, upload: 8 * MiB, gif: 40 * MiB, video: 90 * MiB };
-  // The About page follows a Total RP 3 profile: the directory, additional information, personality traits, at first
-  // glance and the description. server/server.mjs caps each field; the form uses the same limits.
   var ABOUT_TEXT = ["title", "currently", "ooc", "race", "class", "age", "eyes", "height", "build", "birthplace", "residence"];
   var DIRECTORY = [["race", "Race", "Dracthyr", 60], ["class", "Class", "Evoker", 60], ["age", "Age", "", 60], ["eyes", "Eyes", "Molten amber", 60],
                    ["height", "Height", "", 60], ["build", "Build", "", 60], ["birthplace", "Birthplace", "The Forbidden Reach", 120], ["residence", "Residence", "Valdrakken", 120]];
@@ -1136,13 +1085,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
                          ["Gentle", "Brutish"], ["Superstitious", "Rational"], ["Renegade", "Paragon"], ["Cautious", "Impulsive"], ["Ascetic", "Bon vivant"],
                          ["Valorous", "Spineless"]];
   var STANDARD_SECTIONS = ["Physical description", "Personality", "History"];
-  var IMAGE_SIDE = 2400, THUMB_SIDE = 800, STILL_SIDE = 1280; // longest side of a stored picture, of its thumbnail, and of a GIF's or video's still, in pixels
+  var IMAGE_SIDE = 2400, THUMB_SIDE = 800, STILL_SIDE = 1280;
   var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // The preview build (dist/preview.html, published as the claude.ai Artifact) answers requests in the page itself,
-  // because the Artifact viewer allows no network requests. The real page has no such script, so it uses fetch.
   var PREVIEW = window.CA_PREVIEW || null;
   var request = PREVIEW ? PREVIEW.fetch : function (url, opts) { return fetch(url, opts); };
-  // Art is served at art/<name>; the preview keeps its images in the page, as data: URIs
   function artUrl(name) { return PREVIEW ? PREVIEW.src(name) : "art/" + name; }
 
   function byId(id) { return document.getElementById(id); }
@@ -1151,24 +1097,22 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function today() { var d = new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
   function fmtDate(iso) {
     var p = String(iso).split("-").map(Number), d = new Date(2000, 0, 1);
-    d.setFullYear(p[0], (p[1] || 1) - 1, p[2] || 1); // new Date(35, …) would be 1935: it takes years 0 to 99 as 1900 to 1999
+    d.setFullYear(p[0], (p[1] || 1) - 1, p[2] || 1);
     return isNaN(d) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   }
-  function isDate(v) { // a day that exists, as the server takes it: not 2024-02-30
+  function isDate(v) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
     var t = Date.parse(v + "T00:00:00Z");
     return !isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
   }
   function traitValue(v) { v = Math.round(Number(v)); return isFinite(v) ? Math.min(20, Math.max(0, v)) : 10; }
 
-  // The server puts the archive into #ca-data, and answers every accepted change with the whole archive again
   function normalize(raw) {
     raw = raw || {};
     var profile = Object.assign({ name: "Unnamed Dracthyr", epithet: "", construct: "Eternal Gladiator's Chalice", constructNote: "" }, raw.profile || {});
-    // encounters, and records of what he knows, which may name an encounter as where he learned it
     var encounters = (Array.isArray(raw.encounters) ? raw.encounters : []).filter(function (e) { return e && e.id && e.title; }).map(function (e) {
       return { id: String(e.id), title: String(e.title), date: isDate(e.date) ? e.date : "", text: String(e.text || ""), added: Number(e.added) || 0, example: !!e.example,
-               sealed: e.sealed === true, unreadable: e.unreadable === true }; // sealed: only for the keeper, who alone receives it
+               sealed: e.sealed === true, unreadable: e.unreadable === true };
     });
     var records = (Array.isArray(raw.records) ? raw.records : []).filter(function (r) { return r && r.id && r.title; }).map(function (r) {
       return {
@@ -1177,16 +1121,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         date: isDate(r.date) ? r.date : "", added: Number(r.added) || 0, example: !!r.example
       };
     });
-    // his forms: each a gallery of the art pieces that show him in it
     var galleries = (Array.isArray(raw.galleries) ? raw.galleries : []).filter(function (g) { return g && g.id && g.name; }).map(function (g) {
       return { id: String(g.id), name: String(g.name), added: Number(g.added) || 0, example: !!g.example };
     });
-    // an art piece (a plate, in the code) is one or more images (versions), each a picture, a GIF or a video: the
-    // first is its main one, the others its alternates. It belongs to one of his forms, or to none ("Other art").
     var art = (Array.isArray(raw.art) ? raw.art : []).filter(function (a) { return a && a.id; }).map(function (a) {
-      var versions = (Array.isArray(a.versions) ? a.versions : [{ file: a.file, thumb: a.thumb, width: a.width, height: a.height }]).filter(function (v) { return v && FILE_RE.test(v.file) && STILL_RE.test(v.thumb); }).map(function (v, i) {
+      var versions = (Array.isArray(a.versions) ? a.versions : []).filter(function (v) { return v && v.id && FILE_RE.test(v.file) && STILL_RE.test(v.thumb); }).map(function (v) {
         return {
-          id: String(v.id || "v" + i), file: v.file, thumb: v.thumb, width: Math.max(1, Number(v.width) || 1), height: Math.max(1, Number(v.height) || 1),
+          id: String(v.id), file: v.file, thumb: v.thumb, width: Math.max(1, Number(v.width) || 1), height: Math.max(1, Number(v.height) || 1),
           label: String(v.label || ""), mature: v.mature === true, loop: v.loop === true
         };
       });
@@ -1204,7 +1145,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var about = {
       eyeColor: /^#[0-9a-f]{6}$/i.test(ab.eyeColor) ? ab.eyeColor : "",
       facts: list(ab.facts, ["label", "value"]),
-      // each trait's value from its own row: the rows left out above must not shift the values onto other traits
       traits: rows(ab.traits).map(function (x) { return { left: String(x.left || ""), right: String(x.right || ""), value: traitValue(x.value) }; }),
       glances: list(ab.glances, ["title", "text"]),
       sections: list(ab.sections, ["heading", "body", "color"]).map(function (x) { if (!/^#[0-9a-f]{6}$/i.test(x.color)) x.color = ""; return x; })
@@ -1218,7 +1158,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var state = loadState();
 
   var root = document.body;
-  var el = {}; // every element with an id, by its id in camelCase: "det-title" is el.detTitle
+  var el = {};
   Array.prototype.forEach.call(document.querySelectorAll("[id]"), function (n) {
     el[n.id.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); })] = n;
   });
@@ -1251,32 +1191,26 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function find(id) { return state.records.find(function (r) { return r.id === id; }); }
   function findArt(id) { return state.art.find(function (a) { return a.id === id; }); }
   function findEnc(id) { return state.encounters.find(function (e) { return e.id === id; }); }
-  // Newest first: by date, and those without one by when they were added
   function newest(list) {
     function key(x) { return x.date || new Date(x.added).toISOString().slice(0, 10); }
     return list.slice().sort(function (a, b) { return key(b).localeCompare(key(a)) || (b.added - a.added) || a.title.localeCompare(b.title); });
   }
-  // A list entry: its date and source, its title, and the start of its text; it opens on a page of its own
   function entry(title, meta, note, open) {
     return h("li", null, h("button", { class: "entry", type: "button", onclick: open },
       h("span", { class: "entry-meta", text: meta }), h("span", { class: "entry-title", text: title }), note ? h("span", { class: "entry-note", text: note }) : null));
   }
-  // TRP markup without the markup, for a list's excerpt: each block's text, a space between.
   function plain(text) {
     var out = [];
     trp(text).childNodes.forEach(function (n) { var t = n.textContent.replace(/\s+/g, " ").trim(); if (t) out.push(t); });
     return out.join(" ");
   }
-  // His forms are galleries; the art pieces that belong to none of them are shown together as "Other art"
   var OTHER = "other";
   function groupOf(a) { return a.gallery || OTHER; }
   function piecesOf(gid) { return state.art.filter(function (a) { return groupOf(a) === gid; }); }
   function galleryOf(id) { return id === OTHER ? { id: OTHER, name: "Other art", other: true } : state.galleries.find(function (g) { return g.id === id; }) || null; }
   function pieces(n) { return n + (n === 1 ? " art piece" : " art pieces"); }
   function plateNo(a) { return "Art piece " + roman(piecesOf(groupOf(a)).indexOf(a) + 1) + "."; }
-  // What an image of an art piece is: a picture, an animated GIF or a video
   function kindOf(v) { return /\.gif$/.test(v.file) ? "gif" : /\.(mp4|webm)$/.test(v.file) ? "video" : "image"; }
-  // One image of a plate. width and height only give the browser its shape before it loads.
   function verImg(v, which, alt) {
     var img = h("img", { src: artUrl(which === "thumb" ? v.thumb : v.file), alt: alt, width: v.width, height: v.height, decoding: "async", loading: which === "thumb" ? "lazy" : null });
     img.addEventListener("error", function () { var m = img.closest(".mount"); if (m) m.classList.add("is-missing"); });
@@ -1285,7 +1219,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function versionIn(a, id) { return a.versions.find(function (v) { return v.id === id; }) || a.versions[0]; }
   function verName(a, v) { var i = a.versions.indexOf(v); return v.label || (i ? "Version " + (i + 1) : "Main"); }
   function altOf(a, v) { return (a.title || "Untitled art piece") + (a.versions.length > 1 ? ", " + verName(a, v) : ""); }
-  // The cover over a mature image, in its place: nothing of the image itself is loaded
   function spoiler(v, big) {
     var box = h("span", { class: "spoiler" + (big ? " spoiler-big" : "") },
       h("span", { class: "spoiler-seal", text: "18+" }), h("span", { class: "spoiler-label", text: "Mature" }),
@@ -1294,14 +1227,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return box;
   }
   function hostOf(link) { try { return new URL(link).hostname.replace(/^www\./, ""); } catch (e) { return link; } }
-  // The players' small drawings: [path, "f" to fill or "s" to stroke]
   var ICONS = {
     play: [["M4.5 2.6v10.8L13.2 8z", "f"]],
     pause: [["M3.8 2.8h3v10.4h-3zM9.2 2.8h3v10.4h-3z", "f"]],
     sound: [["M1.8 5.8h2.6L8 2.8v10.4L4.4 10.2H1.8z", "f"], ["M10.4 5.4a3.6 3.6 0 0 1 0 5.2M12.3 3.6a6.2 6.2 0 0 1 0 8.8", "s"]],
     muted: [["M1.8 5.8h2.6L8 2.8v10.4L4.4 10.2H1.8z", "f"], ["M10.4 5.8l4 4.4M14.4 5.8l-4 4.4", "s"]],
     full: [["M2.4 6V2.4H6M10 2.4h3.6V6M13.6 10v3.6H10M6 13.6H2.4V10", "s"]],
-    lock: [["M1 6h8v7.4H1z", "f"], ["M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6", "s"]] // drawn on 10 x 14
+    lock: [["M1 6h8v7.4H1z", "f"], ["M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6", "s"]]
   };
   function icon(name) {
     var NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
@@ -1316,14 +1248,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     });
     return svg;
   }
-  // In a list, a GIF or a video shows its still, marked as what it is
   function badge(v) {
     var k = kindOf(v);
     if (k === "gif") return h("span", { class: "media-badge", text: "GIF" });
     if (k === "video") return h("span", { class: "media-badge" }, icon("play"), h("span", { text: "Video" }));
     return null;
   }
-  // The shape of a GIF or a video, for its player: its width, its ratio, and both as an aspect-ratio
   function shape(box, v) {
     box.style.setProperty("--w", v.width + "px");
     box.style.setProperty("--r", (v.width / v.height).toFixed(4));
@@ -1332,14 +1262,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   function clock(t) { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ":" + pad2(t % 60); }
 
-  // ---------- The GIF and video players ----------
-  // A GIF, with a button to pause it and play it again. Paused, it holds the frame it stopped on. With reduced
-  // motion it starts paused, on its still, and the GIF itself is loaded only once it is played.
   function gifPlayer(v, alt) {
     var box = shape(h("span", { class: "gif" }), v), btn = h("button", { class: "play-btn", type: "button" }), img = null, paused = reduced;
     function show() {
       var still = null;
-      if (paused && img && img.complete && img.naturalWidth) { // the frame it is on
+      if (paused && img && img.complete && img.naturalWidth) {
         still = h("canvas", { width: img.naturalWidth, height: img.naturalHeight, role: "img", "aria-label": alt });
         try { still.getContext("2d").drawImage(img, 0, 0); } catch (e) { still = null; }
       }
@@ -1353,8 +1280,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     show();
     return { box: box, btn: btn };
   }
-  // A video, with the archive's own controls: play and pause (a click on the picture does the same), a bar to move
-  // through it, the time, the sound, and full screen. Until it is played, only its poster and its first moments load.
   function videoPlayer(v, alt) {
     var video = h("video", { class: "vid", preload: "metadata", playsinline: true, poster: artUrl(v.thumb), width: v.width, height: v.height, "aria-label": alt });
     video.loop = v.loop;
@@ -1395,15 +1320,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     [big, play].forEach(function (b) { b.addEventListener("click", toggle); });
     video.addEventListener("click", toggle);
     seek.addEventListener("input", function () { video.currentTime = Number(seek.value); });
-    // While the bar is held, it stays where the hand puts it; otherwise it follows the video. (It used to stop following
-    // while it had the focus, which a click gives it: after a click to seek, it stood still while the video played on.)
     seek.addEventListener("pointerdown", function () {
       held = true;
       function letGo() { held = false; document.removeEventListener("pointerup", letGo, true); document.removeEventListener("pointercancel", letGo, true); sync(); }
       document.addEventListener("pointerup", letGo, true);
       document.addEventListener("pointercancel", letGo, true);
     });
-    seek.addEventListener("keydown", function (e) { // steps of a twentieth of the video, at least a second
+    seek.addEventListener("keydown", function (e) {
       var by = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
       if (!by) return;
       e.preventDefault();
@@ -1426,10 +1349,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   function pauseVideos(root) { Array.prototype.forEach.call(root.querySelectorAll("video"), function (v) { v.pause(); }); }
 
-  // ---------- Total RP 3 markup ----------
-  // The About page's description keeps TRP3's markup, so a profile can be pasted straight from the game. It is turned
-  // into elements here and never parsed as HTML: {h1}…{/h1} to {h3} (with :c or :r), {p:c}/{p:r}, {col:rrggbb}…{/col},
-  // the game's |cffrrggbb…|r and {link*url*text}. Icons, images and textures are game files, so they are dropped.
   var TRP_BLOCK = /\{(h[1-3]|p)(?::([lcr]))?\}([\s\S]*?)\{\/\1\}/gi;
   var TRP_INLINE = /\{col:([0-9a-f]{6})\}|\{\/col\}|\|c[0-9a-f]{2}([0-9a-f]{6})|\|r|\{link\*([^*{}]*)\*([^{}]*)\}|\{(?:icon|img):[^{}]*\}|\|T[^|]*\|t|\n/gi;
   var ALIGN = { c: "al-c", r: "al-r" };
@@ -1446,7 +1365,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     trpFlow(src.slice(last), out);
     return out;
   }
-  // a blank line starts a paragraph; a single line break stays a line break
   function trpFlow(text, parent, align) {
     text.replace(/^\s*\n|\n\s*$/g, "").split(/\n[ \t]*(?:\n[ \t]*)+/).forEach(function (para) {
       if (para.trim()) parent.append(trpInline(para, h("p", { class: ALIGN[align] })));
@@ -1476,8 +1394,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (last < text.length) top().append(text.slice(last));
     return into;
   }
-  // TRP colours are picked for the game's dark frames. Here they keep their hue but are darkened until they read on
-  // parchment (4.5:1 against it); white and pale greys become the ink itself.
   function ink(hex) {
     var c = [0, 2, 4].map(function (i) { return parseInt(hex.substr(i, 2), 16) / 255; });
     var max = Math.max.apply(null, c), min = Math.min.apply(null, c), d = max - min, l = (max + min) / 2, sat = 0, hue = 0;
@@ -1495,25 +1411,21 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return "rgb(" + rgb(l).map(function (x) { return Math.round(x * 255); }).join(" ") + ")";
   }
 
-  // ---------- Landing: the construct alone; the name is there for screen readers ----------
   function renderLanding() {
     var name = state.profile.name || "Unnamed Dracthyr";
     el.pfName.textContent = name;
     el.construct.setAttribute("aria-label", "Open the archive of " + name);
   }
 
-  // ---------- The archive: one tome, three chapters ----------
   var currentView = "overview", currentBook = "knowledge";
   var detailId = null, editingId = null, plateId = null, versionId = null, artEditing = null, galleryId = null, galEditing = null;
   var busy = false;
 
   function renderAll() { renderLanding(); renderArchive(); renderEncounters(); renderAbout(); renderArt(); renderOwnerUI(); }
 
-  // Character Knowledge: his records, newest first
   function renderArchive() {
     var p = state.profile;
     el.arName.textContent = p.name || "Unnamed Dracthyr";
-    // the owner can clear the example records and encounters in one go while any remain
     var ex = state.records.filter(function (r) { return r.example; }).length + state.encounters.filter(function (e) { return e.example; }).length;
     el.btnClearExamples.hidden = !(ex && canPost());
     if (!el.btnClearExamples.dataset.armed) el.btnClearExamples.textContent = "Remove " + ex + " example" + (ex === 1 ? "" : "s");
@@ -1521,11 +1433,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var e = r.encounter && findEnc(r.encounter), from = e ? e.title : r.source;
       return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), r.note, function () { showDetail(r.id); });
     }) : [h("li", null, h("p", { class: "empty", text: canPost() ? "No records yet. Inscribe the first thing he has learned since waking." : "No records yet." }))]);
-    renderDetail(); // also out of sight: its link to an encounter only for the keeper must not stay behind once sealed
+    renderDetail();
   }
 
-  // Encounters: newest first; each tells what happened, and, to the keeper alone, its private section. Those only
-  // for the keeper are marked, and reach no one else.
   function lockIcon() {
     var svg = icon("lock");
     svg.setAttribute("viewBox", "0 0 10 14");
@@ -1542,7 +1452,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (currentView === "encounter") renderEncounter();
   }
 
-  // About: his names at the head of the page, then the profile as in Total RP 3
   function trait(t) {
     var v = t.value / 20, lean = t.value < 10 ? t.left : t.value > 10 ? t.right : "", d = Math.abs(t.value - 10);
     var fill = h("i", { class: "t-fill" }), mark = h("i", { class: "t-mark" });
@@ -1556,8 +1465,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       h("span", { class: "t-pole t-right" + (t.value > 10 ? " is-lean" : ""), text: t.right }),
       h("span", { class: "sr-only", text: ": " + words }));
   }
-  var QUOTES = /^["'“”‘’„«»]+|["'“”‘’„«»]+$/g; // the heading's own quotes, which its style adds
-  // a section's heading, in quotes between two flourishes, in its colour made readable on parchment (TRP's gold by default)
+  var QUOTES = /^["'“”‘’„«»]+|["'“”‘’„«»]+$/g;
   function sectionHeading(x) {
     var head = h("h4", { class: "ab-heading" }, h("i", { class: "flourish", "aria-hidden": "true" }), h("span", { text: x.heading.replace(QUOTES, "") || x.heading }), h("i", { class: "flourish", "aria-hidden": "true" }));
     if (x.color) head.style.color = ink(x.color.slice(1));
@@ -1592,7 +1500,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     fill(el.abSections, ab.sections.map(function (x) {
       return h("section", { class: "ab-section" }, x.heading ? sectionHeading(x) : null, h("div", { class: "trp" }, trp(x.body)));
     }));
-    // a red capital opens the first plain paragraph of the description, if it is long enough to wrap around it
     var first = el.abSections.querySelector(".trp > p:not(.al-c):not(.al-r)");
     if (first && /^\p{L}/u.test(first.textContent) && first.textContent.length > 120) first.classList.add("dropcap");
     var any = ab.currently || ab.ooc || dir.length || ab.facts.length || ab.traits.length || ab.glances.length || ab.sections.length;
@@ -1600,8 +1507,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.abEmpty.textContent = canPost() ? "Nothing is written here yet. Amend this page to say who he is, or paste his Total RP 3 profile into it." : "Nothing is written here yet.";
   }
 
-  // Art: his forms, each with its first art piece as its cover, in the keeper's order; then "Other art", if any
-  // piece belongs to none. Visitors do not see a form until it has art in it.
   function renderArt() {
     var list = state.galleries.filter(function (g) { return canPost() || piecesOf(g.id).length; });
     if (piecesOf(OTHER).length) list.push(galleryOf(OTHER));
@@ -1614,7 +1519,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     renderGallery();
     renderPlate();
   }
-  // One of his forms: its art pieces in the keeper's order. A piece whose main image is mature shows only its cover.
   function renderGallery() {
     var g = galleryOf(galleryId), all = g ? piecesOf(g.id) : [], at = g && !g.other ? state.galleries.indexOf(g) : -1;
     el.glTitle.textContent = g ? g.name : "";
@@ -1627,7 +1531,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
           count > 1 ? h("span", { class: "plate-more", text: count + " images" }) : null)));
     }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: canPost() ? "No art pieces yet. Add the first." : "No art pieces yet." }))]);
     el.glTools.hidden = !(canPost() && at >= 0);
-    el.glDelete.hidden = all.length > 0; // only an empty form can be removed, so no art piece goes with it
+    el.glDelete.hidden = all.length > 0;
     el.glEarlier.disabled = at <= 0;
     el.glLater.disabled = at < 0 || at === state.galleries.length - 1;
   }
@@ -1642,7 +1546,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.plBack.textContent = "← Return to " + galleryOf(groupOf(a)).name;
     el.plNo.textContent = plateNo(a) + (a.versions.length > 1 ? " · " + verName(a, v) : "");
     if (currentView === "plate") renderMedia(a, v, covered); else clearMedia();
-    // the plate's images, to switch between; the focus stays on the one it was on
     var focused = el.plVersions.contains(document.activeElement) ? document.activeElement.dataset.vid : null;
     el.plVersions.hidden = a.versions.length < 2;
     fill(el.plVersions, a.versions.length < 2 ? [] : a.versions.map(function (x) {
@@ -1662,8 +1565,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.plEarlier.disabled = i === 0;
     el.plLater.disabled = i === group.length - 1;
   }
-  // The image on view: a picture or a GIF in the button that shows it full size, a video in its player, or a mature
-  // one's cover. What is already on view is left alone, so a re-render never restarts a video or a GIF.
   function renderMedia(a, v, covered) {
     var kind = kindOf(v), key = [v.id, v.file, v.loop, covered, altOf(a, v)].join("|");
     if (el.plMedia.dataset.key === key) return;
@@ -1679,7 +1580,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.plOpen.classList.toggle("is-covered", covered);
     el.plOpen.setAttribute("aria-label", covered ? "A mature image: select to view it (18 or older)" : "View the image full size");
   }
-  // Nothing of the image stays on the page once the visitor moves on, and a video stops
   function clearMedia() {
     delete el.plMedia.dataset.key;
     fill(el.plOpen, []);
@@ -1688,10 +1588,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.plOpen.hidden = false;
     el.plVideo.hidden = true;
   }
-  // Where the focus goes back to on the art piece's page: the image, or the video's play button
   function focusMedia() { (el.plOpen.hidden ? el.plVideo.querySelector(".vid-btn") || el.plOpen : el.plOpen).focus(); }
 
-  // The editing tools show only while the server says this browser holds the keeper's session
   function renderOwnerUI() {
     var on = canPost();
     el.btnInscribe.hidden = el.detTools.hidden = el.btnAmend.hidden = el.btnAddArt.hidden = el.btnAddGallery.hidden = el.btnAddEncounter.hidden = el.encTools.hidden = !on;
@@ -1703,8 +1601,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.btnClearExamples.hidden = !(ex && on);
   }
 
-  // Each view lives on the right leaf and belongs to a chapter, whose own left leaf shows beside it. On narrow
-  // screens a "solo" view (a record, a plate, a form) replaces the left leaf instead.
   var VIEWS = {
     overview: ["viewOverview", "knowledge"], detail: ["viewDetail", "knowledge", 1], form: ["viewForm", "knowledge", 1],
     about: ["viewAbout", "about"], aboutForm: ["viewAboutForm", "about", 1],
@@ -1715,12 +1611,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   var FORMS = { form: "fError", aboutForm: "abfError", artForm: "afError", galleryForm: "gfError", encounterForm: "efError" };
   function showView(name) {
     var v = VIEWS[name], book = v[1];
-    awaited = null; // the keeper has moved on from the address they opened
+    awaited = null;
     Object.keys(VIEWS).forEach(function (k) { el[VIEWS[k][0]].hidden = VIEWS[k][0] !== v[0]; });
     Object.keys(BOOKS).forEach(function (b) { el["leaf" + b[0].toUpperCase() + b.slice(1)].hidden = b !== book; });
-    if (name !== "plate") { shown = null; clearMedia(); } // a mature image is covered again once the visitor moves on, and a video stops
+    if (name !== "plate") { shown = null; clearMedia(); }
     currentView = name;
-    if (!owner) wipeForms(); // a form kept open as the session ended lets go of what it held once it is left
+    if (!owner) wipeForms();
     currentBook = book;
     el.book.dataset.view = name;
     el.book.dataset.book = book;
@@ -1731,7 +1627,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     setHash();
   }
 
-  // The address names the open chapter, and the open record, form or art piece, so it can be shared: #art/a1b2c3
   function setHash() {
     var id = currentView === "detail" ? detailId : currentView === "plate" ? plateId : currentView === "gallery" ? galleryId : currentView === "encounter" ? encounterId : "";
     var want = el.archive.open ? "#" + currentBook + (id ? "/" + id : "") : "";
@@ -1766,18 +1661,15 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     renderOwnerUI();
     showView("detail");
   }
-  // A record on its own page. It is drawn again whenever the archive changes, so a link to an encounter only for the
-  // keeper appears once the keeper's archive has arrived, and goes once the archive is sealed.
   function renderDetail() {
     var r = find(detailId);
-    if (!r) { el.detDate.textContent = el.detTitle.textContent = el.detNote.textContent = ""; fill(el.detSource, []); return; } // a record removed leaves nothing behind
+    if (!r) { el.detDate.textContent = el.detTitle.textContent = el.detNote.textContent = ""; fill(el.detSource, []); return; }
 
     el.detDate.textContent = r.date ? fmtDate(r.date) : "";
     el.detDate.setAttribute("datetime", r.date);
     el.detTitle.textContent = r.title;
     el.detNote.textContent = r.note || "Nothing inscribed beyond the title yet.";
     el.detNote.classList.toggle("is-empty", !r.note);
-    // where he learned it: the encounter, as a link to it, and his own words
     var e = r.encounter && findEnc(r.encounter);
     fill(el.detSource, [
       e ? h("button", { class: "link-to", type: "button", text: e.title, onclick: function () { showEncounter(e.id); } }) : null,
@@ -1785,8 +1677,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       e && r.source ? "; " : null, r.source || null, !e && !r.source ? "Not recorded" : null
     ].filter(Boolean));
   }
-  // An encounter: what happened; the private section only for the keeper, once it has been fetched; and what he
-  // learned from it
   var encounterId = null, encEditing = null;
   function renderEncounter() {
     var e = findEnc(encounterId);
@@ -1795,10 +1685,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.encDate.setAttribute("datetime", e.date);
     el.encTitle.textContent = e.title;
     el.encSealed.hidden = !e.sealed;
-    el.encEdit.hidden = e.unreadable; // it can only be removed
+    el.encEdit.hidden = e.unreadable;
     fill(el.encText, e.unreadable ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })]
       : e.text ? [trp(e.text)] : [h("p", { class: "empty", text: "Nothing is written about it yet." })]);
-    // one only for the keeper that can no longer be read says so once, above (its private section said it again)
     var priv = owner && !e.unreadable && Object.prototype.hasOwnProperty.call(privates, e.id) ? privates[e.id] : undefined;
     el.encPrivate.hidden = priv === undefined;
     fill(el.encPrivateText, priv === null ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })] : priv ? [trp(priv)] : []);
@@ -1815,11 +1704,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     showView("encounter");
   }
 
-  // Back to his forms, or to one of them: every mature image is covered again
   function showGalleries() { shown = null; showView("galleries"); renderArt(); }
   function showGallery(id) {
     var g = galleryOf(id);
-    // as in the overview, a form with no art is there only for the keeper (its address showed it to anyone)
     if (!g || (!piecesOf(g.id).length && (g.other || !canPost()))) { showGalleries(); return; }
     galleryId = g.id;
     disarm(el.glDelete);
@@ -1827,8 +1714,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     renderArt();
     renderOwnerUI();
   }
-  // An art piece, at one of its images (the main one by default). A mature image stays shown only while it is the
-  // one on view.
   function showPlate(id, vid) {
     var a = findArt(id);
     if (!a) { showGalleries(); return; }
@@ -1841,8 +1726,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     renderPlate();
     renderOwnerUI();
   }
-  // From the list: a plate whose main image is mature asks at once, as a click on its cover would. The cover takes the
-  // focus first, so the age check gives it back there, not to the list left behind (it went nowhere).
   function openPlate(id) {
     showPlate(id);
     var a = findArt(id);
@@ -1853,18 +1736,16 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (v.mature && shown !== v.id) showMature(v);
   }
 
-  // ---------- Forms ----------
   function formError(view, msg) { var e = el[FORMS[view]]; e.textContent = msg; e.hidden = false; }
   function leaveCurrentForm() {
     if (currentView === "form") leaveForm();
     else if (currentView === "aboutForm") showView("about");
-    else if (currentView === "artForm") { if (findArt(artEditing)) showPlate(artEditing, versionId); else showGallery(galleryId); } // back on the image it was opened from
+    else if (currentView === "artForm") { stopArtJob(); if (findArt(artEditing)) showPlate(artEditing, versionId); else showGallery(galleryId); }
     else if (currentView === "galleryForm") { if (galleryOf(galEditing)) showGallery(galEditing); else showGalleries(); }
     else if (currentView === "encounterForm") { if (findEnc(encEditing)) showEncounter(encEditing); else showView("encounters"); }
   }
 
-  // A record
-  var recWas = ""; // the form as it opened, so Escape can tell whether anything would be lost
+  var recWas = "";
   function recFromForm() {
     return { title: el.fTitle.value.trim(), note: el.fNote.value.trim(), source: el.fSource.value.trim(), encounter: el.fEncounter.value, date: isDate(el.fDate.value) ? el.fDate.value : "" };
   }
@@ -1890,9 +1771,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") + (e.sealed ? ", only for you" : "") });
     })));
   }
-  // The keeper's archive may arrive after the form has opened (just after unsealing), bringing the encounters only
-  // for the keeper and records' links to them. The list is drawn again then, and a record whose encounter was not
-  // chosen anew gets its link back: saved without it, the record used to lose the link.
   function refreshRecordForm() {
     var chosen = el.fEncounter.value, was = JSON.parse(recWas), r = editingId && find(editingId);
     encounterChoices();
@@ -1917,13 +1795,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
 
-  // An encounter. Its private text goes to the server only when it was changed here, so one saved before its private
-  // section had arrived, or one that can no longer be read, keeps what is stored.
   var PRIVATE_HELP = el.efPrivateHelp.textContent, encWas = "", privWas = "";
   function encFromForm() {
     return { title: el.efTitle.value.trim(), date: isDate(el.efDate.value) ? el.efDate.value : "", text: el.efText.value.trim(), private: el.efPrivate.value.trim(), sealed: el.efSealed.checked };
   }
-  // "Only for me" changes who "What happened" is for
   var TEXT_HELP = el.efTextHelp.textContent;
   function syncSealed() {
     var only = el.efSealed.checked;
@@ -1951,7 +1826,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     fillPrivate(e);
     encWas = JSON.stringify(encFromForm());
     showView("encounterForm");
-    // the private text, once it arrives, is what the form opened with; what was written meanwhile still counts as a change
     if (e && !privatesLoaded) loadPrivate().then(function () {
       if (currentView !== "encounterForm" || encEditing !== e.id || el.efPrivate.value !== privWas) return;
       fillPrivate(e);
@@ -1965,12 +1839,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.encounterForm.addEventListener("submit", function (ev) {
     ev.preventDefault();
     if (busy || !mayPost()) return;
-    // A revision goes by the id it opened with. An encounter only for the keeper leaves the page when the session ends
-    // and comes back only with the keeper's archive, so looking it up here, just after unsealing again, found nothing
-    // and saved it a second time, as a new one.
     var body = encFromForm(), id = encEditing;
     if (!body.title) { formError("encounterForm", "Give the encounter a title."); el.efTitle.focus(); return; }
-    if (id && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
+    if (id && el.efPrivate.value === privWas) delete body.private;
     save(id ? "PUT" : "POST", id ? "api/encounters/" + encodeURIComponent(id) : "api/encounters", body, function (data) {
       if (body.private !== undefined && owner) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
       if (findEnc(data.id)) showEncounter(data.id); else showView("encounters");
@@ -1980,8 +1851,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.efCancel.addEventListener("click", leaveCurrentForm);
   el.efBack.addEventListener("click", leaveCurrentForm);
 
-  // The About page: names, the Total RP 3 fields, and rows the keeper can add, move and remove: additional
-  // information, personality traits, glances and the description's sections
   var FACT_HINTS = [["Motto", ""], ["Pronouns", ""], ["Voice", ""]];
   function rowTools() {
     return h("span", { class: "row-tools" },
@@ -1996,7 +1865,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       h("input", { class: "input", "data-k": "value", "aria-label": "Its value", maxlength: 400, autocomplete: "off", placeholder: hint[1], value: f.value }),
       rowTools());
   }
-  // a trait: its two opposites and a slider between them, 0 (all the left one) to 20 (all the right one)
   function traitRow(t) {
     var range = h("input", { class: "range", type: "range", min: 0, max: 20, step: 1, "data-k": "value", "aria-label": "Leaning", value: t.value == null ? 10 : t.value });
     var row = h("div", { class: "row row-trait" },
@@ -2019,8 +1887,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       rowTools(),
       h("textarea", { class: "input", "data-k": "text", "aria-label": "What anyone would see", maxlength: 1000, placeholder: "Obsidian, dulled at the edges." }, g.text));
   }
-  // A section: its heading (shown in the heading's style and colour as it is typed), the heading's colour, and its text.
-  // A new section takes the colour of the last one.
   var GOLD = "#ffd100";
   function lastColor() { var last = el.abfSections.lastElementChild; return last ? last.querySelector('[data-k="color"]').value : GOLD; }
   function sectionRow(x, i) {
@@ -2034,7 +1900,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       rowTools(),
       h("textarea", { class: "input", "data-k": "body", "aria-label": "Text", maxlength: 40000, placeholder: i ? "" : "Write it here, or paste his description from Total RP 3." }, x.body));
   }
-  // the rows' values; a row counts only if one of `filled` (by default, any key) has something in it
   function rowsOf(box, keys, filled) {
     return Array.prototype.map.call(box.children, function (row) {
       var o = {};
@@ -2042,7 +1907,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       return o;
     }).filter(function (o) { return (filled || keys).some(function (k) { return o[k]; }); });
   }
-  // The ↑ ↓ × buttons of a list of rows; at least `min` rows stay
   function rowButtons(box, min) {
     Array.prototype.forEach.call(box.children, function (row, i, all) {
       row.querySelector('[data-act="up"]').disabled = i === 0;
@@ -2064,7 +1928,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     update();
     if (b.isConnected && !b.disabled) b.focus();
   }
-  // each list of rows: its box, its add button, its limit and how a new row is made
   var ROWS = [
     [el.abfFacts, el.abfAddFact, MAX.facts, function () { return factRow({ label: "", value: "" }, el.abfFacts.children.length); }],
     [el.abfTraits, el.abfAddTrait, MAX.traits, function () { return traitRow({ left: "", right: "", value: 10 }); }],
@@ -2086,7 +1949,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.aboutForm.addEventListener("click", function (e) {
     rowAction(e, updateRows, function (box) { return ROWS.find(function (r) { return r[0] === box; })[1]; });
   });
-  // TRP3's eleven standard traits, each once, at the middle
   el.abfStdTraits.addEventListener("click", function () {
     var have = rowsOf(el.abfTraits, ["left", "right"]).map(function (t) { return (t.left + "|" + t.right).toLowerCase(); }), first = null;
     STANDARD_TRAITS.forEach(function (t) {
@@ -2098,7 +1960,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     updateRows();
     if (first) first.querySelector(".range").focus();
   });
-  // TRP3's three sections (physical description, personality, history): empty rows take the headings first
   el.abfStdSections.addEventListener("click", function () {
     var have = rowsOf(el.abfSections, ["heading"]).map(function (x) { return x.heading.toLowerCase(); });
     var want = STANDARD_SECTIONS.filter(function (x) { return have.indexOf(x.toLowerCase()) < 0; });
@@ -2117,7 +1978,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   fill(el.factLabels, FACT_LABELS.map(function (l) { return h("option", { value: l }); }));
   el.abfEyeOn.addEventListener("change", function () { el.abfEyeColor.disabled = !el.abfEyeOn.checked; });
 
-  var aboutWas = ""; // the form as it opened, so Escape can tell whether anything would be lost
+  var aboutWas = "";
   function openAboutForm() {
     var p = state.profile, ab = state.about;
     el.abfName.value = p.name;
@@ -2159,10 +2020,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.abfCancel.addEventListener("click", leaveCurrentForm);
   el.abfBack.addEventListener("click", leaveCurrentForm);
 
-  // A plate and its images. The keeper's browser scales each new image and re-encodes it (which drops everything
-  // but the picture, such as a photo's location), makes a thumbnail, and uploads both before saving the plate.
   function toBlob(canvas, type, q) { return new Promise(function (r) { canvas.toBlob(r, type, q); }); }
-  function scaled(src, max, w, hgt) { // w and hgt: a video's size, which its element does not give as width and height
+  function scaled(src, max, w, hgt) {
     w = w || src.width; hgt = hgt || src.height;
     var k = Math.min(1, max / Math.max(w, hgt));
     var c = h("canvas", { width: Math.max(1, Math.round(w * k)), height: Math.max(1, Math.round(hgt * k)) });
@@ -2174,19 +2033,16 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   function encode(c, q) {
     return toBlob(c, "image/webp", q).then(function (b) {
       if (b && b.type === "image/webp") return b;
-      // a browser that cannot write WebP: JPEG, which has no transparency, so on the stage's dark ground
       var j = h("canvas", { width: c.width, height: c.height }), g = j.getContext("2d");
       g.fillStyle = "#0a0e1a"; g.fillRect(0, 0, j.width, j.height); g.drawImage(c, 0, 0);
       return toBlob(j, "image/jpeg", q);
     }).then(function (b) { if (!b) throw new Error("This browser could not prepare the image."); return b; });
   }
-  // What a chosen file is, by its type, or by its name when the browser gives no type
   var EXT_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime" };
   function mediaType(file) {
     var ext = (/\.([a-z0-9]+)$/i.exec(file.name || "") || [])[1];
     return (file.type || EXT_TYPES[(ext || "").toLowerCase()] || "").toLowerCase();
   }
-  // A picture is scaled and re-encoded; a GIF or a video goes up as it is, with a still of it as its thumbnail
   function prepareMedia(file) {
     var type = mediaType(file);
     if (type === "image/gif") return prepareGif(file);
@@ -2207,7 +2063,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       });
     });
   }
-  // A video is played here, silently, to learn its size and length and to take its poster from early on
   function prepareVideo(file, type) {
     if (file.size > MAX.video) return Promise.reject(new Error("That video is too large. The limit is " + MAX.video / MiB + " MB."));
     var url = URL.createObjectURL(file), video = document.createElement("video");
@@ -2251,9 +2106,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   function size(n) { return n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1024 / 1024).toFixed(1) + " MB"; }
 
-  // One row per image, in order; the first is the main image. A row for an image already saved carries its id;
-  // a new row has a file input, and the image it prepares waits on the row (row._draft) until the plate is saved.
-  // A video's row can set it to play on a loop.
   function versionRow(v, i) {
     var video = !!v && kindOf(v) === "video";
     return h("div", { class: "row row-version", "data-id": v ? v.id : null },
@@ -2270,7 +2122,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.afAdd.disabled = el.afVersions.children.length >= MAX.versions;
     rowButtons(el.afVersions, 1);
   }
-  // What the art piece form holds, its images included, so Escape can tell whether anything would be lost
   var artWas = "";
   function artSnapshot() {
     return JSON.stringify([el.afTitle.value, el.afGallery.value, el.afArtist.value, el.afLink.value, el.afDate.value, el.afNote.value,
@@ -2287,7 +2138,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.afHeading.textContent = a ? "Revise the art piece" : "Add an art piece";
     el.afSubmit.textContent = a ? "Save changes" : "Add the art piece";
     el.afBack.textContent = a ? "← Return without revising" : "← Return without adding";
-    // which of his forms it shows: the one it is in, or, for a new piece, the one open
     fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: g.name }); }).concat([h("option", { value: "", text: "Other art (no form)" })]));
     el.afGallery.value = a ? a.gallery : galleryOf(galleryId) && galleryId !== OTHER ? galleryId : "";
     fill(el.afVersions, a ? a.versions.map(versionRow) : [versionRow(null, 0)]);
@@ -2329,11 +2179,19 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       }
       return d;
     }, function (err) {
-      if (row._seq === seq) { input.value = ""; status.textContent = ""; formError("artForm", err.message); }
+      if (row._seq === seq) { input.value = ""; status.textContent = ""; row._draft = null; formError("artForm", err.message); }
       throw err;
     });
     row._draft.catch(function () {});
   });
+  var artJob = null;
+  function stopArtJob() {
+    var job = artJob;
+    if (!job) return;
+    artJob = null;
+    if (job.ctrl && !job.saving) job.ctrl.abort();
+    setBusy(el.afSubmit, false);
+  }
   el.artForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (busy || !mayPost()) return;
@@ -2342,32 +2200,40 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var empty = rows.filter(function (r) { return !r.dataset.id && !r._draft; })[0];
     if (empty) { formError("artForm", "Choose an image or a video for each new row, or remove the row."); empty.querySelector('[data-k="file"]').focus(); return; }
     var meta = { title: el.afTitle.value.trim(), gallery: el.afGallery.value, artist: el.afArtist.value.trim(), link: el.afLink.value.trim(), date: isDate(el.afDate.value) ? el.afDate.value : today(), note: el.afNote.value.trim() };
+    var job = artJob = { ctrl: typeof AbortController === "function" ? new AbortController() : null, saving: false };
+    function going() { if (artJob !== job) throw new Error("stopped"); }
+    function send(blob) { going(); return call("POST", "api/uploads", blob, job.ctrl ? job.ctrl.signal : undefined); }
     el.afError.hidden = true;
     setBusy(el.afSubmit, true, "Preparing…");
-    // the new images go up one after another; then the plate is saved with all its images in the rows' order
     rows.reduce(function (chain, row) {
       return chain.then(function (list) {
         var v = { label: row.querySelector('[data-k="label"]').value.trim(), mature: row.querySelector('[data-k="mature"]').checked,
                   loop: !row.querySelector('[data-k="loop-box"]').hidden && row.querySelector('[data-k="loop"]').checked };
         if (row.dataset.id) { v.id = row.dataset.id; return list.concat([v]); }
         return row._draft.then(function (d) {
+          going();
           el.afSubmit.textContent = d.full.size > 4 * MiB ? "Uploading " + size(d.full.size) + "…" : "Uploading…";
-          if (d.kind === "video") { v.width = d.width; v.height = d.height; } // the server takes a video's size from here
-          return call("POST", "api/uploads", d.full).then(function (full) {
-            return call("POST", "api/uploads", d.thumb).then(function (thumb) { v.file = full.file; v.thumb = thumb.file; return list.concat([v]); });
+          if (d.kind === "video") { v.width = d.width; v.height = d.height; }
+          return send(d.full).then(function (full) {
+            return send(d.thumb).then(function (thumb) { v.file = full.file; v.thumb = thumb.file; return list.concat([v]); });
           });
         });
       });
     }, Promise.resolve([])).then(function (versions) {
+      going();
       meta.versions = versions;
       el.afSubmit.textContent = "Saving…";
+      job.saving = true;
       return call(prev ? "PUT" : "POST", prev ? "api/art/" + encodeURIComponent(prev.id) : "api/art", meta);
     }).then(function (data) {
-      setBusy(el.afSubmit, false);
+      var here = artJob === job;
+      if (here) { artJob = null; setBusy(el.afSubmit, false); }
       applyArchive(data.archive);
-      showPlate(data.id, prev ? vid : null); // a revised piece stays on the image on view, if it kept it (it went back to the main one)
+      if (here) showPlate(data.id, prev ? vid : null);
       toast(prev ? "The art piece is revised." : "The art piece is added.");
     }, function (err) {
+      if (artJob !== job) return;
+      artJob = null;
       setBusy(el.afSubmit, false);
       failed(err);
     });
@@ -2375,8 +2241,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.afCancel.addEventListener("click", leaveCurrentForm);
   el.afBack.addEventListener("click", leaveCurrentForm);
 
-  // One of his forms: only its name
-  var galWas = ""; // the name as the form opened, so Escape can tell whether anything would be lost
+  var galWas = "";
   function galleryChanged() { return currentView === "galleryForm" && el.gfName.value !== galWas; }
   function openGalleryForm(id) {
     var g = id ? galleryOf(id) : null;
@@ -2401,7 +2266,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.gfCancel.addEventListener("click", leaveCurrentForm);
   el.gfBack.addEventListener("click", leaveCurrentForm);
 
-  // two-step confirmation, quieter than a confirm() box
   function arm(btn, label, action) {
     btn.addEventListener("click", function () {
       if (busy) return;
@@ -2439,13 +2303,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var g = galleryOf(galleryId); if (!g || g.other || !canPost()) return;
     save("DELETE", "api/galleries/" + encodeURIComponent(g.id), undefined, function () { showGalleries(); }, el.glDelete, "Removing…", "The form is removed.");
   });
-  // An art piece moves past the next one of the same form; the server keeps one order for all of them
   function movePlate(by, btn) {
     var a = findArt(plateId), group = a ? piecesOf(groupOf(a)) : [], other = group[group.indexOf(a) + by];
     if (!a || !other || !canPost()) return;
     var ids = state.art.map(function (x) { return x.id; }), i = ids.indexOf(a.id), j = ids.indexOf(other.id);
     ids[i] = other.id; ids[j] = a.id;
-    var vid = versionId; // the image on view stays, rather than going back to the main one
+    var vid = versionId;
     save("POST", "api/art/order", { ids: ids }, function () { showPlate(a.id, vid); if (!btn.disabled) btn.focus(); }, btn, "Moving…", "");
   }
   function moveGallery(by, btn) {
@@ -2460,11 +2323,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.plEarlier.addEventListener("click", function () { movePlate(-1, el.plEarlier); });
   el.plLater.addEventListener("click", function () { movePlate(1, el.plLater); });
 
-  // ---------- Mature images and the age check ----------
-  // A mature image is never loaded until the visitor chooses to see it, and it is covered again as soon as another
-  // image takes its place or the visitor moves on. The first time, they are asked their age; the answer holds for
-  // this tab until it is closed. Under 18, mature images stay covered.
-  var shown = null; // the id of the one mature image on view, uncovered
+  var shown = null;
   var ageMemo = "", gateThen = null, gateFrom = null;
   function ageAnswer() { try { return sessionStorage.getItem("ca-age") || ageMemo; } catch (e) { return ageMemo; } }
   function setAge(answer) { ageMemo = answer; try { sessionStorage.setItem("ca-age", answer); } catch (e) {} }
@@ -2473,7 +2332,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       shown = v.id;
       if (el.lightbox.hidden) { renderPlate(); return; }
       renderLightbox();
-      // the cover that had the focus is gone; left on nothing, the focus took the arrow keys out of the full-size view
       if (!el.lightbox.contains(document.activeElement)) el.lbClose.focus();
     });
   }
@@ -2513,10 +2371,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   });
   el.gateBack.addEventListener("click", closeGate);
 
-  // ---------- The full-size view ----------
-  // It steps through every image of every art piece of the same form, in order. A mature one arrives covered, as in
-  // the book. A GIF and a video come with their players.
-  var lb = null, lbFrom = null; // the plate and image on view
+  var lb = null, lbFrom = null;
   function sequence() {
     var a = lb && findArt(lb.plate), out = [];
     (a ? piecesOf(groupOf(a)) : []).forEach(function (x) { x.versions.forEach(function (v) { out.push({ plate: x.id, version: v.id }); }); });
@@ -2544,7 +2399,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var gif = gifPlayer(v, altOf(a, v));
       fill(el.lbFrame, [h("div", { class: "lb-gif" }, gif.box, gif.btn)]);
     } else {
-      var img = verImg(v, "thumb", altOf(a, v)); // the thumbnail at once, then the full image once it has loaded
+      var img = verImg(v, "thumb", altOf(a, v));
       img.removeAttribute("loading");
       fill(el.lbFrame, [img]);
       if (v.file !== v.thumb) {
@@ -2572,8 +2427,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     el.tome.inert = el.tabs.inert = false;
     lb = null;
     fill(el.lbFrame, []);
-    if (currentView === "plate" && at && findArt(at.plate)) { showPlate(at.plate, at.version); focusMedia(); } // the book follows the view
+    if (currentView === "plate" && at && findArt(at.plate)) { showPlate(at.plate, at.version); focusMedia(); }
     else if (lbFrom && lbFrom.isConnected) lbFrom.focus();
+  }
+  function onBackdrop(box, close) {
+    var down = null, up = null;
+    box.addEventListener("pointerdown", function (e) { down = e.target; });
+    box.addEventListener("pointerup", function (e) { up = e.target; });
+    box.addEventListener("click", function (e) { if (e.target === box && down === box && up === box) close(); });
   }
   el.plOpen.addEventListener("click", function () {
     var a = findArt(plateId), v = a && versionIn(a, versionId);
@@ -2583,15 +2444,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.lbClose.addEventListener("click", closeLightbox);
   el.lbPrev.addEventListener("click", function () { stepLightbox(-1); });
   el.lbNext.addEventListener("click", function () { stepLightbox(1); });
-  el.lightbox.addEventListener("click", function (e) { if (e.target === el.lightbox) closeLightbox(); });
+  onBackdrop(el.lightbox, closeLightbox);
 
-  // ---------- Saving: each change goes to the server, which answers with the whole archive ----------
-  // body: an object, sent as JSON, or a Blob (an image), sent as it is with its own type
-  function call(method, url, body) {
+  function call(method, url, body, signal) {
     var headers = { Accept: "application/json" }, blob = typeof Blob !== "undefined" && body instanceof Blob;
-    if (csrf) headers["X-CSRF-Token"] = csrf; // GET too: the private sections are read with it
+    if (csrf) headers["X-CSRF-Token"] = csrf;
     if (body !== undefined) headers["Content-Type"] = blob ? body.type : "application/json";
-    return request(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store" })
+    return request(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store", signal: signal })
       .then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (data) {
           if (res.ok) return data;
@@ -2612,8 +2471,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     if (on) { btn.dataset.idle = btn.textContent; btn.textContent = label || "Saving…"; btn.disabled = true; }
     else { btn.disabled = false; if (btn.dataset.idle) btn.textContent = btn.dataset.idle; disarm(btn); }
   }
-  // A refused change (401/403) usually means the session ended: it ran out, the word was changed, or another tab
-  // unsealed again and this tab's CSRF token is stale. Ask the server which, and keep any open form as it is.
   function refused(err) {
     var stale = csrf;
     return refreshSession().then(function () {
@@ -2622,17 +2479,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       else sealedAgain();
     });
   }
-  // The session is over while something is still to be sent: the seal panel opens, and the form stays as it is
   function sealedAgain() { openSeal(); sealError("The archive has sealed itself again. Speak the word, then try once more."); }
-  // A form sent while sealed: nothing goes to the server, the seal panel says why
   function mayPost() { if (!canPost()) sealedAgain(); return canPost(); }
   function failed(err) {
     if (err.status === 401 || err.status === 403) refused(err);
     else if (FORMS[currentView]) formError(currentView, err.message);
     else toast(err.message);
   }
-  // A change sent while unsealed may be answered after the tab has sealed (in another tab, or the session ran out):
-  // the answer is the keeper's archive, and the encounters only for the keeper in it must not come back to the page
   function applyArchive(raw) {
     state = normalize(raw);
     if (!owner) forgetSealed();
@@ -2653,32 +2506,22 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     });
   }
 
-  // ---------- The keeper's seal ----------
-  // The brass clasp on the tome's edge. The server checks the keeper's word, never this script: the right word
-  // gets an HttpOnly session cookie this script cannot read, plus a CSRF token that every change must carry.
-  // The word is first set on the server (node server/server.mjs set-password) and can be changed here.
   var WORD_MIN = 12;
   var owner = false, csrf = "", sealMode = "", sealBusy = false;
   function canPost() { return owner; }
+  var sessionTurn = 0;
   function setOwner(on, token) {
+    sessionTurn += 1;
     owner = on;
     csrf = on ? token || "" : "";
-    // sealed: the private sections and the keeper's own encounters leave the page's memory too, and so does the last
-    // private section shown, which stays in the encounter's view while the tab shows something else
     if (!on) { privates = {}; privatesLoaded = false; forgetSealed(); wipeForms(); fill(el.encPrivateText, []); el.encPrivate.hidden = true; }
-    renderAll(); // a record on view too, which loses its link to one of them
+    renderAll();
     if (!on && currentView === "encounter" && !findEnc(encounterId)) showView("encounters");
-    if (!on && currentView === "gallery" && !piecesOf(galleryId).length) showGalleries(); // a form with no art is the keeper's alone
-    if (on && awaited && currentView === "galleries" && galleryOf(awaited)) showGallery(awaited); // the keeper's address of one
+    if (!on && currentView === "gallery" && !piecesOf(galleryId).length) showGalleries();
+    if (on && awaited && currentView === "galleries" && galleryOf(awaited)) showGallery(awaited);
     if (on) loadPrivate();
     watchSession();
   }
-  // The session can end without this tab doing anything: it runs out, it is sealed in another tab, the word is changed
-  // elsewhere, or the server restarts. So while unsealed, the tab asks the server every minute, and at once whenever
-  // it is looked at again; once the session is over, the private sections and the encounters only for the keeper
-  // leave the page. Tabs also tell one another when they seal, unseal or change the word; an unsealed tab then asks
-  // at once (for its new CSRF token, or to seal itself), but a sealed tab stays sealed until it is unsealed or reloaded,
-  // so nothing private appears on a screen nobody is looking at.
   var SESSION_CHECK = 60e3, sessionTimer = 0, otherTabs = null;
   function watchSession() {
     clearTimeout(sessionTimer);
@@ -2687,22 +2530,16 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   try { otherTabs = new BroadcastChannel("ca-session"); otherTabs.onmessage = function () { if (owner) refreshSession(); }; } catch (e) {}
   function tellTabs() { try { if (otherTabs) otherTabs.postMessage("session"); } catch (e) {} }
   document.addEventListener("visibilitychange", function () { if (!document.hidden && owner) refreshSession(); });
-  // The encounters only for the keeper, and records' links to them, are dropped from the page, and so is the last
-  // one shown, if it was one of them
   function forgetSealed() {
     var gone = {};
     state.encounters = state.encounters.filter(function (e) { if (e.sealed) gone[e.id] = true; return !e.sealed; });
     state.records.forEach(function (r) { if (gone[r.encounter]) r.encounter = ""; });
     if (gone[encounterId]) { encounterId = null; el.encTitle.textContent = ""; fill(el.encText, []); fill(el.encPrivateText, []); el.encSealed.hidden = true; }
   }
-  // What the forms held, unless one is open (a session that ran out keeps it, to be saved once unsealed again); with
-  // `all`, once the tome has closed, that one too, since nothing leads back to it
   function wipeForms(all) {
     if (all || currentView !== "encounterForm") el.encounterForm.reset();
     if (all || currentView !== "form") fill(el.fEncounter, []);
   }
-  // The encounters' private sections, decrypted by the server for the keeper's session alone (null: unreadable),
-  // and the archive as the keeper sees it, with the encounters only for the keeper
   var privates = {}, privatesLoaded = false;
   function loadPrivate() {
     if (!owner) return Promise.resolve();
@@ -2711,22 +2548,22 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       privates = d.encounters || {};
       privatesLoaded = true;
       if (d.archive) applyArchive(d.archive); else if (currentView === "encounter") renderEncounter();
-      // the address asked for an encounter only for the keeper, which has only now arrived
       if (awaited && currentView === "encounters" && findEnc(awaited)) showEncounter(awaited);
       awaited = null;
     }, function () { awaited = null; });
   }
-  // Only a change re-renders the page: the check every minute must not disturb what is open
   function refreshSession() {
+    var turn = sessionTurn;
     return call("GET", "api/session").then(function (s) {
+      if (turn !== sessionTurn) { watchSession(); return; }
       var on = !!s.owner, lost = owner && !on;
       if (on === owner && (!on || s.csrf === csrf)) {
-        if (on && !privatesLoaded) loadPrivate(); // it failed before: until it comes, the keeper's own encounters are missing
+        if (on && !privatesLoaded) loadPrivate();
         watchSession();
         return;
       }
       setOwner(on, s.csrf);
-      if (lost && FORMS[currentView] && el.archive.open) sealedAgain(); // what is written in the open form waits to be sent once unsealed
+      if (lost && FORMS[currentView] && el.archive.open) sealedAgain();
     }, watchSession);
   }
   var SEAL_COPY = {
@@ -2829,7 +2666,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }
   });
 
-  // ---------- Toast ----------
   function toast(msg) {
     if (!msg) return;
     var t = el.toast;
@@ -2838,10 +2674,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     t.hidden = false;
     t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
     clearTimeout(t._t);
-    t._t = setTimeout(function () { t.hidden = true; t.textContent = ""; }, 4200); // its words (a removed encounter's title) do not stay behind
+    t._t = setTimeout(function () { t.hidden = true; t.textContent = ""; }, 4200);
   }
 
-  // ---------- Ambient: light shafts, motes at three depths, flares, and anima wisps the construct draws in ----------
   var motes = (function () {
     var noop = { pause: function () {}, resume: function () {}, gather: function () {}, pulse: function () {}, recenter: function () {} };
     var c = el.motes, ctx = c.getContext && c.getContext("2d");
@@ -2855,7 +2690,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       gr.addColorStop(0, "rgb(" + rgb + " / 1)"); gr.addColorStop(.28, "rgb(" + rgb + " / .5)"); gr.addColorStop(1, "rgb(" + rgb + " / 0)");
       g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return s;
     }
-    // A flare's glint: a white-hot point with four thin rays, drawn once per colour and scaled
     function starSprite(rgb) {
       var S = 96, m = S / 2, s = document.createElement("canvas"); s.width = s.height = S;
       var g = s.getContext("2d"), core = g.createRadialGradient(m, m, 0, m, m, m * .3);
@@ -2864,22 +2698,21 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var hz = g.createLinearGradient(0, 0, S, 0), vt = g.createLinearGradient(0, 0, 0, S);
       [hz, vt].forEach(function (lg) { lg.addColorStop(0, "rgb(" + rgb + " / 0)"); lg.addColorStop(.5, "rgb(" + rgb + " / .9)"); lg.addColorStop(1, "rgb(" + rgb + " / 0)"); });
       g.fillStyle = hz; g.fillRect(0, m - 1, S, 2);
-      g.fillStyle = vt; g.fillRect(m - .75, S * .18, 1.5, S * .64); // the upright ray is shorter, as in a lens
+      g.fillStyle = vt; g.fillRect(m - .75, S * .18, 1.5, S * .64);
       return s;
     }
     var glow = {}, star = {};
     [TEAL, COPPER].forEach(function (rgb) { glow[rgb] = sprite(rgb); star[rgb] = starSprite(rgb); });
-    var TRAIL = 46, SWIRL = 1; // every streak turns the same way when the construct draws them in, so they read as one vortex
+    var TRAIL = 46, SWIRL = 1;
     var w = 0, hgt = 0, cx = 0, cy = 0, unit = 300, parts = [], wisps = [], flares = [], sparks = [], rays = [], raf = 0, running = false, last = 0, clock = 0;
     var rush = 10, pulseAt = -1;
-    var aim = { x: 0, y: 0, tx: 0, ty: 0 }; // cursor offset from the stage centre (-1..1), eased, for parallax
+    var aim = { x: 0, y: 0, tx: 0, ty: 0 };
 
-    // Light shafts: soft wedges fanning out from the construct, turning slowly, brighter while it is risen
     for (var i = 0; i < 9; i++) {
       rays.push({ a: i / 9 * 6.283 + Math.random() * .5, w: .06 + Math.random() * .1, v: (i % 2 ? -1 : 1) * (.012 + Math.random() * .02),
                   c: Math.random() < .3 ? COPPER : TEAL, o: .03 + Math.random() * .035, ph: Math.random() * 6.283 });
     }
-    var shade = {}; // one radial falloff per colour around the origin, rebuilt on resize; each shaft's strength is set with globalAlpha
+    var shade = {};
     function shadeFor(rgb) {
       var g = ctx.createRadialGradient(0, 0, unit * .1, 0, 0, unit * 1.3);
       g.addColorStop(0, "rgb(" + rgb + " / 1)");
@@ -2894,7 +2727,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         var a = r.a + clock * r.v;
         ctx.globalAlpha = r.o / 3 * (.55 + .45 * lift) * (.7 + .3 * Math.sin(clock * .45 + r.ph));
         ctx.fillStyle = shade[r.c];
-        for (var k = 1; k <= 3; k++) { // three nested wedges give each shaft a soft edge
+        for (var k = 1; k <= 3; k++) {
           var half = r.w * k / 6;
           ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, L, a - half, a + half); ctx.closePath(); ctx.fill();
         }
@@ -2903,13 +2736,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }
 
     function spawn(anywhere) {
-      var z = Math.random(); // depth: 0 far, 1 near
+      var z = Math.random();
       return { x: Math.random() * w, y: anywhere ? Math.random() * hgt : hgt + 12, z: z, r: .5 + z * 1.7 + Math.random() * .4,
                vy: 3 + z * 10 + Math.random() * 3, ph: Math.random() * 6.283, c: Math.random() < .28 ? COPPER : TEAL, wait: 0, vis: 1 };
     }
 
-    // Flares: soft glints scattered through the dark, drifting slowly. Each twinkles, and now and then one flares up
-    // with its rays. Taken in by the construct, a flare is replaced after a while somewhere else, fading in.
     function flare(delay) {
       var z = Math.random();
       return { x: Math.random() * w, y: Math.random() * hgt, z: z, size: 12 + z * 22 + Math.random() * 8, c: Math.random() < .3 ? COPPER : TEAL,
@@ -2926,16 +2757,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       if ((f.next -= dt) <= 0) { f.burst = 1; f.next = 3 + Math.random() * 8; }
     }
 
-    // Anima wisps drift in from the edges on a slow flow field. Near the construct they orbit; some spiral in
-    // and are absorbed, and the gem flickers as each arrives.
     function wisp(delay) {
       var side = Math.floor(Math.random() * 4), m = 30;
       return { x: side === 0 ? -m : side === 1 ? w + m : Math.random() * w, y: side === 2 ? -m : side === 3 ? hgt + m : Math.random() * hgt,
                trail: [], age: 0, delay: delay, fall: 0, gone: 0, dead: false, c: Math.random() < .3 ? COPPER : TEAL,
                size: .7 + Math.random() * .8, turn: Math.random() < .5 ? 1 : -1, inward: Math.random() < .45 ? .5 : -.08 };
     }
-    // Spiralling in: the distance shrinks ever faster while the angle turns, quicker near the centre, so whatever
-    // starts farther out arrives only a little later. True on arrival.
     function fallIn(s, dt) {
       s.fall += dt;
       var dx = s.x - cx, dy = s.y - cy, r = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx);
@@ -2971,7 +2798,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       }
       follow(s, TRAIL);
     }
-    // a streak: its trail, thin and faint at the tail, and a glowing head
     function drawStreak(tr, rgb, a, size, head) {
       var n = tr.length / 2;
       if (n < 2) return;
@@ -2996,7 +2822,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       ctx.drawImage(star[f.c], f.x - st / 2, f.y - st / 2, st, st);
       ctx.globalAlpha = 1;
     }
-    // As the hub appears, a ring of light leaves the construct, and a fainter one after it
     function drawPulse() {
       var t = clock - pulseAt;
       if (pulseAt < 0 || t > 1.4) return;
@@ -3016,7 +2841,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       drawShafts();
       ctx.globalCompositeOperation = "source-over";
       for (var i = 0; i < parts.length; i++) {
-        var p = parts[i], s = p.r * 7, shift = (p.z - .35) * 26; // near motes slide against the cursor more than far ones
+        var p = parts[i], s = p.r * 7, shift = (p.z - .35) * 26;
         if (!p.vis) continue;
         ctx.globalAlpha = (.12 + .34 * p.z) * (.55 + .45 * Math.sin(clock * 1.1 + p.ph)) * p.vis;
         ctx.drawImage(glow[p.c], p.x - aim.x * shift - s / 2, p.y - aim.y * shift * .7 - s / 2, s, s);
@@ -3036,7 +2861,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var dt = last ? Math.min(.1, (now - last) / 1000) : 0;
       last = now;
       clock += dt;
-      center(); // the construct moves when the hub appears
+      center();
       aim.x += (aim.tx - aim.x) * Math.min(1, dt * 2.5);
       aim.y += (aim.ty - aim.y) * Math.min(1, dt * 2.5);
       for (var i = 0; i < parts.length; i++) {
@@ -3079,7 +2904,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       shade[COPPER] = shadeFor(COPPER);
       var area = w * hgt, n = Math.round(Math.min(110, Math.max(30, area / 13000)));
       parts = []; for (var i = 0; i < n; i++) parts.push(spawn(true));
-      var nf = Math.round(Math.min(28, Math.max(10, area / 45000))); // more on a bigger screen
+      var nf = Math.round(Math.min(28, Math.max(10, area / 45000)));
       flares = flares.slice(0, nf); while (flares.length < nf) flares.push(flare());
       var nw = Math.round(Math.min(18, Math.max(8, area / 85000)));
       rush = Math.round(nw * .7);
@@ -3088,9 +2913,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }
     function resume() { if (reduced || running || document.hidden || el.archive.open) return; running = true; last = 0; raf = requestAnimationFrame(step); }
     function pause() { running = false; cancelAnimationFrame(raf); }
-    // A click on the gem draws everything in: every wisp (the waiting ones set off from the edges at once), every
-    // flare, the motes near the construct as sparks (new ones fade in elsewhere), and a last rush of wisps from the
-    // edges, all spiralling the same way
     function gather() {
       wisps.forEach(function (s) {
         if (s.gone || s.dead) return;
@@ -3112,18 +2934,10 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     document.addEventListener("visibilitychange", function () { if (document.hidden) pause(); else resume(); });
     document.addEventListener("pointermove", function (e) { aim.tx = e.clientX / innerWidth * 2 - 1; aim.ty = e.clientY / innerHeight * 2 - 1; }, { passive: true });
     document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) aim.tx = aim.ty = 0; });
-    // After the construct has moved: redraw the still frame (reduced motion), or let the running loop follow it
     function recenter() { center(); if (!running) draw(); }
     return { pause: pause, resume: resume, gather: gather, pulse: pulse, recenter: recenter };
   })();
 
-  // ---------- Construct: the in-game model, drawn with three.js ----------
-  // MODEL_URL is the Chalice's own M2, converted to GLB by tools/m2_to_glb.py and named by its hash so it can be
-  // cached for good. Its materials carry the game's
-  // shading in extras.wow, and the shaders below reproduce those combiners. The cutout image stays in place
-  // until the first frame is drawn, and for good if WebGL or three.js is unavailable.
-  // three.js and its GLTFLoader: on the site, one file it serves itself (assets/vendor/three.module.js, named by its
-  // hash), so both addresses are the same; in the preview, which can load scripts only from CDNs, jsDelivr's copies.
   var MODEL_URL = "chalice.fc0400a35d90.glb";
   var THREE_URL = "./three.31cad1f27a14.js";
   var GLTF_URL = "./three.31cad1f27a14.js";
@@ -3154,12 +2968,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       "  vec3 p = normalize(mv.xyz);",
       "  vUv0 = uv + uUv0Shift;",
       "  vUv1 = uv1 + uUv1Shift;",
-      "  if (uVertex == 0) {", // Diffuse_T1_Env: the second texture is a sphere map
+      "  if (uVertex == 0) {",
       "    vec3 r = p - n * (2.0 * dot(p, n));",
       "    vUv1 = normalize(vec3(r.xy, r.z + 1.0)).xy * 0.5 + 0.5;",
       "  }",
       "  float f = clamp(dot(-p, n), 0.0, 1.0);",
-      "  vEdge = uVertex == 1 ? clamp(2.7 * f * f - 0.4, 0.0, 1.0) : 1.0;", // Diffuse_EdgeFade_T1_T2
+      "  vEdge = uVertex == 1 ? clamp(2.7 * f * f - 0.4, 0.0, 1.0) : 1.0;",
       "  vNormal = n;",
       "  vView = mv.xyz;",
       "  gl_Position = projectionMatrix * mv;",
@@ -3178,8 +2992,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       "  vec4 t1 = texture2D(uTex1, vUv1);",
       "  vec3 c;",
       "  float a = 1.0;",
-      "  if (uPixel == 0) c = mix(t0.rgb * t1.rgb * 2.0, t0.rgb, t0.a);", // Combiners_Opaque_Mod2xNA_Alpha
-      "  else { c = t0.rgb * t1.rgb; a = t0.a * t1.a; }", // Combiners_Mod_Mod
+      "  if (uPixel == 0) c = mix(t0.rgb * t1.rgb * 2.0, t0.rgb, t0.a);",
+      "  else { c = t0.rgb * t1.rgb; a = t0.a * t1.a; }",
       "  if (uLit > 0.5) {",
       "    vec3 n = normalize(vNormal);",
       "    vec3 light = uAmbient + uKey * max(dot(n, uKeyDir), 0.0) + uFill * max(dot(n, uFillDir), 0.0);",
@@ -3190,7 +3004,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       "  gl_FragColor = vec4(c, a * vEdge);",
       "}"
     ].join("\n");
-    // The glow emitter: camera-facing quads at the orb's pivot
     var SPRITE_VERT = [
       "uniform float uSize, uRot;",
       "varying vec2 vUv;",
@@ -3206,7 +3019,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       "uniform vec3 uColor;",
       "uniform float uAlpha;",
       "varying vec2 vUv;",
-      // the sprite's background is near-black, not black: fade to zero at the quad's inscribed circle so no square shows on the dark stage
       "void main() { float edge = 1.0 - smoothstep(.72, 1.0, length(vUv - .5) * 2.0); gl_FragColor = vec4(texture2D(uTex, vUv).rgb * uColor * edge, uAlpha); }"
     ].join("\n");
 
@@ -3215,12 +3027,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     var size = null, PITCH = .2;
     var ready = false, running = false, onScreen = true, raf = 0, last = 0;
     var t = 0, speed = 1, hover = 0, focused = false, drawAt = -1, absorbAt = -1e9, liftNow = .5, gemMesh = null, picker = null;
-    // Cursor following: the construct turns so the gem's line of sight passes through the cursor, read as a point
-    // on a pane GAP model units in front of it. A smaller GAP makes it turn harder for the same cursor offset.
     var GAP = 1.2, pointer = { on: false, x: 0, y: 0 }, A = null;
 
-    // GLTFLoader decodes embedded images through blob: URLs. The page's CSP allows images only from the site
-    // itself and data: URIs, so they are decoded that way instead.
     function dataUriImages(parser) {
       var cache = {};
       parser.loadImageSource = function (index) {
@@ -3257,7 +3065,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }
     function hash(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
 
-    // Additive light that leaves the canvas alpha alone, so the page shows through unchanged where only glow is drawn
     function additive(m) {
       m.blending = T.CustomBlending;
       m.blendEquation = T.AddEquation;
@@ -3297,7 +3104,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       var ids = Object.keys(need);
       return Promise.all(ids.map(function (i) { return parser.getDependency("texture", Number(i)); })).then(function (list) {
         var tex = {};
-        ids.forEach(function (i, k) { list[k].colorSpace = T.NoColorSpace; tex[i] = list[k]; }); // the game shades in gamma space
+        ids.forEach(function (i, k) { list[k].colorSpace = T.NoColorSpace; tex[i] = list[k]; });
         build(gltf, meshes, tex, node, wp);
       });
     }
@@ -3341,14 +3148,12 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
           liftAmp = Math.max.apply(null, ys) - liftMin;
         }
       }
-      // Centre the opaque body on the rig, halfway through its hover
       var center = box.getCenter(new T.Vector3());
       center.y += liftAmp / 2;
       gltf.scene.position.copy(center).multiplyScalar(-1);
       size = box.getSize(new T.Vector3());
       size.y += liftAmp;
 
-      // The gem's resting position in rig space; it rides on bone 0
       var gem = meshes.filter(function (m) { return m.material.uniforms.uGem.value === 1; })[0];
       A = { ray: new T.Vector3(), view: new T.Vector3(), target: new T.Vector3(), sight: new T.Vector3(), gem: new T.Vector3(), now: new T.Vector3(),
             bone: bone0 ? bone0.position.clone() : new T.Vector3(), looker: new T.Object3D(), q: new T.Quaternion(), mid: new T.Quaternion() };
@@ -3386,7 +3191,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       document.addEventListener("pointerdown", follow, { passive: true });
       document.addEventListener("pointerup", function (e) { if (e.pointerType !== "mouse") pointer.on = false; });
       document.addEventListener("pointercancel", function () { pointer.on = false; });
-      document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) pointer.on = false; }); // left the window
+      document.addEventListener("mouseout", function (e) { if (!e.relatedTarget) pointer.on = false; });
       el.construct.addEventListener("focus", function () { focused = true; });
       el.construct.addEventListener("blur", function () { focused = false; });
       canvas.addEventListener("webglcontextlost", function (e) { e.preventDefault(); stop(); el.core.classList.remove("is-3d"); });
@@ -3394,7 +3199,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       api.resume();
     }
 
-    // Distance at which a box of width w and height h (model units) fills `fill` of the frame
     function placeCamera(cam, yawDeg, pitchRad, w, h, fill) {
       var tv = Math.tan(cam.fov * Math.PI / 360), th = tv * cam.aspect;
       var d = Math.max(w / 2 / (fill * th), h / 2 / (fill * tv));
@@ -3412,7 +3216,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       if (ready && !running) draw(performance.now());
     }
 
-    // Pose everything for model time `at` (seconds)
     function pose(at) {
       mixer.setTime(at % clipLen);
       mats.forEach(function (m) {
@@ -3436,19 +3239,18 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     }
 
     function step(dt, now) {
-      // Drawing the light in, the model slows and its gem charges up to a flash as the hub appears, then settles
       if (drawAt >= 0 && now - drawAt > 2600) drawAt = -1;
       var drawing = drawAt >= 0, since = drawing ? (now - drawAt) / 1000 : 0;
       speed += ((drawing ? .15 : 1) - speed) * Math.min(1, dt * 5);
       t += dt * speed;
       pose(reduced ? 1.2 : t);
-      if (pointer.on && !drawing) setGemHover(gemAt(pointer.x, pointer.y)); // the gem moves under a still cursor too
+      if (pointer.on && !drawing) setGemHover(gemAt(pointer.x, pointer.y));
       hover += ((gemHover || focused ? 1 : 0) - hover) * Math.min(1, dt * 6);
       aim(dt);
       U.hover.value = hover;
       U.glow.value = .5 + .5 * Math.sin(now / 1000 * Math.PI * 2 / 3.4);
       U.flare.value = Math.max(drawing ? (since < 1.35 ? .2 + .8 * Math.pow(since / 1.35, 2) : 1 - Math.min(1, (since - 1.35) / 1.2)) : 0,
-                               .4 * Math.exp(-(now - absorbAt) / 260)); // something just arrived
+                               .4 * Math.exp(-(now - absorbAt) / 260));
       if (liftAmp && bone0) {
         liftNow = (bone0.position.y - liftMin) / liftAmp;
         var lift = liftNow.toFixed(2);
@@ -3456,13 +3258,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       }
     }
 
-    // Is the client point (x, y) on the gem? A ray against its mesh in the current pose, with a little slack:
-    // anywhere inside 55% of its projected bounding circle also counts.
     function gemAt(x, y) {
       if (!ready || !gemMesh) return false;
       var r = canvas.getBoundingClientRect();
       scene.updateMatrixWorld();
-      gemMesh.computeBoundingSphere(); // skinned: the cached sphere would not follow the hover
+      gemMesh.computeBoundingSphere();
       picker.ndc.set((x - r.left) / r.width * 2 - 1, 1 - (y - r.top) / r.height * 2);
       picker.ray.setFromCamera(picker.ndc, camera);
       if (picker.ray.intersectObject(gemMesh, false).length) return true;
@@ -3474,10 +3274,8 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       return (x - gx) * (x - gx) + (y - gy) * (y - gy) < Math.pow(px * .55, 2);
     }
 
-    // Turn toward the cursor, or sway gently when there is none (touch, pointer outside the window, reduced motion)
     function aim(dt) {
       if (pointer.on && !reduced) {
-        // the cursor's ray through the camera, met with a pane facing the camera GAP in front of the construct
         var r = canvas.getBoundingClientRect(), dist = camera.position.length();
         A.ray.set((pointer.x - r.left) / r.width * 2 - 1, 1 - (pointer.y - r.top) / r.height * 2, .5).unproject(camera).sub(camera.position).normalize();
         A.view.copy(camera.position).multiplyScalar(-1 / dist);
@@ -3486,8 +3284,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
         var sway = reduced ? .32 : Math.sin(t * Math.PI * 2 / 17) * .38;
         A.target.set(Math.sin(sway) * 4, 0, Math.cos(sway) * 4);
       }
-      // The gem sits below and in front of the rig's centre, so aim its own line of sight: rotate the direction
-      // that reaches the target from the gem's offset onto the target itself.
       A.now.copy(A.gem);
       if (bone0) A.now.add(bone0.position).sub(A.bone);
       var len = A.target.length(), off = A.now.x * A.now.x + A.now.y * A.now.y;
@@ -3496,7 +3292,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
       A.q.copy(A.looker.quaternion).invert();
       A.looker.lookAt(A.target);
       A.q.premultiply(A.looker.quaternion);
-      // two easing stages in a row: the turn starts gently and trails the cursor by about 290 ms
       var k = reduced || !dt ? 1 : 1 - Math.exp(-dt * 7);
       A.mid.slerp(A.q, k);
       rig.quaternion.slerp(A.mid, k);
@@ -3539,11 +3334,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     return api;
   })();
 
-  // ---------- Drawing the light in, and the hub it reveals ----------
-  // A click on the gem draws in everything drifting in the dark: the wisps, the flares, the nearer motes and a last
-  // rush from the edges, spiralling in while the gem charges. As it flashes, a ring of light leaves it and the
-  // choices appear beneath it. Started from the keyboard, the focus moves to the first of them. Once the tome is
-  // closed again, they are gone, and the construct sinks back until its gem is clicked once more.
   var drawing = false, hubShown = false;
   function summon(keyboard) {
     if (drawing || el.archive.open) return;
@@ -3583,14 +3373,11 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     motes.recenter();
   }
 
-  // ---------- Events ----------
-  // Only the gem wakes the construct. A pointer click has to land on it; keyboard activation of the button
-  // (Enter or Space, which reports detail 0) always does.
   var gemHover = false;
   function setGemHover(on) { if (on === gemHover) return; gemHover = on; el.stage.classList.toggle("on-gem", on); }
   function onGem(x, y) {
     if (el.core.classList.contains("is-3d")) return model3d.gemAt(x, y);
-    var g = el.construct.querySelector(".gem").getBoundingClientRect(); // the cutout's gem, while the model is not drawn
+    var g = el.construct.querySelector(".gem").getBoundingClientRect();
     var dx = x - (g.left + g.width / 2), dy = y - (g.top + g.height / 2);
     return dx * dx + dy * dy < Math.pow(g.width * .25, 2);
   }
@@ -3600,20 +3387,13 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.tabs.addEventListener("click", function (e) {
     var t = e.target.closest(".tab");
     if (!t) return;
-    if (FORMS[currentView]) { toast("Finish or cancel the form first."); return; } // a tab would throw away what is written
-    openBook(t.dataset.book); // the open chapter's own tab goes back to its start
+    if (FORMS[currentView]) { toast("Finish or cancel the form first."); return; }
+    openBook(t.dataset.book);
   });
   el.stage.addEventListener("pointermove", function (e) { if (!drawing) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
   el.stage.addEventListener("pointerleave", function () { setGemHover(false); });
-  // The close button keeps unsaved writing, as Escape, the backdrop and the chapter tabs do
   el.btnClose.addEventListener("click", function () { if (formChanged()) toast(UNSAVED); else el.archive.close(); });
-  el.archive.addEventListener("click", function (e) {
-    if (e.target === el.archive && !FORMS[currentView] && el.lightbox.hidden && el.gate.hidden) el.archive.close();
-  });
-  // Escape closes what is on top first: the age check, the full-size view, the seal panel, a form (unless it has
-  // unsaved writing); only then the tome. It is handled on keydown, because Chrome lets a page hold back the
-  // dialog's own cancel only once per click or key press, and a second Escape would close the whole tome. The cancel
-  // handler stays for other ways of closing, such as a phone's back gesture.
+  onBackdrop(el.archive, function () { if (!FORMS[currentView] && el.lightbox.hidden && el.gate.hidden) el.archive.close(); });
   var UNSAVED = "There are unsaved changes. Save them, or press Cancel to let them go.";
   function formChanged() { return aboutChanged() || encounterChanged() || recordChanged() || artChanged() || galleryChanged(); }
   function closeTop() {
@@ -3629,7 +3409,7 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.archive.addEventListener("keydown", function (e) { if (e.key === "Escape" && !e.defaultPrevented && closeTop()) e.preventDefault(); });
   el.archive.addEventListener("cancel", function (e) { if (closeTop()) e.preventDefault(); });
   el.archive.addEventListener("keydown", function (e) {
-    if (el.lightbox.hidden || !el.gate.hidden || e.target.closest(".vid-bar")) return; // the arrows move through a video there
+    if (el.lightbox.hidden || !el.gate.hidden || e.target.closest(".vid-bar")) return;
     if (e.key === "ArrowLeft") { e.preventDefault(); stepLightbox(-1); }
     else if (e.key === "ArrowRight") { e.preventDefault(); stepLightbox(1); }
   });
@@ -3639,14 +3419,14 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     shown = null;
     clearMedia();
     closeSeal(false);
-    if (!owner) wipeForms(true); // a form kept open as the session ended is left now: what it held stayed in the page
+    if (!owner) wipeForms(true);
     root.append(el.toast);
     disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete); disarm(el.encDelete);
     el.stage.classList.remove("is-paused");
     motes.resume();
     model3d.resume();
     setHash();
-    hideHub(); // the choices go with the tome: the gem has to be woken again to bring them back
+    hideHub();
     el.construct.focus({ preventScroll: true });
   });
   el.detBack.addEventListener("click", function () { showView("overview"); });
@@ -3663,11 +3443,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   el.plEdit.addEventListener("click", function () { openArtForm(plateId); });
   el.plBack.addEventListener("click", function () { showGallery(galleryId); });
 
-  // A shared address opens its chapter at once, without waking the construct: #about, #art, #knowledge, #encounters,
-  // #art/<form>, #art/<art piece>, #knowledge/<record>, #encounters/<encounter>
-  // An encounter only for the keeper is not in the page until the keeper's archive arrives, after the session is
-  // known, and a form with no art yet is shown only once the session is known: until then its address shows the
-  // list, and `awaited` keeps it, to be opened then unless the keeper has moved on meanwhile (showView lets go of it).
   var awaited = null;
   function route() {
     var m = /^#(about|art|knowledge|encounters)(?:\/([A-Za-z0-9_-]{1,40}))?$/.exec(location.hash);
@@ -3679,7 +3454,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
   }
   window.addEventListener("hashchange", route);
 
-  // ---------- Boot ----------
   renderLanding();
   motes.resume();
   route();

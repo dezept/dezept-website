@@ -8,7 +8,7 @@ Environment:
   CHROME       path to a Chromium/Chrome binary (default: Playwright's own install)
   CHROME_ARGS  extra browser flags, space-separated
   HTTPS_PROXY  used for the CDN requests when set
-  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, legacy, browser, preview
+  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, browser, preview
 
 Checks:
   1. Over HTTP, against a server set up as in production (Secure cookies, PUBLIC_ORIGIN, TRUST_PROXY):
@@ -25,7 +25,7 @@ Checks:
      downloads stopped half way let go of their files; an upload without a session is refused at once and its
      connection let go within seconds; encounters, whose private sections are stored encrypted, never reach visitors,
      and need the session and its CSRF token; encounters only for the keeper, stored encrypted whole, of which
-     visitors receive nothing; plates saved before they had several images; the password file, and set-password, which
+     visitors receive nothing; the password file, and set-password, which
      refuses a word with control characters in it and another user's data directory; idle connections kept longer than
      Caddy keeps them; an MP4 whose ftyp box gives its size in 64 bits; dates that do not
      exist are dropped; backups never overwrite one another; changing the word signs other sessions out; failed
@@ -64,7 +64,9 @@ Checks:
      also at its own address, which still opens it for the keeper after a reload. A mature image uncovered in the
      full-size view leaves the focus there. An encounter's form kept open as the session ended lets go of its private
      section once the tome is closed. An encounter only for the keeper written under a forgotten word says once that
-     it can no longer be read.
+     it can no longer be read. A drag to select text, let go outside the tome, does not close it. Cancel while an art
+     piece uploads stops it: nothing is saved, and the page stays where the keeper went. A session check answered after
+     the tab was sealed does not unseal it again.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model, the example forms and their plates, GIF and video load from the page; an
      art piece whose main image is mature, opened from the list by keyboard, asks first and leaves the focus on its
@@ -336,13 +338,13 @@ async function apiChecks() {
 
     const evil = '</script><script>alert(1)</script><img src=x onerror=alert(2)>';
     const made = await write('POST', '/api/records', {
-      title: evil + 'x'.repeat(300), domain: 'Wars & catastrophes', status: 'admin', date: '2020-13-45', note: 'line one\nline\u0000 two\u0007',
+      title: evil + 'x'.repeat(300), date: '2020-13-45', note: 'line one\nline\u0000 two\u0007',
       source: 'A book', encounter: 'no-such-encounter', id: '../../etc', example: true, added: 1, extra: 'ignored',
     });
     const rec = made.json && made.json.archive.records.find((r) => r.id === made.json.id);
-    check(made.status === 200 && rec && rec.title.length === 120 && !('status' in rec) && !('domain' in rec) && rec.date === '' && rec.encounter === '' &&
+    check(made.status === 200 && rec && rec.title.length === 120 && rec.date === '' && rec.encounter === '' &&
       rec.note === 'line one\nline two' && rec.example === false && rec.id !== '../../etc' && !('extra' in rec) && rec.added > 1,
-      'a new record is cleaned: lengths capped, no state or domain, a bad date and an unknown encounter left empty, control characters stripped, id and flags set by the server');
+      'a new record is cleaned: lengths capped, unknown fields dropped, a bad date and an unknown encounter left empty, control characters stripped, id and flags set by the server');
     check((await write('POST', '/api/records', { title: '   ' })).status === 400, 'a record without a title is refused');
     const dated = async (date) => { const r = await write('POST', '/api/records', { title: 'Dated', date }); await write('DELETE', '/api/records/' + r.json.id); return r.json.archive.records.find((x) => x.id === r.json.id).date; };
     check((await dated('2024-02-30')) === '' && (await dated('2023-02-29')) === '' && (await dated('2024-02-29')) === '2024-02-29', 'a date that does not exist (30 February) is left empty, a leap day kept');
@@ -432,7 +434,7 @@ async function apiChecks() {
 
     // the About page
     const about = await write('PUT', '/api/about', {
-      name: 'Smoke ' + evil, epithet: 'e'.repeat(400), portrait: 'nope', title: 't'.repeat(99), race: 'Dracthyr', eyeColor: 'red; background: url(x)',
+      name: 'Smoke ' + evil, epithet: 'e'.repeat(400), title: 't'.repeat(99), race: 'Dracthyr', eyeColor: 'red; background: url(x)',
       currently: 'line one\nline\u0000 two', admin: true,
       facts: [{ label: 'Motto', value: 'v' }, { label: ' ', value: '' }, ...Array.from({ length: 30 }, (_, i) => ({ label: 'L' + i, value: 'v' }))],
       traits: [{ left: 'Chaotic', right: 'Lawful', value: 99 }, { left: 'A', right: 'B', value: -4 }, { left: 'C', right: 'D', value: 'x' }, { left: 'E', right: 'F', value: 7.6 }, { left: '', right: '' }],
@@ -440,11 +442,11 @@ async function apiChecks() {
       sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000), color: 'red; background: url(x)' }, 'junk', null, { heading: '', body: '' }],
     });
     const ab = about.json && about.json.archive;
-    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && !('portrait' in ab.about) &&
+    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 &&
       ab.about.facts.length === 24 && ab.about.facts[0].label === 'Motto' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 40000 &&
       ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.sections[0].color === '' && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
       ab.about.currently === 'line one\nline two' && ab.about.traits.map((t) => t.value).join() === '20,0,10,8' && ab.about.glances.length === 5 && !('admin' in ab.about),
-      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and a portrait dropped, TRP markup kept as text');
+      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and an unknown field dropped, TRP markup kept as text');
     const aboutPage = await call('GET', '/');
     check(!aboutPage.text.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/)[1].includes('<') && archiveIn(aboutPage.text).profile.name.startsWith('Smoke </script>'),
       "markup in the About page is escaped in the page's data block");
@@ -824,28 +826,6 @@ async function wordRaceChecks() {
   }
 }
 
-// ---------- 1b. an archive saved before plates had several images ----------
-async function legacyChecks() {
-  const png = makePng(20, 10);
-  const name = crypto.createHash('sha256').update(png).digest('hex').slice(0, 32) + '.png';
-  const s = await startServer('legacy', { COOKIE_SECURE: 'false' }, (dir) => {
-    fs.mkdirSync(path.join(dir, 'art'), { recursive: true, mode: 0o700 });
-    fs.writeFileSync(path.join(dir, 'art', name), png);
-    fs.writeFileSync(path.join(dir, 'archive.json'), JSON.stringify({
-      profile: { name: 'Old' }, records: [], about: { portrait: 'aold', facts: [], sections: [] }, // portraits are no longer kept
-      art: [{ id: 'aold', file: name, thumb: name, width: 20, height: 10, title: 'Old plate', date: '2026-01-01', added: 1 }],
-    }));
-  });
-  try {
-    const a = archiveIn((await request(s.port, 'GET', '/')).text);
-    const v = a.art[0] && a.art[0].versions && a.art[0].versions[0];
-    check(v && v.file === name && v.width === 20 && v.mature === false && v.id === 'v' + name.slice(0, 12) && !('portrait' in a.about) &&
-      (await request(s.port, 'GET', '/art/' + name)).status === 200, 'a plate saved with one image becomes a plate of one image and is still served; an old portrait is dropped');
-  } finally {
-    s.stop();
-  }
-}
-
 // The construct by keyboard (which always wakes it), then a chapter from the hub
 async function enter(page, book) {
   await page.waitForSelector('.core.is-3d', { timeout: 30000 });
@@ -963,6 +943,18 @@ async function browserChecks() {
       await page.evaluate(() => !window.__xss && !document.querySelector('#archive img')), 'an inscribed record is shown, and markup in it stays text');
     check((await page.textContent('#det-date')) === '1 May 35', `a date in a year below 100 is shown in that year (${await page.textContent('#det-date')})`);
     await page.screenshot({ path: path.join(OUT, 'record.png') });
+    // A drag to select some of the record's text, let go on the dark ground beyond the tome, ends in a click on the
+    // ground too: it closed the whole tome
+    const noteAt = await page.evaluate(() => { const r = document.createRange(), t = document.getElementById('det-note').firstChild; r.setStart(t, 3); r.setEnd(t, 4); const b = r.getBoundingClientRect(); return { x: b.x, y: b.y + b.height / 2 }; });
+    await page.mouse.move(noteAt.x, noteAt.y);
+    await page.mouse.down();
+    await page.mouse.move(noteAt.x + 120, noteAt.y, { steps: 6 });
+    await page.mouse.move(4, noteAt.y + 6, { steps: 6 });
+    const dragSelected = await page.evaluate(() => String(getSelection()).length > 0);
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    check(dragSelected && await page.$('#archive[open] #view-detail:not([hidden])') !== null, 'a drag to select text, let go outside the tome, does not close it');
+    await page.evaluate(() => getSelection().removeAllRanges());
 
     await page.goto(s.url); // without the address of the record
     await enter(page, 'knowledge');
@@ -1355,8 +1347,34 @@ async function browserChecks() {
       'under 18, the mature image stays covered for the visit and is never loaded');
     await minorCtx.close();
 
-    // a video and a GIF, as one art piece in the same form: each plays in its own player
+    // Cancel while an art piece is uploading stops it. The upload used to go on, the piece was saved anyway, and the
+    // page then jumped to it from wherever the keeper was, throwing away the record being written there.
     await page.click('#pl-back');
+    const formAt = await page.evaluate(() => location.hash);
+    await page.click('#btn-add-art');
+    await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', path.join(FIXTURES, 'smoke.webm'));
+    await page.waitForFunction(() => /^A video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
+    await page.fill('#af-title', 'Smoke cancelled');
+    let letUploadGo, uploadHeld = new Promise((r) => { letUploadGo = r; });
+    await page.route('**/api/uploads', async (route) => { await uploadHeld; route.continue().catch(() => {}); });
+    await page.click('#af-submit');
+    const cancelWhile = await page.waitForFunction(() => /^Uploading/.test(document.getElementById('af-submit').textContent), null, { timeout: 10000 }).then(() => true, () => false);
+    await page.click('#af-cancel');
+    await page.click('.tab[data-book="knowledge"]');
+    await page.click('#btn-inscribe');
+    await page.fill('#f-title', 'Written while it uploaded');
+    letUploadGo();
+    await page.waitForTimeout(2500);
+    await page.unroute('**/api/uploads');
+    const cancelled = (await page.evaluate(() => fetch('api/archive').then((r) => r.json()))).archive.art.some((a) => a.title === 'Smoke cancelled');
+    check(cancelWhile && !cancelled && await page.$('#view-form:not([hidden])') !== null && (await page.inputValue('#f-title')) === 'Written while it uploaded',
+      'Cancel while an art piece uploads stops it: nothing is saved, and the page stays where the keeper went');
+    await page.click('#f-cancel');
+    await page.goto(s.url + formAt);
+    await settle(page);
+    await page.waitForSelector('#view-gallery:not([hidden]) #btn-add-art:not([hidden])', { timeout: 15000 });
+
+    // a video and a GIF, as one art piece in the same form: each plays in its own player
     await page.click('#btn-add-art');
     await page.setInputFiles('#af-versions .row >> nth=0 >> [data-k="file"]', path.join(FIXTURES, 'smoke.webm'));
     await page.waitForFunction(() => /^A video/.test(document.querySelector('#af-versions [data-k="status"]').textContent), null, { timeout: 15000 }).catch(() => {});
@@ -1445,9 +1463,25 @@ async function browserChecks() {
     await page.click('#seal-go');
     await page.waitForSelector('#seal', { state: 'hidden', timeout: 15000 });
     check(await page.$('#btn-inscribe:not([hidden])') !== null, 'changing the word keeps this session unsealed');
+    // A session check asked just before "Seal it again" and answered just after it unsealed the tab again
+    let letCheckGo, checkHeld = new Promise((r) => { letCheckGo = r; }), heldOne = false;
+    await page.route('**/api/session', async (route) => {
+      if (heldOne) return route.continue();
+      heldOne = true;
+      const answer = await route.fetch(); // answered now, while the session still holds
+      await checkHeld;
+      route.fulfill({ response: answer }).catch(() => {});
+    });
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); // the tab is looked at again: it asks
+    await page.waitForTimeout(500);
     await page.click('#clasp');
     await page.click('#seal-lock');
     await page.waitForSelector('#btn-inscribe', { state: 'hidden', timeout: 10000 });
+    letCheckGo();
+    await page.waitForTimeout(1000);
+    await page.unroute('**/api/session');
+    check(heldOne && await page.$('#btn-inscribe[hidden]') !== null && !(await page.$eval('#clasp', (c) => c.classList.contains('is-open'))),
+      'a session check answered after the tab was sealed does not unseal it again');
     await page.goto(s.url);
     await enter(page, 'knowledge');
     await page.waitForTimeout(800);
@@ -1529,6 +1563,22 @@ async function browserChecks() {
 async function previewChecks() {
   const index = fs.readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8');
   check(!/ca-preview|CA_PREVIEW =|ca-model|ca-files|ca-private/.test(index), 'the real page carries no preview stand-in, no embedded model, no example images and no example private text');
+  // build.py takes the comments out of the page's script and style. Minified, they must be the same code as the
+  // source's (with the build's placeholders filled in), and no comment of the source may be left in the page.
+  {
+    const esbuild = require('esbuild');
+    const source = fs.readFileSync(path.join(ROOT, 'src', 'page.html'), 'utf8');
+    const APP = /<script id="ca-app">([\s\S]*?)<\/script>/, STYLE = /<style id="ca-style">([\s\S]*?)<\/style>/;
+    const min = (code, loader) => esbuild.transformSync(code, { loader, minify: true, legalComments: 'none' }).code;
+    const app = index.match(APP)[1], filled = {};
+    for (const k of ['MODEL_URL', 'THREE_URL', 'GLTF_URL']) filled[k] = app.match(new RegExp(`var ${k} = "([^"]*)"`))[1];
+    const sameApp = min(source.match(APP)[1].replace(/__(MODEL_URL|THREE_URL|GLTF_URL)__/g, (_, k) => filled[k]), 'js') === min(app, 'js');
+    const sameStyle = min(source.match(STYLE)[1].replace('__FONTS__', ''), 'css') === min(index.match(STYLE)[1].replace(/^(?:\s*@font-face\s*\{[^}]*\})+/, ''), 'css');
+    const comments = [...source.matchAll(/^\s*(?:\/\/|\/\*)\s*(.{24,}?)\s*(?:\*\/)?$/gm)].map((m) => m[1]);
+    const left = comments.filter((c) => index.includes(c));
+    check(sameApp && sameStyle && comments.length > 200 && left.length === 0,
+      `the served page carries none of the source's comments, and its script and style are the source's code${left.length ? ': ' + left.slice(0, 3).join(' | ') : ''}`);
+  }
   const html = ARTIFACT_SKELETON + fs.readFileSync(path.join(ROOT, 'dist', 'preview.html'), 'utf8') + '</body></html>';
   const server = http.createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html); });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -1651,7 +1701,7 @@ function launch() {
   fs.mkdirSync(OUT, { recursive: true });
   const only = (process.env.SMOKE_ONLY || '').split(',').filter(Boolean);
   for (const [key, name, fn] of [['api', 'API checks', apiChecks], ['private', 'private section checks', privateChecks], ['race', 'word race checks', wordRaceChecks],
-    ['legacy', 'older archive checks', legacyChecks], ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks]]) {
+    ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks]]) {
     if (only.length && !only.includes(key)) { console.log(`SKIP  ${name} (SMOKE_ONLY)`); continue; }
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }
