@@ -1563,6 +1563,22 @@ async function browserChecks() {
 async function previewChecks() {
   const index = fs.readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8');
   check(!/ca-preview|CA_PREVIEW =|ca-model|ca-files|ca-private/.test(index), 'the real page carries no preview stand-in, no embedded model, no example images and no example private text');
+  // build.py takes the comments out of the page's script and style. Minified, they must be the same code as the
+  // source's (with the build's placeholders filled in), and no comment of the source may be left in the page.
+  {
+    const esbuild = require('esbuild');
+    const source = fs.readFileSync(path.join(ROOT, 'src', 'page.html'), 'utf8');
+    const APP = /<script id="ca-app">([\s\S]*?)<\/script>/, STYLE = /<style id="ca-style">([\s\S]*?)<\/style>/;
+    const min = (code, loader) => esbuild.transformSync(code, { loader, minify: true, legalComments: 'none' }).code;
+    const app = index.match(APP)[1], filled = {};
+    for (const k of ['MODEL_URL', 'THREE_URL', 'GLTF_URL']) filled[k] = app.match(new RegExp(`var ${k} = "([^"]*)"`))[1];
+    const sameApp = min(source.match(APP)[1].replace(/__(MODEL_URL|THREE_URL|GLTF_URL)__/g, (_, k) => filled[k]), 'js') === min(app, 'js');
+    const sameStyle = min(source.match(STYLE)[1].replace('__FONTS__', ''), 'css') === min(index.match(STYLE)[1].replace(/^(?:\s*@font-face\s*\{[^}]*\})+/, ''), 'css');
+    const comments = [...source.matchAll(/^\s*(?:\/\/|\/\*)\s*(.{24,}?)\s*(?:\*\/)?$/gm)].map((m) => m[1]);
+    const left = comments.filter((c) => index.includes(c));
+    check(sameApp && sameStyle && comments.length > 200 && left.length === 0,
+      `the served page carries none of the source's comments, and its script and style are the source's code${left.length ? ': ' + left.slice(0, 3).join(' | ') : ''}`);
+  }
   const html = ARTIFACT_SKELETON + fs.readFileSync(path.join(ROOT, 'dist', 'preview.html'), 'utf8') + '</body></html>';
   const server = http.createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html); });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));

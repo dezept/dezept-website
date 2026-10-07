@@ -4,7 +4,8 @@
     python3 build.py
 
 Writes dist/:
-  dist/index.html            the page server/server.mjs serves; it fills in __ARCHIVE__ with the records on each request
+  dist/index.html            the page server/server.mjs serves; it fills in __ARCHIVE__ with the records on each request.
+                             Its style and script carry none of src/page.html's comments (strip_comments, below)
   dist/chalice.<hash>.glb    the construct's 3D model (assets/model/chalice.glb, made by tools/m2_to_glb.py),
                              named by its SHA-256 so browsers and Cloudflare can cache it for good
   dist/three.<hash>.js       three.js with its GLTFLoader (assets/vendor/three.module.js, made by tools/vendor_three.mjs),
@@ -108,7 +109,94 @@ def cut(text: str, part: str) -> str:
     return text.replace(part, "")
 
 
-page = (ROOT / "src/page.html").read_text(encoding="utf-8")
+# A / after one of these starts a regular expression; after anything else (a name, a number, ")" or "]") it divides
+REGEX_AFTER = set("(,=:[!&|?{};+-*%<>~^")
+REGEX_AFTER_WORDS = {"return", "typeof", "instanceof", "in", "of", "new", "delete", "void", "throw", "case", "do", "else", "yield", "await"}
+
+
+def strip_comments(src: str, js: bool) -> str:
+    """src without its comments: /* … */ in CSS, and // … as well in JavaScript. Strings, template literals and regular
+    expressions are read through, so a // or /* inside one stays. A comment alone on its line takes the line with it."""
+    out, i, n, last = [], 0, len(src), ""
+
+    def line_start() -> bool:  # drops the space before a comment; true if nothing else is on its line
+        while out and out[-1] in " \t":
+            out.pop()
+        return not out or out[-1] == "\n"
+
+    while i < n:
+        c = src[i]
+        if c in "\"'" or (js and c == "`"):
+            j = i + 1
+            while src[j] != c:
+                if src[j] == "\\":
+                    j += 1
+                elif src[j] == "\n" and c != "`":
+                    raise ValueError(f"a string does not end on its line: {src[i:i + 60]!r}")
+                elif c == "`" and src.startswith("${", j):
+                    raise ValueError("strip_comments cannot read a template literal with ${…} in it")
+                j += 1
+            out.extend(src[i:j + 1])
+            last, i = c, j + 1
+        elif src.startswith("/*", i) or (js and src.startswith("//", i)):
+            block = src[i + 1] == "*"
+            if block:
+                j = src.index("*/", i + 2) + 2
+            else:  # a line comment ends before its newline
+                j = src.find("\n", i)
+                j = n if j < 0 else j
+            alone = line_start()
+            k = j
+            while k < n and src[k] in " \t":
+                k += 1
+            if alone and (k == n or src[k] == "\n"):
+                i = k + 1  # the comment's line goes with it
+            elif alone:
+                i = k
+            else:
+                if block:
+                    out.append("\n" if "\n" in src[i:j] else " ")  # a line break can end a statement
+                i = j
+        elif js and c == "/" and (last == "" or last in REGEX_AFTER or last in REGEX_AFTER_WORDS):
+            j, in_class = i + 1, False
+            while in_class or src[j] != "/":
+                if src[j] == "\\":
+                    j += 1
+                elif src[j] == "\n":
+                    raise ValueError(f"a regular expression does not end on its line: {src[i:i + 60]!r}")
+                elif src[j] in "[]":
+                    in_class = src[j] == "["
+                j += 1
+            j += 1
+            while j < n and src[j].isalpha():  # its flags
+                j += 1
+            out.extend(src[i:j])
+            last, i = "/regex/", j
+        elif js and (c.isalnum() or c in "_$"):
+            j = i
+            while j < n and (src[j].isalnum() or src[j] in "_$"):
+                j += 1
+            out.extend(src[i:j])
+            last, i = src[i:j], j
+        else:
+            out.append(c)
+            if not c.isspace():
+                last = c
+            i += 1
+    return "".join(out)
+
+
+def strip_page_comments(html: str) -> str:
+    """The page's own style and script without their comments, which stay in src/page.html for whoever works on it"""
+    for opening, closing, js in (('<style id="ca-style">', "</style>", False), ('<script id="ca-app">', "</script>", True)):
+        start = html.index(opening) + len(opening)
+        end = html.index(closing, start)
+        html = html[:start] + strip_comments(html[start:end], js) + html[end:]
+    assert "<!--" not in html, "the page has an HTML comment; strip_page_comments does not take those out"
+    return html
+
+
+page = strip_page_comments((ROOT / "src/page.html").read_text(encoding="utf-8"))
 model = (ROOT / "assets/model/chalice.glb").read_bytes()
 model_name = f"chalice.{hashlib.sha256(model).hexdigest()[:12]}.glb"
 three = (ROOT / "assets/vendor/three.module.js").read_bytes()
@@ -129,7 +217,7 @@ def hashed_font(m: re.Match) -> str:
     return f"url({name})"
 
 
-font_faces = re.sub(r"url\(([a-z0-9-]+\.woff2)\)", hashed_font, (ROOT / "assets/fonts/fonts.css").read_text(encoding="utf-8")).rstrip("\n")
+font_faces = re.sub(r"url\(([a-z0-9-]+\.woff2)\)", hashed_font, strip_comments((ROOT / "assets/fonts/fonts.css").read_text(encoding="utf-8"), False)).strip("\n")
 assert len(fonts) == 7, f"expected 7 font files in assets/fonts/fonts.css, found {len(fonts)}; run tools/vendor_fonts.mjs"
 GOOGLE_FONTS = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700'
                 '&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">')
