@@ -40,6 +40,7 @@ sudo systemctl enable --now chalice-archive
 
 - `SESSION_HOURS` (1 to 720) and `PORT` must be plain numbers. Anything else, such as `12h`, stops the server with a message in the journal, rather than letting sessions last for ever.
 - `PUBLIC_ORIGIN` must be the site's https address, such as `https://archive.example.com`, and nothing more. Without it, or with anything else, the server will not start, rather than checking logins and writes against whatever `Host` a request names.
+- `TZ` (optional, such as `TZ=Europe/Berlin`, commented out in the unit): the time zone the statistics count their days in, so that "today" is yours. Without it, the server's own, usually UTC.
 
 - systemd creates `/var/lib/chalice-archive` (mode 0700, owned by `chalice`).
 - On the first start the server copies `src/seed.json` into `archive.json` there.
@@ -67,8 +68,9 @@ sudo -u chalice env DATA_DIR=/var/lib/chalice-archive node /opt/dezept-website/c
 | SSL/TLS → Origin Server | **Create Certificate** for `archive.example.com`, PEM format. Save the certificate and the private key for step 5. The key is shown only once. |
 | SSL/TLS → Origin Server → Authenticated Origin Pulls | In the **Global** section, switch it **On**. |
 | SSL/TLS → Edge Certificates | **Always Use HTTPS** on, **Minimum TLS Version** 1.2, **TLS 1.3** on |
+| Network → IP Geolocation | **On**. Cloudflare then adds each visitor's country to the request (`CF-IPCountry`), and the archive's statistics count visitors by country. Without it, that list stays empty. |
 
-Leave off everything that rewrites the page:
+Leave off everything that rewrites the page (the archive counts its own visitors; Cloudflare's Web Analytics would add a script the page refuses):
 
 - Rocket Loader
 - Email Address Obfuscation
@@ -134,6 +136,7 @@ Then open the site:
 1. Click the gem. Once it has drawn the light in, choose About, Art, Character Knowledge or Encounters beneath the construct.
 2. Click the small brass clasp on the tome's right edge and speak the word.
 3. The editing tools appear: **Amend this page** in About, **Add a form** in Art (then **Add an art piece** inside the form), **Inscribe record** in Character Knowledge, **Record an encounter** in Encounters.
+4. A fifth tab, **Statistics**, appears too. On a phone, where it has no room, the clasp's panel has a **Statistics** button instead. Visits are counted from the start; visitors are told apart from your first login on.
 
 ## Day to day
 
@@ -157,6 +160,7 @@ Then open the site:
   - Copy the whole `/var/lib/chalice-archive` directory off the VPS now and then.
   - To restore, stop the service, copy a backup over `archive.json`, then start the service.
   - The encounters' private sections, and the encounters only for you, are encrypted in `archive.json` and every backup. Keep `auth.json` with them: its wrapped key and your word are what read them. A copy of the directory without the word is a copy without the private sections.
+  - The statistics are `stats.json`, saved every half minute while visitors come and whenever you read them. It holds no visitor's address (see below), so a copy of it tells nobody who visited.
 - **Removing a picture for good**: removing its art piece stops the server serving it at once. Cloudflare keeps its copy for up to a day; to clear it sooner, purge the image's address under Caching → Configuration → Custom Purge.
 - **Videos and Cloudflare**: Cloudflare's Service-Specific Terms ([explained here](https://blog.cloudflare.com/updated-tos/)) say that on the Free, Pro and Business plans the CDN is not for serving video from your own server; that takes Stream, R2 or the Enterprise plan. Cloudflare reserves the right to limit a site that does it anyway, or that serves a disproportionate share of pictures or other large files. Keep videos short and few, or decide to host them elsewhere.
 - **Logs**:
@@ -190,10 +194,17 @@ Then open the site:
   - It also requires Trusted Types: browsers that support them (Chrome and Edge among them) refuse any attempt to write HTML into the page or turn text into script, so even a mistake in the page's code could not become cross-site scripting.
   - It is isolated from every other site (COOP and COEP): it runs in a process of its own, even on browsers that do not otherwise keep sites apart, so no other site's page can read its memory.
   - Also sent: HSTS, `nosniff`, no framing, no referrer, and a Permissions-Policy that switches off the camera, microphone, location and other features the page never uses.
+- **The statistics** (visitors, what they open, where they came from, their countries):
+  - Each visitor is counted once, by their address (an IPv6 address by its /64). Nothing on disk keeps an address: each is sealed at once (X25519, then AES-256-GCM) to a key whose private half is stored only encrypted under the same key as the private sections, which only your word unlocks. When you read the statistics, the server opens what came in since, turns each address into a keyed hash (that key is locked away the same way) and lets the address go.
+  - So `stats.json`, and every copy of it, says how many came and what they opened, never who they were: without the word, a hash can be neither turned back into an address nor checked against a guess.
+  - The page reports only what visitors open, and only from the site's own pages. Your own browsers (signed in now, or signed in before under the current word), robots and headless browsers are not counted, and one address counts as at most 100 visits a day.
+  - Only your session, with its CSRF token, reads the numbers. Sealing the archive takes them off the page.
+  - A forgotten word (`--forget-private`) takes the statistics' keys with it: from then on visitors are counted afresh, and the visits by day stay.
+  - Visitors' addresses are personal data in the EU. Nothing is stored that names one, but if you keep a privacy note anywhere, say that the site counts visits by address, sealed, and never shares them.
 - **Slow requests**: a JSON body has 60 seconds to arrive, so nobody can hold connections open by sending a login a byte at a time. A request refused before its body has arrived, such as an upload without a session, is answered at once and let go 10 seconds later; so is a body sent with a GET. A download stopped half way closes its file at once.
 - **The machine**:
   - Node runs as an unprivileged user.
   - It can write only `/var/lib/chalice-archive` and talk only to loopback, where nothing else listens that could be told what to do: Caddy's admin API is switched off.
   - The port Caddy listens on accepts only Cloudflare.
 
-`tools/smoke.js` tests these properties against a running server: headers, CSRF, Origin, cookies, validation, throttling, password changes and the page itself under its CSP.
+`tools/smoke.js` tests these properties against a running server: headers, CSRF, Origin, cookies, validation, throttling, password changes, the statistics and the page itself under its CSP.

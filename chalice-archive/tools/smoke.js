@@ -8,7 +8,7 @@ Environment:
   CHROME       path to a Chromium/Chrome binary (default: Playwright's own install)
   CHROME_ARGS  extra browser flags, space-separated
   HTTPS_PROXY  used for the CDN requests when set
-  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, browser, preview
+  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, stats, browser, preview
 
 Checks:
   1. Over HTTP, against a server set up as in production (Secure cookies, PUBLIC_ORIGIN, TRUST_PROXY):
@@ -33,12 +33,22 @@ Checks:
      than guesses one after another; a login refused while the server is busy is no miss; guesses from many addresses
      pause every login, except from a browser with the keeper's device cookie (not a forged one, nor one from before
      the word changed); a write whose body arrives after its session was sealed is refused; a GET whose body trickles
-     in is let go within seconds; the page is isolated from other sites (COOP and COEP).
+     in is let go within seconds; the page is isolated from other sites (COOP and COEP). Statistics: a visitor's page
+     reports what it opens only from the site itself, as small JSON, and is answered with nothing; each visitor counts
+     once, by address (an IPv6 /64 as one), and so in each chapter and piece; the keeper's own browsers (by session or
+     device cookie), robots and nameless clients are not counted, nor an encounter only for the keeper; where visitors
+     came from is kept as a host alone, their country as Cloudflare names it; stats.json holds no address, nor a key
+     to tell one; an address counts as at most 100 visits a day; a removed piece is no longer counted; only the
+     keeper's session and its CSRF token read them.
   1c. The private sections across server restarts: still readable with the word, carried over to a new word set from
      the command line (which needs the current word, and will not write over a key the first login made while it
      waited), unreadable when moved onto another encounter, and gone after set-password --forget-private.
   1d. A login with the old word, sent at different moments while the word is changed: over before the change, or
      refused; never a session that has already ended, nor an error.
+  1e. The statistics across restarts: before the keeper's first login a visit counts and its visitor does not; visits
+     waiting to be counted keep their addresses sealed; a visitor counts once over a restart and under a word set with
+     the old one; after set-password --forget-private visitors are counted afresh and the visits stay; a statistics
+     file that cannot be read is put aside.
   2. In Chromium, under the server's real CSP: the 3D model replaces the cutout with no console errors, and nothing
      is fetched from anywhere but the site (three.js and the fonts included, and every face of the fonts loads);
      Trusted Types stop any script writing HTML into the page; Escape keeps every form that has unsaved writing in it,
@@ -66,12 +76,16 @@ Checks:
      section once the tome is closed. An encounter only for the keeper written under a forgotten word says once that
      it can no longer be read. A drag to select text, let go outside the tome, does not close it. Cancel while an art
      piece uploads stops it: nothing is saved, and the page stays where the keeper went. A session check answered after
-     the tab was sealed does not unseal it again.
+     the tab was sealed does not unseal it again. The X link sits in the stage's corner and opens x.com/dezeptdrac in a
+     new tab without the opener or a referrer, waking nothing. A visitor's browsing shows in the keeper's Statistics,
+     the keeper's own does not; a visitor has no Statistics tab, and their address shows them Character Knowledge;
+     sealed, the numbers leave the page; the keeper's address of them opens them after a reload; on a phone the
+     keeper's panel leads there.
   3. dist/preview.html, the claude.ai Artifact build, in the Artifact's skeleton under a CSP like its viewer's (no
      network requests at all): the model, the example forms and their plates, GIF and video load from the page; an
      art piece whose main image is mature, opened from the list by keyboard, asks first and leaves the focus on its
      cover; the stand-in server accepts only "preview", the About page can be amended and records and plates added, and a reload
-     forgets them. The real page carries no trace of the stand-in.
+     forgets them; the Statistics tab shows made-up numbers, said to be examples. The real page carries no trace of the stand-in.
 Screenshots go to tools/.smoke/.
 */
 const fs = require('fs');
@@ -90,6 +104,8 @@ const WORD = 'a long smoke-test passphrase';
 const NEW_WORD = 'another long smoke-test passphrase';
 const NEWER_WORD = 'a newer long smoke-test passphrase';
 const ORIGIN = 'https://archive.test';
+// A browser as visitors have it: the statistics count no headless one (Chromium here calls itself HeadlessChrome)
+const BROWSER_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
 // The viewer plays media embedded in the page (its contract says muted autoplay works), so media-src takes data: and
 // blob: here; if it ever does not, the page says the preview could not play the video.
 const ARTIFACT_CSP = "default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net/npm/ https://unpkg.com " +
@@ -125,6 +141,7 @@ async function startServer(name, env, prepare, keep) {
   }
   if (prepare) prepare(dataDir);
   const proc = spawn(process.execPath, [SERVER], { env: { ...process.env, DATA_DIR: dataDir, PORT: '0', ...env } });
+  const exited = new Promise((resolve) => proc.once('exit', resolve)); // a stop is over once the statistics are saved
   let log = '';
   const port = await new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`${name} server did not start: ${log}`)), 10000);
@@ -137,7 +154,7 @@ async function startServer(name, env, prepare, keep) {
     proc.stderr.on('data', onData);
     proc.on('exit', (code) => { clearTimeout(t); reject(new Error(`${name} server exited (${code}): ${log}`)); });
   });
-  return { port, dataDir, pid: proc.pid, url: `http://127.0.0.1:${port}/`, stop: () => proc.kill('SIGTERM'), log: () => log };
+  return { port, dataDir, pid: proc.pid, url: `http://127.0.0.1:${port}/`, stop: () => { proc.kill('SIGTERM'); return exited; }, log: () => log };
 }
 // How many files a server has open (Linux only: null elsewhere)
 const openFiles = (pid) => { try { return fs.readdirSync(`/proc/${pid}/fd`).length; } catch { return null; } };
@@ -659,6 +676,53 @@ async function apiChecks() {
     check(lateOut.status === 200 && /^HTTP\/1\.1 401/.test(lateReply) && !(await call('GET', '/api/archive')).text.includes(JSON.parse(lateBody).title),
       'a write whose body was still arriving when its session was sealed is refused, and nothing of it is kept');
 
+    // Statistics: a visitor's page reports what it opens; only the keeper reads the numbers. Each visitor counts once,
+    // by an address nothing on disk keeps; the keeper's own browsers and robots are not counted.
+    const hit = (ip, body, extra = {}) => call('POST', '/api/hit', { headers: { Origin: ORIGIN, 'X-Real-IP': ip, 'User-Agent': BROWSER_UA, ...extra }, body });
+    const readStats = () => call('GET', '/api/stats', { headers: { Cookie: cookie, 'X-CSRF-Token': csrf } });
+    check((await call('GET', '/api/stats')).status === 401 && (await call('GET', '/api/stats', { headers: { Cookie: cookie } })).status === 403,
+      'the statistics need the session and its CSRF token');
+    const counted = (await write('POST', '/api/art', { gallery: ga.id, title: 'Counted', versions: [img(upA)] })).json.id;
+    const countedRec = (await write('POST', '/api/records', { title: 'Counted record' })).json.id;
+    const none = (await readStats()).json;
+    const reported = await hit('198.18.1.1', { visit: true, from: 'https://t.co/abc' }, { 'CF-IPCountry': 'DE' });
+    check(none.visitors.all === 0 && none.visits.all === 0 && reported.status === 204 && reported.text === '' &&
+      (await hit('198.18.1.1', { visit: true }, { Origin: 'https://evil.test' })).status === 403 && (await hit('198.18.1.1', { visit: true }, { Origin: undefined })).status === 403 &&
+      (await call('POST', '/api/hit', { headers: { Origin: ORIGIN, 'User-Agent': BROWSER_UA, 'Content-Type': 'text/plain' }, body: '{"visit":true}' })).status === 415 &&
+      (await hit('198.18.1.1', { visit: true, from: 'x'.repeat(3000) })).status === 413,
+      "a visitor's page reports what it opens and is answered with nothing; only from the site itself, as JSON, and small; nothing was counted before");
+    await hit('198.18.1.1', { visit: true, from: 'https://t.co/abc' }); // a reload
+    await hit('198.18.1.1', { book: 'art', id: counted });
+    await hit('198.18.1.2', { visit: true, from: 'https://www.discord.com/channels/1' });
+    await hit('198.18.1.2', { book: 'art', id: counted });
+    await hit('198.18.1.2', { book: 'knowledge', id: countedRec });
+    await hit('2001:db8:7:7::1', { visit: true, from: ORIGIN + '/#art' }, { 'CF-IPCountry': 'us' }); // the site itself is no source
+    await hit('2001:db8:7:7::2', { visit: true }); // the same /64: the same visitor
+    await hit('2001:db8:7:7::2', { book: 'encounters', id: sId }); // an encounter only for the keeper
+    await hit('2001:db8:7:7::2', { book: 'art', id: 'a-never-was' });
+    for (const extra of [{ Cookie: cookie }, { Cookie: deviceOf(ok) }, { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },
+      { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36' }, { 'User-Agent': undefined }]) {
+      await hit('198.18.1.9', { visit: true, book: 'art', id: counted }, extra);
+    }
+    const st = (await readStats()).json;
+    check(st.visitors.today === 3 && st.visitors.week === 3 && st.visitors.month === 3 && st.visitors.all === 3 && st.visits.today === 5 && st.visits.all === 5 &&
+      st.days.length === 30 && st.days[29].day === st.today && st.days[29].visitors === 3 && st.days[29].visits === 5,
+      `each visitor counts once (two addresses in one IPv6 /64 are one), each time the site is opened is a visit, and the keeper's own browsers, by session or by device cookie, robots and nameless clients are not counted (${st.visitors.all} visitors, ${st.visits.all} visits)`);
+    check(st.items[counted] === 2 && st.items[countedRec] === 1 && !(sId in st.items) && !('a-never-was' in st.items) && st.chapters.art === 3 && st.chapters.knowledge === 1 && st.chapters.encounters === 1,
+      'so does each visitor who opened a chapter or a piece; an encounter only for the keeper, or an id that never was, is not counted');
+    check(JSON.stringify(st.from) === JSON.stringify([['', 1], ['discord.com', 1], ['t.co', 1]]) && JSON.stringify(st.countries) === JSON.stringify([['DE', 1], ['US', 1]]),
+      `where visitors came from is kept as the linking site's host alone ("www." dropped, the site itself no source), and their country as Cloudflare names it (${JSON.stringify(st.from)}, ${JSON.stringify(st.countries)})`);
+    const statsFile = path.join(s.dataDir, 'stats.json'), statsText = fs.readFileSync(statsFile, 'utf8'), statsSaved = JSON.parse(statsText);
+    check(!/198\.18\.1\.|2001:db8:7:7|t\.co\/abc/.test(statsText) && (fs.statSync(statsFile).mode & 0o777) === 0o600 && statsSaved.pending.length === 0 &&
+      statsSaved.visitors.length === 3 && statsSaved.visitors.every((v) => /^[\w-]{16}$/.test(v)) && Object.keys(statsSaved.keys).sort().join() === 'public,secret',
+      'stats.json (0600) holds no address, nor a key to tell one: the visitors only as hashes, under a key stored encrypted');
+    for (let i = 0; i < 101; i++) await hit('198.18.1.20', { visit: true });
+    const capped = (await readStats()).json;
+    check(capped.visits.today === st.visits.today + 100 && capped.visitors.today === st.visitors.today + 1, 'one address counts as at most 100 visits a day');
+    await write('DELETE', '/api/art/' + counted);
+    const afterRemoval = (await readStats()).json;
+    check(!(counted in afterRemoval.items) && afterRemoval.items[countedRec] === 1, 'a piece removed from the archive is no longer counted');
+
     // changing the word signs every other session out
     const other = cookieOf(await login({ Origin: ORIGIN }));
     check((await write('POST', '/api/password', { current: 'not the word', next: NEW_WORD })).status === 401, 'changing the word needs the current word');
@@ -826,6 +890,65 @@ async function wordRaceChecks() {
   }
 }
 
+// ---------- 1e. the statistics across restarts, a new word, a forgotten one, and a file that cannot be read ----------
+async function statsChecks() {
+  const env = { COOKIE_SECURE: 'false', TRUST_PROXY: 'true' };
+  let s = await startServer('stats', env);
+  const dir = s.dataDir;
+  const hit = (ip, body) => request(s.port, 'POST', '/api/hit', { headers: { Origin: `http://127.0.0.1:${s.port}`, 'X-Real-IP': ip, 'User-Agent': BROWSER_UA }, body });
+  const unseal = async (word) => { // the keeper's login; then their reading of the statistics
+    const r = await request(s.port, 'POST', '/api/login', { headers: { Origin: `http://127.0.0.1:${s.port}`, 'X-Real-IP': '198.51.100.250' }, body: { password: word } });
+    return () => request(s.port, 'GET', '/api/stats', { headers: { Cookie: cookieOf(r), 'X-CSRF-Token': r.json && r.json.csrf } }).then((x) => x.json || {});
+  };
+  const onDisk = () => fs.readFileSync(path.join(dir, 'stats.json'), 'utf8');
+  try {
+    await hit('203.0.113.1', { visit: true });
+    let read = await unseal(WORD);
+    const first = await read();
+    check(first.visits.today === 1 && first.visitors.all === 0 && first.since === first.today,
+      "before the keeper's first login there is no key to seal an address to: the visit counts, its visitor does not");
+    await hit('203.0.113.1', { visit: true });
+    await hit('203.0.113.2', { visit: true, book: 'about' });
+    await s.stop(); // which saves what came in since
+    const waiting = JSON.parse(onDisk());
+    check(waiting.pending.length === 2 && waiting.pending.every((p) => p.who && p.who.epk && p.who.data && p.who.iv && p.who.tag) && !/203\.0\.113/.test(onDisk()),
+      'visits waiting to be counted are kept with their addresses sealed, and no address in the clear');
+    s = await startServer('stats', env, null, true);
+    await hit('203.0.113.1', { visit: true }); // the same visitor, after a restart that forgot whom it had seen
+    read = await unseal(WORD);
+    const again = await read();
+    check(again.visitors.all === 2 && again.visitors.today === 2 && again.visits.today === 4 && again.chapters.about === 1,
+      `a visitor counts once over a restart (${again.visitors.all} visitors, ${again.visits.today} visits)`);
+    await s.stop();
+    const NEXT = 'a fifth long smoke-test passphrase', LOST = 'a sixth long smoke-test passphrase';
+    const moved = await run(['set-password'], { DATA_DIR: dir }, `${NEXT}\n${NEXT}\n${WORD}\n`);
+    s = await startServer('stats', env, null, true);
+    read = await unseal(NEXT);
+    await hit('203.0.113.2', { visit: true });
+    const carried = await read();
+    check(moved.code === 0 && carried.visitors.all === 2 && carried.visits.today === 5, 'under a new word set with the old one, visitors are still told apart: a returning one counts once');
+    await s.stop();
+    const lost = await run(['set-password', '--forget-private'], { DATA_DIR: dir }, `${LOST}\n${LOST}\n`);
+    s = await startServer('stats', env, null, true);
+    await hit('203.0.113.1', { visit: true }); // sealed to a key that goes with the forgotten word
+    read = await unseal(LOST);
+    const forgot = await read();
+    await hit('203.0.113.1', { visit: true });
+    const anew = await read();
+    check(lost.code === 0 && forgot.visitors.all === 0 && forgot.visits.today === 6 && anew.visitors.all === 1 && anew.visits.today === 7,
+      `after set-password --forget-private, visitors are counted afresh under new keys, and the visits stay (${forgot.visitors.all}, then ${anew.visitors.all} visitors; ${anew.visits.today} visits)`);
+    await s.stop();
+    fs.writeFileSync(path.join(dir, 'stats.json'), '{"since": "2026-');
+    s = await startServer('stats', env, null, true);
+    read = await unseal(LOST);
+    const fresh = await read();
+    check(fs.readdirSync(dir).some((f) => /^stats\.json\.unreadable-\d+$/.test(f)) && fresh.visits.all === 0 && /could not be read/.test(s.log()),
+      'a statistics file that cannot be read is put aside, not written over, and counting starts afresh');
+  } finally {
+    await s.stop();
+  }
+}
+
 // The construct by keyboard (which always wakes it), then a chapter from the hub
 async function enter(page, book) {
   await page.waitForSelector('.core.is-3d', { timeout: 30000 });
@@ -838,7 +961,7 @@ async function enter(page, book) {
 
 // ---------- 2. the page in Chromium, under the server's CSP ----------
 async function browserChecks() {
-  const s = await startServer('browser', { COOKIE_SECURE: 'false' });
+  const s = await startServer('browser', { COOKIE_SECURE: 'false', TRUST_PROXY: 'true' }); // X-Real-IP gives a visitor's browser an address of its own
   const browser = await launch();
   let main = null, seen = []; // the keeper's page and the errors so far, for the report below if a step fails
   try {
@@ -868,6 +991,21 @@ async function browserChecks() {
     check(await page.evaluate(() => window.crossOriginIsolated === true), 'the page is isolated from every other site (COOP and COEP), and still loads everything it needs');
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(OUT, 'landing.png') });
+    // The keeper's X account: a small mark in the stage's corner, apart from the construct. A click on it opens a tab
+    // (x.com answered here, not asked) and does not wake the construct.
+    const social = await page.evaluate(() => {
+      const a = document.querySelector('#stage a.social'), r = a && a.getBoundingClientRect(), c = document.getElementById('construct').getBoundingClientRect();
+      return a && { href: a.getAttribute('href'), target: a.target, rel: a.rel, name: a.getAttribute('aria-label'), corner: r.right > innerWidth - 60 && r.bottom > innerHeight - 60, apart: r.left > c.right || r.top > c.bottom };
+    });
+    await ctx.route('https://x.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'X' }));
+    const [xTab] = await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), page.click('#stage a.social')]);
+    if (xTab) await xTab.waitForLoadState('domcontentloaded').catch(() => {});
+    const xUrl = xTab ? xTab.url() : '';
+    if (xTab) await xTab.close();
+    await page.bringToFront();
+    check(social && social.href === 'https://x.com/dezeptdrac' && social.target === '_blank' && /\bnoopener\b/.test(social.rel) && /\bnoreferrer\b/.test(social.rel) &&
+      social.name === '@dezeptdrac on X' && social.corner && social.apart && xUrl === 'https://x.com/dezeptdrac' && await page.$('#hub[hidden]') !== null,
+      `the X link sits in the stage's corner, apart from the construct, and opens x.com/dezeptdrac in a new tab without the opener or a referrer, waking nothing (${xUrl || 'no tab'})`);
 
     const box = await (await page.$('#construct')).boundingBox();
     const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
@@ -1427,6 +1565,60 @@ async function browserChecks() {
     await page.keyboard.press('Escape');
     check(await page.$('#lightbox[hidden]') !== null && await page.$('#archive[open]') !== null,
       'Escape again closes only the full-size view (Chrome lets a page hold back a dialog\'s own Escape just once per click)');
+
+    // Statistics: a visitor's browsing is counted (the other browsers here call themselves headless, and are not), and
+    // only the keeper reads it; the numbers leave the page with the seal. Their address waits for the session; on a
+    // phone, where their tab has no room, the keeper's panel leads to them.
+    const readerCtx = await browser.newContext({ viewport: { width: 1280, height: 800 }, userAgent: BROWSER_UA, extraHTTPHeaders: { 'X-Real-IP': '198.51.100.77' } });
+    const reader = watch(await readerCtx.newPage());
+    await reader.goto(s.url + '#art/' + anim.id);
+    await settle(reader);
+    await reader.waitForSelector('#archive[open] #view-plate:not([hidden])', { timeout: 20000 });
+    await reader.click('#pl-back');
+    await reader.waitForSelector('#view-gallery:not([hidden])', { timeout: 5000 });
+    await reader.click('.tab[data-book="about"]');
+    await reader.waitForSelector('#view-about:not([hidden])', { timeout: 5000 });
+    await reader.goto(s.url + '#stats');
+    await settle(reader);
+    const readerAtStats = await reader.waitForFunction(() => document.getElementById('archive').open && document.getElementById('book').dataset.view === 'overview', null, { timeout: 15000 })
+      .then(() => reader.waitForTimeout(800)).then(() => reader.evaluate(() => document.getElementById('st-body').hidden && document.getElementById('tab-stats').hidden), () => false);
+    await readerCtx.close();
+    await page.click('#tab-stats');
+    const statsShown = await page.waitForFunction(() => !document.getElementById('st-body').hidden, null, { timeout: 10000 }).then(() => true, () => false);
+    const numbers = await page.evaluate(() => ({
+      tallies: [...document.querySelectorAll('#st-tallies .tally-value')].map((n) => n.textContent).join(),
+      chapters: [...document.querySelectorAll('#st-chapters .st-n')].map((n) => n.textContent).join(),
+      form: (document.querySelector('#st-art .st-group-head > span') || {}).textContent,
+      art: [...document.querySelectorAll('#st-art .st-row')].map((r) => r.querySelector('.st-name').textContent.replace(/^[IVXLCDM]+\.\s*/, '') + '=' + r.querySelector('.st-n').textContent).sort().join('|'),
+      hash: location.hash,
+    }));
+    check(statsShown && numbers.tallies === '1,1,1,1' && numbers.chapters === '1,1,1,0' && numbers.form === '1 visitor opened the form' && numbers.art === 'Smoke animation=1|Smoke plate=0' && numbers.hash === '#stats',
+      `the keeper's Statistics count a visitor's browsing, and nothing of the keeper's own: one visitor, the chapters, form and piece they opened (${JSON.stringify(numbers)})`);
+    check(readerAtStats, 'a visitor has no Statistics tab, and the address of the statistics shows them Character Knowledge instead');
+    await page.click('#clasp');
+    await page.click('#seal-lock');
+    check(await page.waitForFunction(() => document.getElementById('st-body').hidden && document.getElementById('tab-stats').hidden && document.getElementById('book').dataset.view === 'overview' &&
+      !document.getElementById('st-tallies').childElementCount && !document.getElementById('st-art').childElementCount && !document.getElementById('st-chart').childElementCount, null, { timeout: 10000 })
+      .then(() => true, () => false), 'sealed, the statistics leave the page, and their tab goes');
+    await page.click('#clasp');
+    await page.fill('#seal-word', WORD);
+    await page.click('#seal-go');
+    await page.waitForSelector('#tab-stats:not([hidden])', { timeout: 15000 }).catch(() => {});
+    await page.goto('about:blank');
+    await page.goto(s.url + '#stats');
+    await settle(page);
+    check(await page.waitForFunction(() => !document.getElementById('st-body').hidden && location.hash === '#stats', null, { timeout: 15000 }).then(() => true, () => false),
+      "the keeper's address of the statistics opens them after a reload, once the session is known");
+    await page.setViewportSize({ width: 375, height: 760 });
+    await page.click('.tab[data-book="knowledge"]');
+    const noRoom = await page.evaluate(() => getComputedStyle(document.getElementById('tab-stats')).display === 'none');
+    await page.click('#clasp');
+    await page.click('#seal-stats');
+    check(noRoom && await page.waitForFunction(() => !document.getElementById('st-body').hidden && document.getElementById('seal').hidden, null, { timeout: 10000 }).then(() => true, () => false),
+      "on a phone, where the Statistics tab has no room, the keeper's panel leads to them");
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.evaluate((id) => { location.hash = '#art/' + id; }, anim.id); // back to the piece, which goes next
+    await page.waitForSelector('#view-plate:not([hidden]) #pl-tools:not([hidden])', { timeout: 10000 });
     await page.click('#pl-delete');
     await page.click('#pl-delete'); // confirm
     await page.waitForSelector('#view-gallery:not([hidden])', { timeout: 10000 });
@@ -1674,6 +1866,10 @@ async function previewChecks() {
     await page.click('#pl-versions .ver-btn >> nth=1');
     check(await page.waitForFunction(() => { const i = document.querySelector('#pl-open .gif img'); return i && i.complete && i.naturalWidth === 48 && i.src.startsWith('data:image/gif'); }, null, { timeout: 5000 }).then(() => true, () => false),
       'preview: a GIF can be uploaded too');
+    await page.click('#tab-stats');
+    check(await page.waitForFunction(() => !document.getElementById('st-body').hidden && /^Example numbers/.test(document.getElementById('st-note').textContent) &&
+      document.querySelectorAll('#st-chart .st-cols li').length === 30 && [...document.querySelectorAll('#st-art .st-name')].some((n) => /Example: a video/.test(n.textContent)), null, { timeout: 5000 })
+      .then(() => true, () => false), 'preview: the Statistics tab shows made-up numbers, said to be examples, for the example art');
     await page.click('.tab[data-book="knowledge"]');
     await page.screenshot({ path: path.join(OUT, 'preview.png') });
     await page.evaluate(() => history.replaceState(null, '', location.pathname)); // reload the page itself, not a chapter's address
@@ -1701,7 +1897,7 @@ function launch() {
   fs.mkdirSync(OUT, { recursive: true });
   const only = (process.env.SMOKE_ONLY || '').split(',').filter(Boolean);
   for (const [key, name, fn] of [['api', 'API checks', apiChecks], ['private', 'private section checks', privateChecks], ['race', 'word race checks', wordRaceChecks],
-    ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks]]) {
+    ['stats', 'statistics checks', statsChecks], ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks]]) {
     if (only.length && !only.includes(key)) { console.log(`SKIP  ${name} (SMOKE_ONLY)`); continue; }
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }

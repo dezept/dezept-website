@@ -14,6 +14,8 @@ Environment=HOST=127.0.0.1 PORT=8080 TRUST_PROXY=true SESSION_HOURS=12
 Environment=DATA_DIR=/var/lib/chalice-archive
 # The address visitors use; logins and writes from anywhere else are refused.
 Environment=PUBLIC_ORIGIN=https://archive.example.com
+# The time zone the statistics count their days in; without it, the system's (usually UTC).
+#Environment=TZ=Europe/Berlin
 Restart=on-failure
 RestartSec=2
 
