@@ -558,10 +558,10 @@ function cleanVersions(input, prev) {
   return out;
 }
 
-// A plate's images as stored. A plate saved before plates had several images kept its one image on itself.
+// A plate's images as stored
 function storedVersions(a) {
-  return (Array.isArray(a.versions) ? a.versions : [{ ...a, id: undefined, label: "", mature: false }]).filter((v) => v && ART_FILE.test(v.file) && STILL_FILE.test(v.thumb)).slice(0, LIMIT.versions)
-    .map((v) => versionOf(v, { ...v, id: validId(v.id) ? v.id : "v" + v.file.slice(0, 12) }));
+  return (Array.isArray(a.versions) ? a.versions : []).filter((v) => v && validId(v.id) && ART_FILE.test(v.file) && STILL_FILE.test(v.thumb))
+    .slice(0, LIMIT.versions).map((v) => versionOf(v, v));
 }
 
 // A plate (an "art piece" on the page). On a write (check) its images must have been uploaded, and their sizes are
@@ -682,7 +682,7 @@ let artFiles = new Set();
 function filesOf(a) {
   const out = new Set();
   for (const x of (a && Array.isArray(a.art) ? a.art : [])) {
-    for (const v of x && Array.isArray(x.versions) ? x.versions : [x]) if (v) { out.add(v.file); out.add(v.thumb); }
+    for (const v of x && Array.isArray(x.versions) ? x.versions : []) if (v) { out.add(v.file); out.add(v.thumb); }
   }
   return out;
 }

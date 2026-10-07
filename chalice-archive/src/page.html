@@ -1122,9 +1122,9 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
     // an art piece (a plate, in the code) is one or more images (versions), each a picture, a GIF or a video: the
     // first is its main one, the others its alternates. It belongs to one of his forms, or to none ("Other art").
     var art = (Array.isArray(raw.art) ? raw.art : []).filter(function (a) { return a && a.id; }).map(function (a) {
-      var versions = (Array.isArray(a.versions) ? a.versions : [{ file: a.file, thumb: a.thumb, width: a.width, height: a.height }]).filter(function (v) { return v && FILE_RE.test(v.file) && STILL_RE.test(v.thumb); }).map(function (v, i) {
+      var versions = (Array.isArray(a.versions) ? a.versions : []).filter(function (v) { return v && v.id && FILE_RE.test(v.file) && STILL_RE.test(v.thumb); }).map(function (v) {
         return {
-          id: String(v.id || "v" + i), file: v.file, thumb: v.thumb, width: Math.max(1, Number(v.width) || 1), height: Math.max(1, Number(v.height) || 1),
+          id: String(v.id), file: v.file, thumb: v.thumb, width: Math.max(1, Number(v.width) || 1), height: Math.max(1, Number(v.height) || 1),
           label: String(v.label || ""), mature: v.mature === true, loop: v.loop === true
         };
       });

@@ -8,7 +8,7 @@ Environment:
   CHROME       path to a Chromium/Chrome binary (default: Playwright's own install)
   CHROME_ARGS  extra browser flags, space-separated
   HTTPS_PROXY  used for the CDN requests when set
-  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, legacy, browser, preview
+  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, browser, preview
 
 Checks:
   1. Over HTTP, against a server set up as in production (Secure cookies, PUBLIC_ORIGIN, TRUST_PROXY):
@@ -25,7 +25,7 @@ Checks:
      downloads stopped half way let go of their files; an upload without a session is refused at once and its
      connection let go within seconds; encounters, whose private sections are stored encrypted, never reach visitors,
      and need the session and its CSRF token; encounters only for the keeper, stored encrypted whole, of which
-     visitors receive nothing; plates saved before they had several images; the password file, and set-password, which
+     visitors receive nothing; the password file, and set-password, which
      refuses a word with control characters in it and another user's data directory; idle connections kept longer than
      Caddy keeps them; an MP4 whose ftyp box gives its size in 64 bits; dates that do not
      exist are dropped; backups never overwrite one another; changing the word signs other sessions out; failed
@@ -338,13 +338,13 @@ async function apiChecks() {
 
     const evil = '</script><script>alert(1)</script><img src=x onerror=alert(2)>';
     const made = await write('POST', '/api/records', {
-      title: evil + 'x'.repeat(300), domain: 'Wars & catastrophes', status: 'admin', date: '2020-13-45', note: 'line one\nline\u0000 two\u0007',
+      title: evil + 'x'.repeat(300), date: '2020-13-45', note: 'line one\nline\u0000 two\u0007',
       source: 'A book', encounter: 'no-such-encounter', id: '../../etc', example: true, added: 1, extra: 'ignored',
     });
     const rec = made.json && made.json.archive.records.find((r) => r.id === made.json.id);
-    check(made.status === 200 && rec && rec.title.length === 120 && !('status' in rec) && !('domain' in rec) && rec.date === '' && rec.encounter === '' &&
+    check(made.status === 200 && rec && rec.title.length === 120 && rec.date === '' && rec.encounter === '' &&
       rec.note === 'line one\nline two' && rec.example === false && rec.id !== '../../etc' && !('extra' in rec) && rec.added > 1,
-      'a new record is cleaned: lengths capped, no state or domain, a bad date and an unknown encounter left empty, control characters stripped, id and flags set by the server');
+      'a new record is cleaned: lengths capped, unknown fields dropped, a bad date and an unknown encounter left empty, control characters stripped, id and flags set by the server');
     check((await write('POST', '/api/records', { title: '   ' })).status === 400, 'a record without a title is refused');
     const dated = async (date) => { const r = await write('POST', '/api/records', { title: 'Dated', date }); await write('DELETE', '/api/records/' + r.json.id); return r.json.archive.records.find((x) => x.id === r.json.id).date; };
     check((await dated('2024-02-30')) === '' && (await dated('2023-02-29')) === '' && (await dated('2024-02-29')) === '2024-02-29', 'a date that does not exist (30 February) is left empty, a leap day kept');
@@ -434,7 +434,7 @@ async function apiChecks() {
 
     // the About page
     const about = await write('PUT', '/api/about', {
-      name: 'Smoke ' + evil, epithet: 'e'.repeat(400), portrait: 'nope', title: 't'.repeat(99), race: 'Dracthyr', eyeColor: 'red; background: url(x)',
+      name: 'Smoke ' + evil, epithet: 'e'.repeat(400), title: 't'.repeat(99), race: 'Dracthyr', eyeColor: 'red; background: url(x)',
       currently: 'line one\nline\u0000 two', admin: true,
       facts: [{ label: 'Motto', value: 'v' }, { label: ' ', value: '' }, ...Array.from({ length: 30 }, (_, i) => ({ label: 'L' + i, value: 'v' }))],
       traits: [{ left: 'Chaotic', right: 'Lawful', value: 99 }, { left: 'A', right: 'B', value: -4 }, { left: 'C', right: 'D', value: 'x' }, { left: 'E', right: 'F', value: 7.6 }, { left: '', right: '' }],
@@ -442,11 +442,11 @@ async function apiChecks() {
       sections: [{ heading: 'History', body: '{h1:c}Title{/h1}\n' + 'b'.repeat(45000), color: 'red; background: url(x)' }, 'junk', null, { heading: '', body: '' }],
     });
     const ab = about.json && about.json.archive;
-    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 && !('portrait' in ab.about) &&
+    check(about.status === 200 && ab.profile.name === ('Smoke ' + evil).slice(0, 60) && ab.profile.epithet.length === 280 &&
       ab.about.facts.length === 24 && ab.about.facts[0].label === 'Motto' && ab.about.sections.length === 1 && ab.about.sections[0].body.length === 40000 &&
       ab.about.sections[0].body.startsWith('{h1:c}Title{/h1}') && ab.about.sections[0].color === '' && ab.about.title.length === 60 && ab.about.race === 'Dracthyr' && ab.about.eyeColor === '' &&
       ab.about.currently === 'line one\nline two' && ab.about.traits.map((t) => t.value).join() === '20,0,10,8' && ab.about.glances.length === 5 && !('admin' in ab.about),
-      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and a portrait dropped, TRP markup kept as text');
+      'the About page is cleaned: lengths and counts capped, empty rows dropped, traits kept within 0–20, a bad colour and an unknown field dropped, TRP markup kept as text');
     const aboutPage = await call('GET', '/');
     check(!aboutPage.text.match(/<script type="application\/json" id="ca-data">([\s\S]*?)<\/script>/)[1].includes('<') && archiveIn(aboutPage.text).profile.name.startsWith('Smoke </script>'),
       "markup in the About page is escaped in the page's data block");
@@ -821,28 +821,6 @@ async function wordRaceChecks() {
     }
     check(seen.every((x) => x === '401' || x === '200 before the change'),
       `a login with the old word while the word is changed is either over before the change or refused (${seen.join(', ')})`);
-  } finally {
-    s.stop();
-  }
-}
-
-// ---------- 1b. an archive saved before plates had several images ----------
-async function legacyChecks() {
-  const png = makePng(20, 10);
-  const name = crypto.createHash('sha256').update(png).digest('hex').slice(0, 32) + '.png';
-  const s = await startServer('legacy', { COOKIE_SECURE: 'false' }, (dir) => {
-    fs.mkdirSync(path.join(dir, 'art'), { recursive: true, mode: 0o700 });
-    fs.writeFileSync(path.join(dir, 'art', name), png);
-    fs.writeFileSync(path.join(dir, 'archive.json'), JSON.stringify({
-      profile: { name: 'Old' }, records: [], about: { portrait: 'aold', facts: [], sections: [] }, // portraits are no longer kept
-      art: [{ id: 'aold', file: name, thumb: name, width: 20, height: 10, title: 'Old plate', date: '2026-01-01', added: 1 }],
-    }));
-  });
-  try {
-    const a = archiveIn((await request(s.port, 'GET', '/')).text);
-    const v = a.art[0] && a.art[0].versions && a.art[0].versions[0];
-    check(v && v.file === name && v.width === 20 && v.mature === false && v.id === 'v' + name.slice(0, 12) && !('portrait' in a.about) &&
-      (await request(s.port, 'GET', '/art/' + name)).status === 200, 'a plate saved with one image becomes a plate of one image and is still served; an old portrait is dropped');
   } finally {
     s.stop();
   }
@@ -1707,7 +1685,7 @@ function launch() {
   fs.mkdirSync(OUT, { recursive: true });
   const only = (process.env.SMOKE_ONLY || '').split(',').filter(Boolean);
   for (const [key, name, fn] of [['api', 'API checks', apiChecks], ['private', 'private section checks', privateChecks], ['race', 'word race checks', wordRaceChecks],
-    ['legacy', 'older archive checks', legacyChecks], ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks]]) {
+    ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks]]) {
     if (only.length && !only.includes(key)) { console.log(`SKIP  ${name} (SMOKE_ONLY)`); continue; }
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }
