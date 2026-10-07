@@ -1128,8 +1128,11 @@ async function browserChecks() {
     await page.click('.tab[data-book="encounters"]');
     await page.click('#btn-add-encounter');
     await page.fill('#ef-title', onlyMe);
-    await page.check('#ef-sealed');
     await page.fill('#ef-text', 'Nobody else. ' + xss);
+    await page.check('#ef-sealed'); // a private encounter has only its private section: what was written moves there
+    const privateForm = await page.evaluate(() => ({ hidden: document.getElementById('ef-text-field').hidden, text: document.getElementById('ef-text').value, priv: document.getElementById('ef-private').value }));
+    check(privateForm.hidden && privateForm.text === '' && privateForm.priv === 'Nobody else. ' + xss,
+      'ticking Private Encounter hides "What happened" and moves what was written there into the private section');
     await page.click('#ef-submit');
     await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 10000 });
     const onlyHash = await page.evaluate(() => location.hash);
@@ -1266,7 +1269,7 @@ async function browserChecks() {
     await page.click('#det-source .link-to');
     await page.waitForFunction((t) => !document.getElementById('view-encounter').hidden && document.getElementById('enc-title').textContent === t, onlyMe, { timeout: 10000 }).catch(() => {});
     await page.click('#enc-edit');
-    await page.fill('#ef-text', 'Revised as the seal came and went.');
+    await page.fill('#ef-date', '2026-02-03');
     await page.evaluate(async () => { // sealed from elsewhere; the tab notices as soon as it is looked at
       const s = await (await fetch('api/session')).json();
       await fetch('api/logout', { method: 'POST', headers: { 'X-CSRF-Token': s.csrf } });
@@ -1283,7 +1286,7 @@ async function browserChecks() {
     await page.unroute('**/api/private');
     await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 10000 }).catch(() => {});
     const mine = (await keeperView()).encounters.filter((e) => e.title === onlyMe);
-    check(mine.length === 1 && mine[0].text === 'Revised as the seal came and went.',
+    check(mine.length === 1 && mine[0].date === '2026-02-03',
       `an encounter only for the keeper, revised as the session ends and saved just after unsealing again, is revised, not saved a second time (${mine.length} now)`);
     const druid = (await keeperView()).encounters.find((e) => e.title === 'An encounter with a druid');
     await holdPrivate();
