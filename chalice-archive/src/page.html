@@ -161,6 +161,19 @@ button, input, textarea { font: inherit; color: inherit; }
   .hub-label { text-indent: 0; }
 }
 
+/* ---------- A landing without a centerpiece (build.py hides the construct when the site has none): the archive's name and the four chapters, at once, and for good ---------- */
+.stage.bare { align-content: center; gap: clamp(24px, 5vh, 44px); }
+.stage.bare .landing-title { position: static; width: auto; height: auto; max-width: min(900px, 100%); margin: 0; overflow: visible; clip-path: none; white-space: normal; text-align: center; text-wrap: balance;
+  font-family: var(--font-title); font-size: clamp(30px, 6.4vw, 56px); font-weight: 700; line-height: 1.12; letter-spacing: .04em; color: var(--ink); text-shadow: 0 0 28px rgb(var(--teal-rgb) / .32), 0 2px 18px rgb(var(--shade-rgb) / .9); }
+.stage.bare .landing-pre { display: block; margin-bottom: 12px; font-size: clamp(12px, 1.7vw, 14px); line-height: 1.4; letter-spacing: .32em; text-indent: .32em; text-transform: uppercase; color: rgb(var(--teal-rgb) / .78); text-shadow: none; }
+.stage.bare .core, .stage.bare.has-hub .core { translate: none; }
+.stage.bare .hub { position: static; translate: none; }
+@media (max-height: 560px) and (min-aspect-ratio: 5/4) { /* short landscape screens: still one row, beneath the name */
+  .stage.bare .hub { flex-direction: row; }
+  .stage.bare .hub-opt { width: clamp(100px, 21vw, 172px); justify-items: center; text-align: center; }
+  .stage.bare .hub-label { text-indent: .16em; }
+}
+
 /* ---------- The archive: an old tome ---------- */
 .archive { width: min(980px, calc(100% - 32px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 0; background: transparent; color: var(--sepia); overflow: visible; font-family: var(--font-book); }
 .archive::backdrop { background: radial-gradient(ellipse at 50% 45%, rgb(var(--umber-rgb) / .74), rgb(var(--umber-rgb) / .9)); backdrop-filter: blur(2px); }
@@ -680,7 +693,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 <main class="stage" id="stage">
   <div class="nebula" aria-hidden="true"><i></i><i></i><i></i></div>
   <canvas class="motes" id="motes" aria-hidden="true"></canvas>
-  <h1 class="sr-only">The archive of <span id="pf-name">Unnamed Dracthyr</span></h1>
+  <h1 class="sr-only landing-title" id="landing-title"><span class="landing-pre">The archive of </span><span id="pf-name">Unnamed Dracthyr</span></h1>
   <div class="core" id="core">
     <button class="construct" id="construct" type="button" aria-label="Open the archive" aria-haspopup="dialog">
       <span class="fx fx-x"><span class="fx fx-y"><span class="fx fx-tilt">
@@ -1562,6 +1575,9 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
 
   // ---------- Landing: the construct alone; the name is there for screen readers ----------
+  // A site may have no centerpiece: build.py leaves the construct in the page, hidden, when it has no cutout. The
+  // landing then shows the archive's name and the four chapters straight away, and keeps them when the tome closes.
+  var CENTERPIECE = !el.construct.hidden;
   function renderLanding() {
     var name = state.profile.name || "Unnamed Dracthyr";
     el.pfName.textContent = name;
@@ -2556,8 +2572,10 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   // image takes its place or the visitor moves on. The first time, they are asked their age; the answer holds for
   // this tab until it is closed. Under 18, mature images stay covered.
   // The X marks, on the landing and on the tome, lead to @dezeptdrac on X, which holds mature content. Each time,
-  // the same card warns of it first, asking the age unless it is known; only then does it hold the link itself (in
-  // the preview's viewer, a link is the one way out). Under 18, there is no link.
+  // the same card warns of it first. Asked the age, 18 or older opens X at once; once the age is known, the card
+  // holds the link itself. Under 18, there is no way on. X opens from the card's link either way, clicked by the page
+  // or by the visitor: the preview's viewer refuses a window a page opens for most viewers, and may refuse that click
+  // too, but never the visitor's own (the mark then offers the link, the age being known).
   var shown = null; // the id of the one mature image on view, uncovered
   var ageMemo = "", gateThen = null, gateFrom = null, gateX = false;
   function ageAnswer() { try { return sessionStorage.getItem("ca-age") || ageMemo; } catch (e) { return ageMemo; } }
@@ -2594,6 +2612,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   function renderGate(mode) {
     el.gateTitle.textContent = gateX ? "Mature content" : "Mature art";
+    el.gateGo.textContent = gateX ? "Continue to X" : "Continue";
     el.gateText.textContent = !gateX ? (mode === "ask" ? "This image is marked as mature. How old are you?" : "Mature images are only for those 18 or older.")
       : mode === "denied" ? "@dezeptdrac on X is only for those 18 or older."
       : "@dezeptdrac on X contains mature content. " + (mode === "ask" ? "How old are you?" : "It opens in a new tab.");
@@ -2616,7 +2635,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     if (!/^\d{1,3}$/.test(text) || age < 1 || age > 130) { el.gateError.textContent = "Enter your age in years."; el.gateError.hidden = false; el.gateAge.focus(); return; }
     if (age < 18) { setAge("minor"); renderGate("denied"); el.gateBack.focus(); return; }
     setAge("adult");
-    if (gateX) { renderGate("go"); el.gateX.focus(); return; } // X opens only from the link: a page's own window is refused in the preview
+    if (gateX) { el.gateX.click(); return; } // X opens in a new tab, and the card closes
     var then = gateThen;
     closeGate();
     if (then) then();
@@ -3944,6 +3963,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   var gemHover = false;
   function setGemHover(on) { if (on === gemHover) return; gemHover = on; el.stage.classList.toggle("on-gem", on); }
   function onGem(x, y) {
+    if (!CENTERPIECE) return false;
     if (el.core.classList.contains("is-3d")) return model3d.gemAt(x, y);
     var g = el.construct.querySelector(".gem").getBoundingClientRect(); // the cutout's gem, while the model is not drawn
     var dx = x - (g.left + g.width / 2), dy = y - (g.top + g.height / 2);
@@ -3999,8 +4019,12 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     motes.resume();
     model3d.resume();
     setHash();
-    hideHub(); // the choices go with the tome: the gem has to be woken again to bring them back
-    el.construct.focus({ preventScroll: true });
+    if (CENTERPIECE) {
+      hideHub(); // the choices go with the tome: the gem has to be woken again to bring them back
+      el.construct.focus({ preventScroll: true });
+    } else { // the choices are all there is: the focus goes back to the chapter's own
+      (el.hub.querySelector('.hub-opt[data-book="' + currentBook + '"]') || el.hub.querySelector(".hub-opt")).focus({ preventScroll: true });
+    }
   });
   el.detBack.addEventListener("click", function () { showView("overview"); });
   el.detEdit.addEventListener("click", function () { openForm(detailId); });
@@ -4035,6 +4059,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
   // ---------- Boot ----------
   renderLanding();
+  if (!CENTERPIECE) { el.stage.classList.add("bare"); showHub(false); }
   motes.resume();
   report({ visit: true, from: document.referrer });
   route();

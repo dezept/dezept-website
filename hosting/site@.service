@@ -1,0 +1,58 @@
+# /etc/systemd/system/site@.service: one site on this VPS, served from its folder /srv/sites/<folder> as its own
+# unprivileged user, on loopback only, behind Caddy. `sites setup` installs it; `sites link <folder> <domain>` starts
+# site@<folder>. hosting/README.md has the whole setup.
+[Unit]
+Description=Site %i (/srv/sites/%i)
+After=network.target
+
+[Service]
+Type=simple
+User=site-%i
+Group=site-%i
+WorkingDirectory=/srv/sites/%i
+ExecStart=/usr/bin/node /srv/sites/%i/server/server.mjs
+Environment=HOST=127.0.0.1 TRUST_PROXY=true SESSION_HOURS=12 DATA_DIR=/var/lib/sites/%i
+# PORT and PUBLIC_ORIGIN, which `sites link` keeps up to date, and any lines of your own, such as TZ=Europe/Berlin
+# (the time zone the statistics count their days in; without it, the system's, usually UTC)
+EnvironmentFile=/etc/sites/%i.env
+Restart=on-failure
+RestartSec=2
+
+# The site's records, its word's hash and its backups live here, owned by its user, mode 0700
+StateDirectory=sites/%i
+StateDirectoryMode=0700
+UMask=0077
+
+# Hardening: the process can read its folder, write only its state directory, and talk only to loopback
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+IPAddressDeny=any
+IPAddressAllow=localhost
+# scrypt needs 128 MiB per login check; checks run one at a time
+MemoryMax=512M
+# MemoryDenyWriteExecute stays off: Node's JavaScript engine compiles code at run time.
+
+[Install]
+WantedBy=multi-user.target

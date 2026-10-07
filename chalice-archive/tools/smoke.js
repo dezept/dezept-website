@@ -8,7 +8,8 @@ Environment:
   CHROME       path to a Chromium/Chrome binary (default: Playwright's own install)
   CHROME_ARGS  extra browser flags, space-separated
   HTTPS_PROXY  used for the CDN requests when set
-  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, stats, browser, preview
+  SMOKE_ONLY   run only some of the checks, comma-separated: api, private, race, stats, browser, preview, sites
+  CADDY        a caddy binary, for the sites checks' run behind Caddy (else one on the PATH; skipped without)
 
 Checks:
   1. Over HTTP, against a server set up as in production (Secure cookies, PUBLIC_ORIGIN, TRUST_PROXY):
@@ -77,9 +78,9 @@ Checks:
      it can no longer be read. A drag to select text, let go outside the tome, does not close it. Cancel while an art
      piece uploads stops it: nothing is saved, and the page stays where the keeper went. A session check answered after
      the tab was sealed does not unseal it again. The X marks, in the stage's corner and on the tome in every chapter
-     (also on a phone's screen), warn of mature content first and ask the age unless it is known; only at 18 or older
-     does the warning hold the link, which opens x.com/dezeptdrac in a new tab without the opener or a referrer, and
-     under 18 there is none; nothing wakes the construct. A visitor's browsing shows in the keeper's Statistics,
+     (also on a phone's screen), warn of mature content first and ask the age unless it is known; at 18 or older X
+     opens at once, and once the age is known the warning holds the link; either way x.com/dezeptdrac opens in a new
+     tab without the opener or a referrer. Under 18 there is no way on; nothing wakes the construct. A visitor's browsing shows in the keeper's Statistics,
      the keeper's own does not; a visitor has no Statistics tab, and their address shows them Character Knowledge;
      sealed, the numbers leave the page; the keeper's address of them opens them after a reload; on a phone the
      keeper's panel leads there.
@@ -89,6 +90,11 @@ Checks:
      cover; the X mark warns first, then a real link opens X; the stand-in server accepts only "preview", the About
      page can be amended and records and plates added, and a reload forgets them; the Statistics tab shows made-up
      numbers, said to be examples. The real page carries no trace of the stand-in.
+  4. ../hosting/sites.mjs, in a directory of its own with the system's commands only shown: what it refuses, what it
+     writes for this site and for a copy of it without a centerpiece (as a friend's site is made), list, password,
+     restart and unlink; with CADDY, both sites behind Caddy with the configuration it wrote, each domain reaching
+     its own site, and nothing without Cloudflare's client certificate. The copy's landing shows the archive's name
+     and the four chapters at once, loads no model, and keeps them when the tome closes.
 Screenshots go to tools/.smoke/.
 */
 const fs = require('fs');
@@ -97,7 +103,8 @@ const http = require('http');
 const net = require('net');
 const crypto = require('crypto');
 const zlib = require('zlib');
-const { spawn } = require('child_process');
+const https = require('https');
+const { spawn, spawnSync } = require('child_process');
 const { chromium } = require('playwright-core');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -1008,7 +1015,8 @@ async function browserChecks() {
     const gateNow = () => page.evaluate(() => {
       const g = document.getElementById('gate');
       return { open: !g.hidden, overLanding: g.parentElement === document.body && document.getElementById('stage').inert, title: document.getElementById('gate-title').textContent,
-        text: document.getElementById('gate-text').textContent, asks: !document.getElementById('gate-field').hidden, link: !document.getElementById('gate-x').hidden, focus: document.activeElement.id };
+        text: document.getElementById('gate-text').textContent, asks: !document.getElementById('gate-field').hidden, link: !document.getElementById('gate-x').hidden, focus: document.activeElement.id,
+        go: document.getElementById('gate-go').textContent };
     });
     const warned = await page.waitForFunction(() => !document.getElementById('gate').hidden && document.activeElement.id === 'gate-age', null, { timeout: 3000 }).then(gateNow, () => gateNow());
     await page.click('#gate-back');
@@ -1021,7 +1029,7 @@ async function browserChecks() {
     ctx.off('page', onTab);
     check(social.tag === 'BUTTON' && !social.href && social.name === '@dezeptdrac on X' && social.corner && social.apart &&
       warned && warned.open && warned.overLanding && warned.title === 'Mature content' && warned.text === '@dezeptdrac on X contains mature content. How old are you?' &&
-      warned.asks && !warned.link && warned.focus === 'gate-age' && !wentBack.open && wentBack.focus === 'x-stage' && !escaped.open && escaped.focus === 'x-stage' &&
+      warned.asks && warned.go === 'Continue to X' && !warned.link && warned.focus === 'gate-age' && !wentBack.open && wentBack.focus === 'x-stage' && !escaped.open && escaped.focus === 'x-stage' &&
       !(await page.evaluate(() => document.getElementById('stage').inert)) && tabsOpened.length === 0 && await page.$('#hub[hidden]') !== null,
       "the X mark sits in the stage's corner, apart from the construct; it warns of mature content first and asks the age, with no way on to X yet, and Go back or Escape leave the landing as it was, waking nothing");
 
@@ -1530,8 +1538,8 @@ async function browserChecks() {
       'under 18, the warning before X holds no link, and does not ask again');
     await minorCtx.close();
 
-    // On a phone, the X mark on the landing warns and asks; at 18 or older the warning then holds the link, which opens
-    // X. The tome's mark is in every chapter, on the screen and clear of the corner, the ribbon and the clasp, even with
+    // On a phone, the X mark on the landing warns and asks; at 18 or older, Continue opens X at once, without the
+    // opener or a referrer, and the card closes. The tome's mark is in every chapter, on the screen and clear of the corner, the ribbon and the clasp, even with
     // the tome pushed down by a tab on two lines (Character Knowledge's, as it is open).
     const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     await phoneCtx.route('https://x.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'X' }));
@@ -1541,15 +1549,14 @@ async function browserChecks() {
     await phone.tap('#x-stage');
     await phone.waitForSelector('#gate:not([hidden]) #gate-field:not([hidden])', { timeout: 3000 }).catch(() => {});
     await phone.fill('#gate-age', '30');
-    await phone.keyboard.press('Enter');
-    const phoneReady = await phone.waitForFunction(() => !document.getElementById('gate-x').hidden && document.getElementById('gate-field').hidden && document.activeElement.id === 'gate-x', null, { timeout: 3000 }).then(() => true, () => false);
-    const [phoneTab] = phoneReady ? await Promise.all([phoneCtx.waitForEvent('page', { timeout: 5000 }).catch(() => null), phone.tap('#gate-x')]) : [null];
+    const [phoneTab] = await Promise.all([phoneCtx.waitForEvent('page', { timeout: 5000 }).catch(() => null), phone.tap('#gate-go')]);
     if (phoneTab) await phoneTab.waitForLoadState('domcontentloaded').catch(() => {});
-    const phoneUrl = phoneTab ? phoneTab.url() : '';
+    const phoneOut = phoneTab ? await phoneTab.evaluate(() => ({ url: location.href, opener: window.opener, referrer: document.referrer })).catch(() => null) : null;
     if (phoneTab) await phoneTab.close();
     await phone.bringToFront();
-    check(phoneReady && phoneUrl === 'https://x.com/dezeptdrac' && await phone.waitForFunction(() => document.getElementById('gate').hidden && !document.getElementById('stage').inert, null, { timeout: 3000 }).then(() => true, () => false),
-      `on a phone, at 18 or older, the warning on the landing then holds the link to X, which opens it (${phoneUrl || 'no tab'})`);
+    check(phoneOut && phoneOut.url === 'https://x.com/dezeptdrac' && phoneOut.opener === null && phoneOut.referrer === '' &&
+      await phone.waitForFunction(() => document.getElementById('gate').hidden && !document.getElementById('stage').inert, null, { timeout: 3000 }).then(() => true, () => false),
+      `on a phone, at 18 or older, Continue on the warning opens X at once, without the opener or a referrer, and the card closes (${phoneOut ? phoneOut.url : 'no tab'})`);
     await phone.evaluate(() => { location.hash = '#knowledge'; });
     await phone.waitForSelector('#archive[open]', { timeout: 10000 }).catch(() => {});
     await phone.waitForTimeout(700); // the tome's entrance
@@ -1981,6 +1988,194 @@ async function previewChecks() {
   }
 }
 
+// ---------- the sites on one machine ----------
+// hosting/sites.mjs, run in a directory of its own (SITES_ROOT) with the system's commands only shown (SITES_DRY_RUN):
+// what it refuses and what it writes. Then the two sites it set up, this one and a copy of it without a centerpiece,
+// run as site@.service runs them, behind Caddy with the configuration sites wrote (with CADDY, a caddy binary, or one
+// on the PATH; skipped without), and the copy's landing is looked at in the browser.
+async function sitesChecks() {
+  const HOSTING = path.join(ROOT, '..', 'hosting');
+  if (!fs.existsSync(path.join(HOSTING, 'sites.mjs'))) { console.log('SKIP  sites checks (no hosting/ beside this site)'); return; }
+  const top = path.join(OUT, 'sites');
+  fs.rmSync(top, { recursive: true, force: true });
+  const root = path.join(top, 'root'), work = path.join(top, 'work');
+  fs.mkdirSync(work, { recursive: true });
+  const base = 20000 + Math.floor(Math.random() * 20000);
+  const senv = { ...process.env, SITES_ROOT: root, SITES_DRY_RUN: '1', SITES_FIRST_PORT: String(base) };
+  const sites = (...args) => { const r = spawnSync(process.execPath, [path.join(HOSTING, 'sites.mjs'), ...args], { env: senv, encoding: 'utf8' }); return { code: r.status, out: (r.stdout || '') + (r.stderr || '') }; };
+  const ssl = (...args) => { const r = spawnSync('openssl', args, { cwd: work, encoding: 'utf8' }); if (r.status !== 0) throw new Error(`openssl ${args[0]}: ${r.stderr || r.error}`); };
+  const certs = path.join(root, 'etc/caddy/certs'), sitesDir = path.join(root, 'srv/sites');
+  const at = (p) => path.join(root, p), read = (p) => { try { return fs.readFileSync(at(p), 'utf8'); } catch { return null; } };
+  // a certificate as Cloudflare's Origin CA makes them: a leaf for some names, its key beside it
+  const leaf = (name, names, days) => ssl('req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes', '-days', String(days), '-subj', '/CN=CloudFlare Origin Certificate',
+    '-addext', 'subjectAltName=' + names.map((n) => 'DNS:' + n).join(','), '-addext', 'basicConstraints=CA:FALSE', '-keyout', path.join(certs, name + '.key'), '-out', path.join(certs, name + '.pem'));
+
+  check(sites('link', 'dezept', 'archive.test').code === 1 && /not set up/.test(sites('link', 'dezept', 'archive.test').out), 'sites: nothing is linked before the machine is set up');
+  const setup = sites('setup', 'tester');
+  const caddyfile = read('etc/caddy/Caddyfile') || '';
+  check(setup.code === 0 && read('etc/systemd/system/site@.service') === fs.readFileSync(path.join(HOSTING, 'site@.service'), 'utf8') &&
+    caddyfile === fs.readFileSync(path.join(HOSTING, 'Caddyfile'), 'utf8').replaceAll('/etc/caddy/', at('etc/caddy') + '/') && caddyfile.includes(`import ${at('etc/caddy/sites')}/*.caddy`) &&
+    fs.realpathSync(at('usr/local/bin/sites')) === fs.realpathSync(path.join(HOSTING, 'sites.mjs')) && fs.statSync(sitesDir).isDirectory() &&
+    /chown tester .*srv\/sites/.test(setup.out) && /chown root:caddy .*certs/.test(setup.out) && /caddy validate/.test(setup.out) && /systemctl restart caddy/.test(setup.out),
+    `sites setup installs the service template, Caddy's configuration and the command, and makes the folders, /srv/sites for the given login (${setup.code}: ${setup.out.trim().split('\n').pop()})`);
+
+  // what link refuses
+  fs.symlinkSync(ROOT, path.join(sitesDir, 'dezept'));
+  fs.mkdirSync(path.join(sitesDir, 'half/server'), { recursive: true });
+  fs.writeFileSync(path.join(sitesDir, 'half/server/server.mjs'), '');
+  fs.mkdirSync(path.join(sitesDir, 'Not_A_Site'));
+  const refusals = [
+    [['link', 'Person_2', 'friend.friends.test'], /cannot name a site/], [['link', '../etc', 'friend.friends.test'], /cannot name a site/],
+    [['link', 'a'.repeat(28), 'friend.friends.test'], /cannot name a site/], [['link', 'dezept', 'https://archive.test/'], /domain alone/],
+    [['link', 'dezept', 'archive.test:8443'], /domain alone/], [['link', 'dezept', 'archive'], /is not a domain/], [['link', 'dezept', 'a..test'], /is not a domain/],
+    [['link', 'dezept', '-a.test'], /is not a domain/], [['link', 'dezept', '10.0.0.1'], /is not a domain/], [['link', 'nobody', 'friend.friends.test'], /There is no folder/],
+    [['link', 'half', 'half.friends.test'], /not a whole site: it has no dist\/index\.html/], [['link', 'dezept', 'archive.test'], /origin-pull CA is missing/],
+  ];
+  const refusedAll = refusals.filter(([args, re]) => { const r = sites(...args); return !(r.code === 1 && re.test(r.out)); }).map(([args]) => args.join(' '));
+  // Cloudflare's part: the CA of its client certificate, and that certificate
+  ssl('req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes', '-days', '30', '-subj', '/CN=Test Pull CA', '-addext', 'basicConstraints=critical,CA:TRUE',
+    '-addext', 'keyUsage=critical,keyCertSign', '-keyout', 'pull-ca.key', '-out', path.join(certs, 'cloudflare-origin-pull-ca.pem'));
+  ssl('req', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes', '-subj', '/CN=Cloudflare', '-keyout', 'client.key', '-out', 'client.csr');
+  fs.writeFileSync(path.join(work, 'client.ext'), 'extendedKeyUsage=clientAuth\n');
+  ssl('x509', '-req', '-in', 'client.csr', '-CA', path.join(certs, 'cloudflare-origin-pull-ca.pem'), '-CAkey', 'pull-ca.key', '-CAcreateserial', '-days', '30', '-extfile', 'client.ext', '-out', 'client.pem');
+  const noCert = sites('link', 'dezept', 'archive.test');
+  leaf('wrong', ['archive.test'], 30);
+  fs.copyFileSync(path.join(certs, 'cloudflare-origin-pull-ca.pem'), path.join(certs, 'other.pem')); // a CA certificate covers no site
+  ssl('genpkey', '-algorithm', 'EC', '-pkeyopt', 'ec_paramgen_curve:P-256', '-out', path.join(certs, 'wrong.key')); // a key, but not wrong.pem's
+  const wrongKey = sites('link', 'dezept', 'archive.test');
+  check(!refusedAll.length && noCert.code === 1 && noCert.out.includes(`${certs}/archive.test.pem`) && noCert.out.includes('Create Certificate') &&
+    wrongKey.code === 1 && /wrong\.pem covers archive\.test, but wrong\.key is not its key/.test(wrongKey.out) && !fs.existsSync(at('etc/sites/dezept.env')),
+    `sites link refuses a folder name that cannot name a user, anything but a bare domain, a missing or half folder, a missing origin-pull CA, a domain no certificate covers (saying where Cloudflare's goes) and a certificate without its key, and writes nothing then${refusedAll.length ? ': not ' + refusedAll.join(' | ') : ''}`);
+  fs.rmSync(path.join(certs, 'wrong.pem')); fs.rmSync(path.join(certs, 'wrong.key'));
+
+  // two sites: this one, and a copy of it without a centerpiece, built as a friend's site would be
+  leaf('archive.test', ['archive.test'], 30);
+  leaf('friends', ['*.friends.test', 'friends.test'], 60);
+  leaf('friend.friends.test', ['friend.friends.test'], 20); // shorter, but named for the domain: it goes first
+  const friend = path.join(sitesDir, 'friend');
+  for (const part of ['build.py', 'src', 'server', 'assets/fonts', 'assets/vendor', 'assets/examples']) fs.cpSync(path.join(ROOT, part), path.join(friend, part), { recursive: true });
+  const built = spawnSync('python3', ['build.py'], { cwd: friend, encoding: 'utf8' });
+  const one = sites('link', 'dezept', 'archive.test'), two = sites('link', 'friend', 'friend.friends.test');
+  const dezeptEnv = read('etc/sites/dezept.env') || '', friendEnv = read('etc/sites/friend.env') || '';
+  const block = (name) => read(`etc/caddy/sites/${name}.caddy`) || '';
+  check(one.code === 0 && two.code === 0 && /no centerpiece/.test(built.stdout) &&
+    new RegExp(`^PORT=${base}$`, 'm').test(dezeptEnv) && /^PUBLIC_ORIGIN=https:\/\/archive\.test$/m.test(dezeptEnv) &&
+    new RegExp(`^PORT=${base + 1}$`, 'm').test(friendEnv) && /^PUBLIC_ORIGIN=https:\/\/friend\.friends\.test$/m.test(friendEnv) &&
+    block('dezept').includes(`https://archive.test {\n\timport site 127.0.0.1:${base} ${certs}/archive.test.pem ${certs}/archive.test.key\n}`) &&
+    block('friend').includes(`https://friend.friends.test {\n\timport site 127.0.0.1:${base + 1} ${certs}/friend.friends.test.pem ${certs}/friend.friends.test.key\n}`) &&
+    /useradd --system --user-group .* site-dezept/.test(one.out) && /runuser -u site-dezept -- test -r/.test(one.out) && /systemctl enable --quiet site@dezept/.test(one.out) &&
+    /systemctl restart site@dezept/.test(one.out) && /chown root:caddy .*archive\.test\.key/.test(one.out) && /caddy validate/.test(one.out) && /systemctl restart caddy/.test(one.out) &&
+    /online at https:\/\/archive\.test/.test(one.out) && /sudo sites password dezept/.test(one.out),
+    `sites link gives each site a port of its own, its address, its user and service, and a Caddy block with the certificate that covers its domain (one named for it first); this site and a copy without a centerpiece (${one.code}/${two.code})`);
+  const taken = sites('link', 'friend', 'archive.test');
+  fs.appendFileSync(at('etc/sites/dezept.env'), 'TZ=Europe/Berlin\n');
+  const again = sites('link', 'dezept', 'archive.test');
+  const kept = read('etc/sites/dezept.env') || '';
+  check(taken.code === 1 && /already the address of dezept/.test(taken.out) && (read('etc/sites/friend.env') || '') === friendEnv &&
+    again.code === 0 && (kept.match(/^PORT=/gm) || []).length === 1 && new RegExp(`^PORT=${base}$`, 'm').test(kept) && /^TZ=Europe\/Berlin$/m.test(kept),
+    "a domain already in use is refused; linking a site again keeps its port and the lines of the owner's own (TZ) in its file");
+  const listed = sites('list').out;
+  const pw = sites('password', 'dezept'), forget = sites('password', 'dezept', '--forget-private'), bogus = sites('password', 'dezept', '--now');
+  const restarted = sites('restart', 'dezept');
+  check(new RegExp(`dezept\\s+https://archive\\.test\\s+${base}`).test(listed) && new RegExp(`friend\\s+https://friend\\.friends\\.test\\s+${base + 1}`).test(listed) &&
+    /half\s+not linked/.test(listed) && /Not_A_Site\s+cannot be linked/.test(listed) &&
+    pw.code === 0 && pw.out.includes(`runuser -u site-dezept -- env DATA_DIR=${at('var/lib/sites/dezept')} /usr/bin/node ${sitesDir}/dezept/server/server.mjs set-password`) &&
+    /set-password --forget-private/.test(forget.out) && bogus.code === 1 && /Usage/.test(bogus.out) && restarted.code === 0 && /systemctl restart site@dezept/.test(restarted.out),
+    "sites list shows each site's address and port, and the folders not linked; password sets the word as the site's own user, in its own data; restart restarts it");
+
+  // Both sites behind Caddy, as on the machine: Cloudflare's client certificate opens each by its name
+  const caddyBin = process.env.CADDY || (spawnSync('sh', ['-c', 'command -v caddy'], { encoding: 'utf8' }).stdout || '').trim();
+  if (!caddyBin) console.log('SKIP  sites behind Caddy (set CADDY to a caddy binary)');
+  else {
+    const valid = spawnSync(caddyBin, ['validate', '--config', at('etc/caddy/Caddyfile'), '--adapter', 'caddyfile'], { encoding: 'utf8' });
+    check(valid.status === 0, `Caddy accepts the configuration sites wrote (${(valid.stderr || '').trim().split('\n').pop()})`);
+    const httpsPort = base + 500, procs = [];
+    const started = (proc, re, what) => new Promise((resolve, reject) => {
+      let log = '';
+      const t = setTimeout(() => reject(new Error(`${what} did not start: ${log.slice(-300)}`)), 15000);
+      const on = (d) => { log += d; if (re.test(log)) { clearTimeout(t); resolve(); } };
+      proc.stdout.on('data', on); proc.stderr.on('data', on);
+      proc.on('exit', (code) => { clearTimeout(t); reject(new Error(`${what} exited (${code}): ${log.slice(-300)}`)); });
+    });
+    try {
+      for (const name of ['dezept', 'friend']) { // as site@.service runs it: its own folder, its file, its data
+        const vars = Object.fromEntries((read(`etc/sites/${name}.env`) || '').split('\n').filter((l) => /^[A-Z_]+=/.test(l)).map((l) => l.split(/=(.*)/s).slice(0, 2)));
+        const proc = spawn(process.execPath, ['server/server.mjs'], { cwd: path.join(sitesDir, name), env: { ...process.env, ...vars, HOST: '127.0.0.1', TRUST_PROXY: 'true', SESSION_HOURS: '12', DATA_DIR: at(`var/lib/sites/${name}`) } });
+        procs.push(proc);
+        await started(proc, /listening on/, name);
+      }
+      const testCaddyfile = path.join(work, 'Caddyfile');
+      fs.writeFileSync(testCaddyfile, caddyfile.replace('{\n', `{\n\thttps_port ${httpsPort}\n`)); // 443 needs root
+      const caddy = spawn(caddyBin, ['run', '--config', testCaddyfile, '--adapter', 'caddyfile'], { env: { ...process.env, XDG_DATA_HOME: work, XDG_CONFIG_HOME: work } });
+      procs.push(caddy);
+      await started(caddy, /serving initial configuration/, 'Caddy');
+      const client = { cert: fs.readFileSync(path.join(work, 'client.pem')), key: fs.readFileSync(path.join(work, 'client.key')) };
+      const get = (domain, urlPath, withClient = true) => new Promise((resolve) => {
+        const req = https.request({ host: '127.0.0.1', port: httpsPort, path: urlPath, servername: domain, headers: { Host: domain }, ca: [fs.readFileSync(path.join(certs, domain === 'archive.test' ? 'archive.test.pem' : 'friend.friends.test.pem'))],
+          ...(withClient ? client : {}), timeout: 10000 }, (res) => {
+          const chunks = [];
+          res.on('data', (c) => chunks.push(c));
+          res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString('utf8') }));
+        });
+        req.on('error', (e) => resolve({ error: e.code || e.message }));
+        req.on('timeout', () => req.destroy(new Error('timeout')));
+        req.end();
+      });
+      const mine = await get('archive.test', '/'), theirs = await get('friend.friends.test', '/');
+      const model = ((mine.text || '').match(/"(chalice\.[0-9a-f]{12}\.glb)"/) || [])[1];
+      const modelHere = await get('archive.test', '/' + model), modelThere = await get('friend.friends.test', '/' + model);
+      const scriptSrc = (r) => ((r.headers || {})['content-security-policy'] || '').split('; ').find((d) => d.startsWith('script-src ')) || '';
+      check(mine.status === 200 && /id="construct" type="button"/.test(mine.text) && theirs.status === 200 && /id="construct" hidden type="button"/.test(theirs.text) &&
+        !!model && modelHere.status === 200 && modelThere.status === 404 && / 'self'$/.test(scriptSrc(mine)) && !/'self'/.test(scriptSrc(theirs)) && scriptSrc(theirs).startsWith("script-src 'sha256-") &&
+        !mine.headers.server && fs.existsSync(at('var/lib/sites/dezept/archive.json')) && fs.existsSync(at('var/lib/sites/friend/archive.json')),
+        `behind Caddy, each domain reaches its own site: this one with its model, the copy without (no model, no three.js, its script alone in the CSP), each with its own data (${mine.status || mine.error}/${theirs.status || theirs.error})`);
+      const bare = await get('archive.test', '/', false), stranger = await get('other.test', '/');
+      check(!!bare.error && !!stranger.error, `without Cloudflare's client certificate, or by a name no site has, the connection is refused (${bare.error || bare.status}, ${stranger.error || stranger.status})`);
+    } finally {
+      for (const p of procs.reverse()) { p.kill('SIGTERM'); await new Promise((r) => (p.exitCode !== null ? r() : p.once('exit', r))); }
+    }
+  }
+
+  const off = sites('unlink', 'friend');
+  const afterList = sites('list').out;
+  check(off.code === 0 && !fs.existsSync(at('etc/caddy/sites/friend.caddy')) && !fs.existsSync(at('etc/sites/friend.env')) && fs.existsSync(path.join(friend, 'dist/index.html')) &&
+    /systemctl disable --now --quiet site@friend/.test(off.out) && /caddy validate/.test(off.out) && /friend\s+not linked/.test(afterList) && /dezept\s+https:\/\/archive\.test/.test(afterList),
+    'sites unlink takes a site out of Caddy and stops it, leaving its folder and its data; the others stay');
+
+  // The copy's landing in the browser: the name and the four chapters at once, nothing of a model
+  const server = await startServer('no-centerpiece', { SITE_DIR: path.join(friend, 'dist'), COOKIE_SECURE: 'false' });
+  const browser = await launch();
+  try {
+    const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+    const errors = [], asked = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });
+    page.on('request', (r) => asked.push(r.url()));
+    await page.goto(server.url);
+    const landing = await page.waitForFunction(() => document.getElementById('stage').classList.contains('bare'), null, { timeout: 15000 }).then(() => page.waitForTimeout(900)).then(() => page.evaluate(() => {
+      const box = (n) => n.getBoundingClientRect(), title = document.getElementById('landing-title'), opts = [...document.querySelectorAll('#hub .hub-opt')];
+      const seen = (n) => { const b = box(n); return b.width > 0 && b.top >= 0 && b.bottom <= innerHeight; };
+      return { title: title.textContent, titleSeen: seen(title) && box(title).height > 30, opts: opts.filter(seen).length, hub: !document.getElementById('hub').hidden, construct: getComputedStyle(document.getElementById('construct')).display };
+    }), () => null);
+    await page.click('.hub-opt[data-book="about"]');
+    await page.waitForSelector('#archive[open]', { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(600);
+    await page.click('#btn-close');
+    const after = await page.waitForFunction(() => !document.getElementById('archive').open, null, { timeout: 5000 }).then(() => page.evaluate(() => ({
+      hub: !document.getElementById('hub').hidden, focus: document.activeElement.dataset.book || document.activeElement.id })), () => null);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(400);
+    const phone = await page.evaluate(() => ({ wide: document.documentElement.scrollWidth > innerWidth, inside: [...document.querySelectorAll('#landing-title, #hub .hub-opt')].every((n) => { const b = n.getBoundingClientRect(); return b.left >= 0 && b.right <= innerWidth && b.bottom <= innerHeight; }) }));
+    await page.screenshot({ path: path.join(OUT, 'no-centerpiece.png') });
+    check(landing && landing.title === 'The archive of Unnamed Dracthyr' && landing.titleSeen && landing.opts === 4 && landing.hub && landing.construct === 'none' &&
+      !asked.some((u) => /\.glb$|three\.[0-9a-f]+\.js$/.test(u)) && after && after.hub && after.focus === 'about' && !phone.wide && phone.inside && !errors.length,
+      `a site without a centerpiece shows the archive's name and the four chapters at once, loads no model, keeps the chapters when the tome closes (the focus back on the chapter's), fits a phone, with no console errors${errors.length ? ': ' + errors.join(' | ') : ''}`);
+  } finally {
+    await browser.close();
+    await server.stop();
+  }
+}
+
 function launch() {
   return chromium.launch({
     executablePath: process.env.CHROME || undefined,
@@ -1993,7 +2188,7 @@ function launch() {
   fs.mkdirSync(OUT, { recursive: true });
   const only = (process.env.SMOKE_ONLY || '').split(',').filter(Boolean);
   for (const [key, name, fn] of [['api', 'API checks', apiChecks], ['private', 'private section checks', privateChecks], ['race', 'word race checks', wordRaceChecks],
-    ['stats', 'statistics checks', statsChecks], ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks]]) {
+    ['stats', 'statistics checks', statsChecks], ['browser', 'browser checks', browserChecks], ['preview', 'preview checks', previewChecks], ['sites', 'sites checks', sitesChecks]]) {
     if (only.length && !only.includes(key)) { console.log(`SKIP  ${name} (SMOKE_ONLY)`); continue; }
     try { await fn(); } catch (e) { check(false, `${name} completed (${e.message})`); }
   }

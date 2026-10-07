@@ -1,8 +1,8 @@
 #!/bin/sh
 # Lets HTTPS (443) in only from Cloudflare, keeps SSH open, and closes every other incoming port. Uses ufw.
 #
-#   sudo sh deploy/firewall.sh                 SSH on port 22
-#   sudo SSH_PORT=2222 sh deploy/firewall.sh   SSH on another port
+#   sudo sh hosting/firewall.sh                 SSH on port 22
+#   sudo SSH_PORT=2222 sh hosting/firewall.sh   SSH on another port
 #
 # Run it again now and then: it replaces its earlier rules with Cloudflare's current ranges
 # (https://www.cloudflare.com/ips/). Your VPS provider's own firewall, if it has one, works on top of this.

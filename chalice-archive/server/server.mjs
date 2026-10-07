@@ -21,7 +21,7 @@
      SESSION_HOURS=12                      how long a login lasts, 1 to 720 (anything else stops the server, as does a bad PORT)
      TZ=Europe/Berlin                      the time zone the statistics count their days in (the system's, usually UTC, if unset)
 
-   Security, in short (deploy/README.md has the whole picture):
+   Security, in short (hosting/README.md, at the top of the repository, has the whole picture):
      - The keeper's word is stored only as a salted scrypt hash (N=2^17, r=8, p=1), set from the command line,
        so the web never offers a "choose a password" form an attacker could reach first.
      - A login gets a random 256-bit session token in an HttpOnly, SameSite=Strict, Secure cookie (__Host- prefix).
@@ -1122,15 +1122,18 @@ function loadSite() {
   };
   const appHash = inline(/<script id="ca-app">([\s\S]*?)<\/script>/, "app script");
   const styleHash = inline(/<style id="ca-style">([\s\S]*?)<\/style>/, "style block");
-  // The files the page names, each by its hash, so they can be cached for good: the model, three.js and the fonts
+  // The files the page names, each by its hash, so they can be cached for good: the model, three.js and the fonts.
+  // A site whose landing has no centerpiece model has neither model nor three.js.
   const files = new Map();
-  const named = (re, type, what) => {
+  const named = (re, type, what, optional) => {
     const names = new Set([...page.matchAll(re)].map((m) => m[1]));
-    if (!names.size) throw new Error(`${pagePath} does not name ${what}; run python3 build.py`);
+    if (!names.size && !optional) throw new Error(`${pagePath} does not name ${what}; run python3 build.py`);
     for (const name of names) files.set(name, { type, body: fs.readFileSync(path.join(CONFIG.siteDir, name)) });
+    return names.size > 0;
   };
-  named(/"(chalice\.[0-9a-f]{12}\.glb)"/g, "model/gltf-binary", "a model file");
-  named(/"\.\/(three\.[0-9a-f]{12}\.js)"/g, "text/javascript; charset=utf-8", "its three.js file");
+  const model = named(/"([a-z0-9_-]+\.[0-9a-f]{12}\.glb)"/g, "model/gltf-binary", "a model file", true);
+  const three = named(/"\.\/(three\.[0-9a-f]{12}\.js)"/g, "text/javascript; charset=utf-8", "its three.js file", true);
+  if (model && !three) throw new Error(`${pagePath} names a model but not three.js to draw it; run python3 build.py`);
   named(/url\(([a-z0-9-]+\.[0-9a-f]{12}\.woff2)\)/g, "font/woff2", "its fonts");
   return {
     before: parts[0], after: parts[1],
@@ -1138,8 +1141,9 @@ function loadSite() {
     csp: [
       "default-src 'none'",
       // The page's own script, by its hash, and three.js, which the site serves itself ('self': nothing else here is
-      // served as JavaScript, and every response says nosniff). No CDN can run code in the page.
-      `script-src ${appHash} 'self'`,
+      // served as JavaScript, and every response says nosniff). No CDN can run code in the page. Without a model,
+      // the page's own script alone.
+      `script-src ${appHash}${three ? " 'self'" : ""}`,
       // The page's own style, and its fonts, which the site serves too: nothing is asked of any other host
       `style-src ${styleHash}`,
       "font-src 'self'",

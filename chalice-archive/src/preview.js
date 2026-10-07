@@ -389,7 +389,7 @@
     fetch: function (url, opts) {
       opts = opts || {};
       var path = String(url).replace(/^\.?\//, ""), method = (opts.method || "GET").toUpperCase(), sent = (opts.headers || {})["X-CSRF-Token"] || "";
-      if (/^chalice\.[0-9a-f]{12}\.glb$/.test(path)) {
+      if (/^[a-z0-9_-]+\.[0-9a-f]{12}\.glb$/.test(path)) {
         return Promise.resolve(new Response(modelBytes(), { headers: { "Content-Type": "model/gltf-binary" } }));
       }
       if (typeof Blob !== "undefined" && opts.body instanceof Blob) {

@@ -6,10 +6,12 @@
 Writes dist/:
   dist/index.html            the page server/server.mjs serves; it fills in __ARCHIVE__ with the records on each request.
                              Its style and script carry none of src/page.html's comments (strip_comments, below)
-  dist/chalice.<hash>.glb    the construct's 3D model (assets/model/chalice.glb, made by tools/m2_to_glb.py),
-                             named by its SHA-256 so browsers and Cloudflare can cache it for good
+  dist/<model>.<hash>.glb    the centerpiece's 3D model, if the site has one (assets/model/<model>.glb; the chalice's
+                             was made by tools/m2_to_glb.py), named by its SHA-256 so browsers and Cloudflare can
+                             cache it for good
   dist/three.<hash>.js       three.js with its GLTFLoader (assets/vendor/three.module.js, made by tools/vendor_three.mjs),
-                             served by the site itself, so the page runs no script from a CDN; named by its SHA-256 too
+                             served by the site itself, so the page runs no script from a CDN; named by its SHA-256 too.
+                             Only with a model
   dist/<font>.<hash>.woff2   the fonts (assets/fonts/, copied by tools/vendor_fonts.mjs), served by the site itself too, so
                              no visitor's browser asks anyone else for anything; each named by its SHA-256
   dist/preview.html          the preview published as the claude.ai Artifact (git-ignored). The Artifact viewer wraps
@@ -18,11 +20,20 @@ Writes dist/:
                              art from src/preview-examples.json (their images, GIF and video in #ca-files as data: URIs), the model
                              embedded as base64 and src/preview.js standing in for the server.
 
+The centerpiece on the landing is optional, and follows the files in assets/:
+  assets/front.webp and one assets/model/*.glb
+                 the cutout shows at once, and the model is drawn over it once loaded (the chalice: this site)
+  assets/front.webp alone
+                 the cutout alone; its gem (.gem in the style, placed for the chalice) still wakes it
+  neither        no centerpiece: the construct is left out (hidden), and the landing shows the archive's name and
+                 the four chapters straight away. No model or three.js is built or served.
+A model without a cutout is refused.
+
 Placeholders in src/page.html:
   __FRONT__      front cutout (assets/front.webp) as a data URI, shown until the 3D model has drawn
-  __MODEL_URL__  the model's file name
-  __THREE_URL__  three.js: dist/three.<hash>.js; in the preview, jsDelivr's copy of the same version
-  __GLTF_URL__   its GLTFLoader: the same file; in the preview, jsDelivr's copy
+  __MODEL_URL__  the model's file name ("" without one)
+  __THREE_URL__  three.js: dist/three.<hash>.js; in the preview, jsDelivr's copy of the same version ("" without a model)
+  __GLTF_URL__   its GLTFLoader: the same file; in the preview, jsDelivr's copy ("" without a model)
   __FONTS__      the fonts' @font-face rules (assets/fonts/fonts.css, with the hashed names), in the page's style block;
                  nothing in the preview
   __FONT_LINK__  nothing on the site; in the preview, Google Fonts' stylesheet (the viewer loads fonts only from there)
@@ -197,8 +208,14 @@ def strip_page_comments(html: str) -> str:
 
 
 page = strip_page_comments((ROOT / "src/page.html").read_text(encoding="utf-8"))
-model = (ROOT / "assets/model/chalice.glb").read_bytes()
-model_name = f"chalice.{hashlib.sha256(model).hexdigest()[:12]}.glb"
+# The centerpiece (see the top): a cutout, and maybe a model drawn over it
+front_path = ROOT / "assets/front.webp"
+models = sorted((ROOT / "assets/model").glob("*.glb")) if (ROOT / "assets/model").is_dir() else []
+assert len(models) <= 1, f"assets/model may hold one model, not {len(models)}"
+assert front_path.exists() or not models, "a model needs its cutout, assets/front.webp, shown until the model is drawn"
+model = models[0].read_bytes() if models else b""
+model_stem = (re.sub(r"[^a-z0-9_-]", "", models[0].stem.lower()) or "model") if models else ""
+model_name = f"{model_stem}.{hashlib.sha256(model).hexdigest()[:12]}.glb" if models else ""
 three = (ROOT / "assets/vendor/three.module.js").read_bytes()
 three_name = f"three.{hashlib.sha256(three).hexdigest()[:12]}.js"
 three_version = re.match(rb"/\* three\.js (\d+\.\d+\.\d+) ", three).group(1).decode()  # from the bundle's banner
@@ -222,8 +239,20 @@ assert len(fonts) == 7, f"expected 7 font files in assets/fonts/fonts.css, found
 GOOGLE_FONTS = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700'
                 '&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">')
 
-page = page.replace("__FRONT__", "data:image/webp;base64," + base64.b64encode((ROOT / "assets/front.webp").read_bytes()).decode())
-page = page.replace("__MODEL_URL__", model_name)
+if front_path.exists():
+    page = page.replace("__FRONT__", "data:image/webp;base64," + base64.b64encode(front_path.read_bytes()).decode())
+else:  # no centerpiece: the construct stays in the page, hidden, so the script finds it and knows
+    for part, bare in (('<button class="construct" id="construct" ', '<button class="construct" id="construct" hidden '),
+                       ('<span class="pool" aria-hidden="true">', '<span class="pool" aria-hidden="true" hidden>'),
+                       (' src="__FRONT__"', "")):
+        assert page.count(part) == 1, f"expected exactly one {part!r} in src/page.html"
+        page = page.replace(part, bare)
+if models:
+    page = page.replace("__MODEL_URL__", model_name)
+else:  # nothing to preload, and no three.js to load
+    page = cut(page, '<link rel="preload" href="__MODEL_URL__" as="fetch" crossorigin>\n')
+    page = cut(page, '<link rel="modulepreload" href="__THREE_URL__">\n')
+    page = page.replace("__MODEL_URL__", "").replace("__THREE_URL__", "").replace("__GLTF_URL__", "")
 assert page.count("__ARCHIVE__") == 1, "src/page.html must contain __ARCHIVE__ exactly once"
 
 # the preview: a fragment for the Artifact skeleton, with the model inline and the server's stand-in before the app
@@ -232,7 +261,7 @@ assert "</script" not in shim.lower()
 archive, files, private = preview_archive()
 preview = page.replace("__ARCHIVE__", script_json(archive))
 for placeholder, url in PREVIEW_THREE.items():
-    preview = preview.replace(placeholder, url)
+    preview = preview.replace(placeholder, url)  # only where a model is (they are gone otherwise)
 # one file holds both; "./" because import() takes a bare name for a package, not a file
 page = page.replace("__THREE_URL__", "./" + three_name).replace("__GLTF_URL__", "./" + three_name)
 preview = preview.replace("__FONT_LINK__", GOOGLE_FONTS).replace("__FONTS__\n", "")
@@ -244,11 +273,12 @@ assert "cdn.jsdelivr.net" not in page, "the site's page must load no script from
 assert not re.search(r"fonts\.(googleapis|gstatic)\.com", page), "the site's page must load its fonts from the site"
 preview = cut(preview, '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
                        '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n')
-preview = cut(preview, f'<link rel="preload" href="{model_name}" as="fetch" crossorigin>\n')
+if models:
+    preview = cut(preview, f'<link rel="preload" href="{model_name}" as="fetch" crossorigin>\n')
 preview = cut(preview, "</head>\n<body>\n")
 preview = cut(preview, "</body>\n</html>\n")
 preview = preview.replace('<script id="ca-app">',
-                          '<script type="application/octet-stream" id="ca-model">' + base64.b64encode(model).decode() + "</script>\n"
+                          ('<script type="application/octet-stream" id="ca-model">' + base64.b64encode(model).decode() + "</script>\n" if models else "") +
                           '<script type="application/json" id="ca-files">' + script_json(files) + "</script>\n"
                           '<script type="application/json" id="ca-private">' + script_json(private) + "</script>\n"
                           '<script id="ca-preview">\n' + shim + "</script>\n"
@@ -256,14 +286,16 @@ preview = preview.replace('<script id="ca-app">',
 assert preview.startswith("<title>")
 
 DIST.mkdir(exist_ok=True)
-for old in [*DIST.glob("chalice.*.glb"), *DIST.glob("three.*.js"), *DIST.glob("*.woff2"), *DIST.glob("chalice-archive*.html")]:
+for old in [*DIST.glob("*.glb"), *DIST.glob("three.*.js"), *DIST.glob("*.woff2"), *DIST.glob("chalice-archive*.html")]:
     old.unlink()
 (DIST / "index.html").write_text(page, encoding="utf-8")
-(DIST / model_name).write_bytes(model)
-(DIST / three_name).write_bytes(three)
+if models:
+    (DIST / model_name).write_bytes(model)
+    (DIST / three_name).write_bytes(three)
 for name, data in fonts.items():
     (DIST / name).write_bytes(data)
 (DIST / "preview.html").write_text(preview, encoding="utf-8")
-print(f"built {DIST / 'index.html'} ({len(page.encode()) / 1024:.0f} KB), {model_name} ({len(model) / 1024:.0f} KB), "
-      f"{three_name} (three.js {three_version}, {len(three) / 1024:.0f} KB), {len(fonts)} fonts ({sum(map(len, fonts.values())) / 1024:.0f} KB) "
+centerpiece = (f"{model_name} ({len(model) / 1024:.0f} KB), {three_name} (three.js {three_version}, {len(three) / 1024:.0f} KB)" if models
+               else "the cutout alone as the centerpiece" if front_path.exists() else "no centerpiece")
+print(f"built {DIST / 'index.html'} ({len(page.encode()) / 1024:.0f} KB), {centerpiece}, {len(fonts)} fonts ({sum(map(len, fonts.values())) / 1024:.0f} KB) "
       f"and preview.html ({len(preview.encode()) / 1024:.0f} KB)")

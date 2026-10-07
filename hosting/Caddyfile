@@ -1,10 +1,10 @@
-# /etc/caddy/Caddyfile for the Chalice Archive behind Cloudflare. deploy/README.md has the whole setup.
-# Replace archive.example.com with your hostname (twice: here and PUBLIC_ORIGIN in chalice-archive.service).
+# /etc/caddy/Caddyfile: every site on this VPS, behind Cloudflare. Installed by `sites setup`; hosting/README.md has the
+# whole setup. Each site's own block is /etc/caddy/sites/<folder>.caddy, written by `sites link`: change this file, not
+# those. Caddy's admin API is off, so a change needs `sudo systemctl restart caddy` (`reload` asks the admin API).
 {
 	# No admin API. It would listen on localhost:2019 and take a whole new configuration from any process on the VPS
-	# that asks, the archive's own server among them, which is otherwise kept to loopback: one that had been broken
-	# into could have had Caddy serve the Origin Certificate's private key. A changed Caddyfile therefore needs
-	# `systemctl restart caddy`; `reload` asks the admin API.
+	# that asks, any site's server among them, which are otherwise kept to loopback: one that had been broken into
+	# could have had Caddy serve an Origin Certificate's private key.
 	admin off
 
 	# Cloudflare redirects http to https ("Always Use HTTPS"), and port 80 stays closed, so Caddy only serves 443.
@@ -20,12 +20,14 @@
 	}
 }
 
-https://archive.example.com {
-	# The Cloudflare Origin Certificate (SSL/TLS > Origin Server), for Cloudflare's "Full (strict)" mode.
-	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key {
+# What every site gets. A site's block imports it with three arguments: its server's address on loopback, and the
+# Cloudflare Origin Certificate and key that cover its domain.
+(site) {
+	# The Origin Certificate (SSL/TLS > Origin Server), for Cloudflare's "Full (strict)" mode
+	tls {args[1]} {args[2]} {
 		protocols tls1.2 tls1.3
 		# Authenticated Origin Pulls: only Cloudflare, presenting its client certificate, completes the handshake.
-		# Turn it on in Cloudflare too (SSL/TLS > Origin Server), or every request fails with error 525/526.
+		# Turn it on in Cloudflare too, for every domain (SSL/TLS > Origin Server), or its requests fail with 525/526.
 		client_auth {
 			mode require_and_verify
 			trust_pool file /etc/caddy/certs/cloudflare-origin-pull-ca.pem
@@ -52,9 +54,11 @@ https://archive.example.com {
 		-Via
 	}
 
-	# The archive server, on loopback only. It takes the visitor's address from X-Real-IP, which is set here
+	# The site's server, on loopback only. It takes the visitor's address from X-Real-IP, which is set here
 	# from the address Caddy resolved above, overwriting anything the request carried.
-	reverse_proxy 127.0.0.1:8080 {
+	reverse_proxy {args[0]} {
 		header_up X-Real-IP {client_ip}
 	}
 }
+
+import /etc/caddy/sites/*.caddy
