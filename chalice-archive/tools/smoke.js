@@ -1065,7 +1065,7 @@ async function browserChecks() {
     await page.fill('#seal-word', 'not the word at all');
     await page.click('#seal-go');
     await page.waitForSelector('#seal-error:not([hidden])', { timeout: 15000 });
-    check((await page.textContent('#seal-error')).includes('does not yield') && await page.$('#btn-inscribe[hidden]') !== null, 'a wrong word is refused and the tools stay hidden');
+    check((await page.textContent('#seal-error')).includes('Wrong password') && await page.$('#btn-inscribe[hidden]') !== null, 'a wrong word is refused and the tools stay hidden');
     check(await page.evaluate(() => document.cookie === ''), 'the page script cannot see any session cookie');
     await page.fill('#seal-word', WORD);
     await page.click('#seal-go');
@@ -1097,7 +1097,7 @@ async function browserChecks() {
     await page.screenshot({ path: path.join(OUT, 'record.png') });
     // A drag to select some of the record's text, let go on the dark ground beyond the tome, ends in a click on the
     // ground too: it closed the whole tome
-    const noteAt = await page.evaluate(() => { const r = document.createRange(), t = document.getElementById('det-note').firstChild; r.setStart(t, 3); r.setEnd(t, 4); const b = r.getBoundingClientRect(); return { x: b.x, y: b.y + b.height / 2 }; });
+    const noteAt = await page.evaluate(() => { const r = document.createRange(), t = document.createTreeWalker(document.getElementById('det-note'), NodeFilter.SHOW_TEXT).nextNode(); r.setStart(t, 3); r.setEnd(t, 4); const b = r.getBoundingClientRect(); return { x: b.x, y: b.y + b.height / 2 }; });
     await page.mouse.move(noteAt.x, noteAt.y);
     await page.mouse.down();
     await page.mouse.move(noteAt.x + 120, noteAt.y, { steps: 6 });
@@ -1128,8 +1128,11 @@ async function browserChecks() {
     await page.click('.tab[data-book="encounters"]');
     await page.click('#btn-add-encounter');
     await page.fill('#ef-title', onlyMe);
-    await page.check('#ef-sealed');
     await page.fill('#ef-text', 'Nobody else. ' + xss);
+    await page.check('#ef-sealed'); // a private encounter has only its private section: what was written moves there
+    const privateForm = await page.evaluate(() => ({ hidden: document.getElementById('ef-text-field').hidden, text: document.getElementById('ef-text').value, priv: document.getElementById('ef-private').value }));
+    check(privateForm.hidden && privateForm.text === '' && privateForm.priv === 'Nobody else. ' + xss,
+      'ticking Private Encounter hides "What happened" and moves what was written there into the private section');
     await page.click('#ef-submit');
     await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 10000 });
     const onlyHash = await page.evaluate(() => location.hash);
@@ -1266,7 +1269,7 @@ async function browserChecks() {
     await page.click('#det-source .link-to');
     await page.waitForFunction((t) => !document.getElementById('view-encounter').hidden && document.getElementById('enc-title').textContent === t, onlyMe, { timeout: 10000 }).catch(() => {});
     await page.click('#enc-edit');
-    await page.fill('#ef-text', 'Revised as the seal came and went.');
+    await page.fill('#ef-date', '2026-02-03');
     await page.evaluate(async () => { // sealed from elsewhere; the tab notices as soon as it is looked at
       const s = await (await fetch('api/session')).json();
       await fetch('api/logout', { method: 'POST', headers: { 'X-CSRF-Token': s.csrf } });
@@ -1283,7 +1286,7 @@ async function browserChecks() {
     await page.unroute('**/api/private');
     await page.waitForSelector('#view-encounter:not([hidden])', { timeout: 10000 }).catch(() => {});
     const mine = (await keeperView()).encounters.filter((e) => e.title === onlyMe);
-    check(mine.length === 1 && mine[0].text === 'Revised as the seal came and went.',
+    check(mine.length === 1 && mine[0].date === '2026-02-03',
       `an encounter only for the keeper, revised as the session ends and saved just after unsealing again, is revised, not saved a second time (${mine.length} now)`);
     const druid = (await keeperView()).encounters.find((e) => e.title === 'An encounter with a druid');
     await holdPrivate();

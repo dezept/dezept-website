@@ -192,10 +192,10 @@ sudo SSH_PORT=2222 sh /opt/dezept-website/hosting/firewall.sh …  # SSH on anot
    sudo sites password person_2
    ```
    - It asks twice and shows nothing while you type, so the word stays out of shell history and logs. At least 12 characters, a phrase used nowhere else. Arrow keys and Escape don't edit at this prompt; they would go into the word, so it refuses one with them in it.
-   - Give the word to whoever keeps the site. They can change it from the page: the clasp on the tome's edge, then **Change the word**.
-   - Only a salted scrypt hash is stored (`auth.json`, mode 0600). The word also locks the key that encrypts the encounters' private sections, and the encounters marked "Only for me" in whole: the key is made on the first login and stored only wrapped by a second key derived from the word, so nothing on disk can read them without the word.
+   - Give the word to whoever keeps the site. They can change it from the page: the clasp on the tome's edge, then **Change Password**.
+   - Only a salted scrypt hash is stored (`auth.json`, mode 0600). The word also locks the key that encrypts the encounters' private sections, and the encounters marked "Private Encounter" in whole: the key is made on the first login and stored only wrapped by a second key derived from the word, so nothing on disk can read them without the word.
    - Running it again replaces the word and signs every session out. Once there are private sections, it asks for the current word a third time, to carry the key over to the new word.
-   - **A forgotten word:** `sudo sites password person_2 --forget-private`. The site opens again with the new word, but its private sections and its encounters "Only for me" written so far can never be read again, by anyone (the page still lists the latter, as unreadable, so they can be removed). Everything else is untouched. The statistics count visitors afresh from then on.
+   - **A forgotten word:** `sudo sites password person_2 --forget-private`. The site opens again with the new word, but its private sections and its encounters marked "Private Encounter" written so far can never be read again, by anyone (the page still lists the latter, as unreadable, so they can be removed). Everything else is untouched. The statistics count visitors afresh from then on.
 4. **Open it**: `https://person2.example.com`. Click the gem (or, on a site without a centerpiece, a chapter), then the brass clasp on the tome's right edge, and speak the word: the editing tools and the Statistics appear.
 
 `sites list` shows every site, its address, its way to a certificate, its port and state, and whether it has a word.
@@ -267,7 +267,7 @@ A friend's site is a whole copy of `chalice-archive/`, changed freely for them: 
   - A random 256-bit token in a `__Host-` cookie: HttpOnly, Secure, SameSite=Strict, for its own domain alone.
   - Page scripts can't read it, and other sites can't make the browser send it.
   - The server keeps only its SHA-256.
-  - Sessions end after 12 hours (`SESSION_HOURS`), on "Seal it again", or when the word changes.
+  - Sessions end after 12 hours (`SESSION_HOURS`), on "Lock", or when the word changes.
   - A write still on its way when its session ends (a large upload, say) is refused once it has arrived, so changing the word really does stop every other session at once.
   - Once a session has ended, an open tab lets go of the private sections within a minute, or as soon as it is looked at; one sealed in another tab of the same browser, at once.
 - **Writes**:

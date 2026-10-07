@@ -285,7 +285,7 @@ function validWord(word) {
   if (typeof word !== "string" || word.length < WORD.min) return `Use at least ${WORD.min} characters.`;
   if (word.length > WORD.max) return `Use at most ${WORD.max} characters.`;
   // An arrow key or Escape pressed while typing at set-password goes into the word, and no browser could send it back
-  if (/[\u0000-\u001f\u007f]/.test(word)) return "The word cannot hold control characters, such as an arrow key or Escape pressed while typing it.";
+  if (/[\u0000-\u001f\u007f]/.test(word)) return "The password cannot contain control characters, such as an arrow key or Escape pressed while typing it.";
   return "";
 }
 
@@ -579,7 +579,7 @@ function cleanArt(input, prev, check, galleries = archive.galleries) {
   const versions = !check ? storedVersions(input) : input.versions === undefined && prev ? prev.versions : cleanVersions(input.versions, prev && prev.versions);
   let gallery = typeof input.gallery === "string" && galleries.some((g) => g.id === input.gallery) ? input.gallery : "";
   if (check && input.gallery === undefined && prev) gallery = prev.gallery;
-  else if (check && input.gallery && !gallery) throw new HttpError(400, "That form is gone. Reload the page and choose another.");
+  else if (check && input.gallery && !gallery) throw new HttpError(400, "That OC is gone. Reload the page and choose another.");
   return {
     id: prev ? prev.id : "a" + crypto.randomBytes(9).toString("base64url"),
     gallery,
@@ -595,9 +595,9 @@ function cleanArt(input, prev, check, galleries = archive.galleries) {
 
 // One of his forms, such as "Vaelith (Dracthyr)" and "Vaelith (visage)": a gallery of the art pieces that show him so
 function cleanGallery(input, prev) {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "The form is malformed.");
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "The OC is malformed.");
   const name = str(input.name, LIMIT.galleryName);
-  if (!name) throw new HttpError(400, "Give the form a name.");
+  if (!name) throw new HttpError(400, "Give the OC a name.");
   return { id: prev ? prev.id : "g" + crypto.randomBytes(9).toString("base64url"), name, added: prev ? prev.added : Date.now() };
 }
 
@@ -1261,12 +1261,12 @@ async function login(req, res) {
   const auth = readAuth();
   const attempt = beginTry(ip, known);
   if (!word || !(await checkWord(word, auth))) {
-    throw new HttpError(401, "The seal does not yield.", attempt.secs ? { "Retry-After": String(attempt.secs) } : undefined);
+    throw new HttpError(401, "Wrong password.", attempt.secs ? { "Retry-After": String(attempt.secs) } : undefined);
   }
   forgive(attempt); // the word is right: nothing that happens next makes this try a miss
   // a word that was the word when it was checked, but was changed before the session began, is refused like any other
   const session = await unseal(word, auth);
-  if (!session) throw new HttpError(401, "The seal does not yield.");
+  if (!session) throw new HttpError(401, "Wrong password.");
   sendJson(req, res, 200, { owner: true, csrf: session.csrf }, { "Set-Cookie": [sessionCookie(session.token, CONFIG.sessionMs), deviceCookie(auth)] });
 }
 
@@ -1278,7 +1278,7 @@ async function changeWord(req, res, session) {
   if (!auth || auth.generation !== session.generation) throw new HttpError(401, "Unlock the archive first."); // changed while the request came in
   const attempt = beginTry(ip, true);
   if (!(await checkWord(typeof body.current === "string" ? body.current.slice(0, WORD.max) : "", auth))) {
-    throw new HttpError(401, "The current word is wrong.");
+    throw new HttpError(401, "The current password is wrong.");
   }
   forgive(attempt);
   const problem = validWord(body.next);
@@ -1515,7 +1515,7 @@ async function handle(req, res) {
   // his forms: galleries of art pieces, in the keeper's order
   if (req.method === "POST" && pathname === "/api/galleries") {
     const body = await keeperJson(req);
-    if (archive.galleries.length >= LIMIT.galleries) throw new HttpError(413, "There is no room for more forms.");
+    if (archive.galleries.length >= LIMIT.galleries) throw new HttpError(413, "There is no room for more OCs.");
     const gallery = cleanGallery(body);
     commit({ ...archive, galleries: [...archive.galleries, gallery] });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: gallery.id });
@@ -1524,7 +1524,7 @@ async function handle(req, res) {
     const ids = (await keeperJson(req)).ids;
     const byId = new Map(archive.galleries.map((g) => [g.id, g]));
     if (!Array.isArray(ids) || ids.length !== byId.size || new Set(ids).size !== ids.length || !ids.every((id) => byId.has(id))) {
-      throw new HttpError(409, "The forms have changed. Reload and try again.");
+      throw new HttpError(409, "The OCs have changed. Reload and try again.");
     }
     commit({ ...archive, galleries: ids.map((id) => byId.get(id)) });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
@@ -1533,14 +1533,14 @@ async function handle(req, res) {
   if (gm && validId(gm[1])) {
     const body = req.method === "PUT" ? await keeperJson(req) : null;
     const prev = archive.galleries.find((g) => g.id === gm[1]);
-    if (!prev) throw new HttpError(404, "That form is gone.");
+    if (!prev) throw new HttpError(404, "That OC is gone.");
     if (req.method === "PUT") {
       const gallery = cleanGallery(body, prev);
       commit({ ...archive, galleries: archive.galleries.map((g) => (g.id === prev.id ? gallery : g)) });
       return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: gallery.id });
     }
     if (req.method === "DELETE") { // only an empty one, so no art piece is lost with it
-      if (archive.art.some((a) => a.gallery === prev.id)) throw new HttpError(409, "Move its art pieces to another form, or remove them, first.");
+      if (archive.art.some((a) => a.gallery === prev.id)) throw new HttpError(409, "Move its art pieces to another OC, or remove them, first.");
       commit({ ...archive, galleries: archive.galleries.filter((g) => g.id !== prev.id) });
       return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
     }

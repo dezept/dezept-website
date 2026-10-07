@@ -17,7 +17,7 @@ There is no preview any more: the site is deployed, and the owner checks changes
 
 ### Interface text
 
-Anyone can read every string in the served page, so keep the text in it terse: labels, button names, short error messages ("Title required.", "Couldn't read the video."). No help paragraphs, no explanatory placeholders, no sentences describing what the site does behind the scenes (encryption, who can see what, where a setting lives in Cloudflare). Explanations belong in `HANDOVER.md` or in comments, which `build.py` strips from the served page.
+Anyone can read every string in the served page, so keep the text in it terse: labels, button names, short error messages ("Title required.", "Couldn't read the video."). No help paragraphs, no explanatory placeholders, no sentences describing what the site does behind the scenes (encryption, who can see what, where a setting lives in Cloudflare). Explanations belong in `HANDOVER.md` or in comments, which `build.py` strips from the served page. The few hints on the page ("Unfilled fields won't show up", the TRP3 formatting note on the About form, "Private (Only you can read this)") are the owner's own wording; add others only when the owner asks.
 
 ## hosting/ and friends' sites
 
