@@ -1,8 +1,4 @@
-# Hosting the sites on one VPS behind Cloudflare
-
-```
-visitor ──HTTPS──▶ Cloudflare ──HTTPS (Origin Certificate, client cert)──▶ Caddy :443 ──HTTP, loopback──▶ the site's own server
-```
+# Hosting the sites on one VPS
 
 Every site on the machine is a folder in `/srv/sites`, such as `/srv/sites/dezept` for the Chalice Archive and `/srv/sites/person_2` for a friend's. Put a folder there, run one command, and it is online at its own domain:
 
@@ -10,20 +6,29 @@ Every site on the machine is a folder in `/srv/sites`, such as `/srv/sites/dezep
 sudo sites link person_2 person2.example.com
 ```
 
-- **Cloudflare** holds the public certificates. It hides the VPS's address and absorbs junk traffic.
-- **Caddy** terminates the connections from Cloudflare, with a Cloudflare Origin Certificate for each domain. It accepts only Cloudflare's client certificate, compresses responses and passes each visitor's real address on. Each domain goes to its own site.
+Each site gets its certificate one of three ways, chosen when it is linked ("4. Certificates"):
+
+```
+Let's Encrypt   visitor ──HTTPS──▶ Caddy :443 (certificate from Let's Encrypt, renewed by Caddy) ──HTTP, loopback──▶ the site's server
+your own        visitor ──HTTPS──▶ Caddy :443 (your certificate) ──HTTP, loopback──▶ the site's server
+Cloudflare      visitor ──HTTPS──▶ Cloudflare ──HTTPS (Origin Certificate, client cert)──▶ Caddy :443 ──HTTP, loopback──▶ the site's server
+```
+
+- **Caddy** terminates the connections, compresses responses and passes each visitor's real address on. Each domain goes to its own site. For a site through Cloudflare, it accepts only Cloudflare's client certificate.
 - **Each site** runs its own server, `node server/server.mjs` from its folder, as a user of its own (`site-<folder>`), with its data in a folder of its own (`/var/lib/sites/<folder>`), listening on a port of its own on 127.0.0.1 only. Sites cannot read each other's data.
 - **`sites`** (`hosting/sites.mjs`) sets all of that up, and takes it down again.
+- **Cloudflare**, for the sites that go through it, holds their public certificates, hides the VPS's address and absorbs junk traffic.
 
-The firewall lets port 443 in only from Cloudflare's addresses. Nothing else is reachable except SSH.
+The firewall lets in SSH, and HTTPS: from everyone, or, if every site goes through Cloudflare, from Cloudflare alone ("5. Firewall").
 
 | Where | What |
 | --- | --- |
 | `/srv/sites/<folder>` | the site itself, as you put it there (its code and its built page) |
 | `/var/lib/sites/<folder>` | its data: records, art, its word's hash, backups, statistics (mode 0700, its user's alone) |
-| `/etc/sites/<folder>.env` | its port and address, written by `sites link`; lines of your own stay (`TZ=…`) |
+| `/etc/sites/<folder>.env` | its port, its address and how it has its certificate (`TLS=`), written by `sites link`; lines of your own stay (`TZ=…`) |
 | `/etc/caddy/sites/<folder>.caddy` | its block in Caddy's configuration, written by `sites link` |
-| `/etc/caddy/certs/` | the Origin Certificates and their keys, and Cloudflare's origin-pull CA |
+| `/etc/caddy/certs/` | certificates you give (yours, and Cloudflare's Origin Certificates) and their keys, and Cloudflare's origin-pull CA |
+| `/var/lib/caddy/` | Caddy's own data: the certificates it gets from Let's Encrypt |
 | `/etc/systemd/system/site@.service` | the service every site runs as, `site@<folder>` |
 | `journalctl -u site@<folder>` | its log |
 
@@ -55,12 +60,55 @@ It:
 
 - makes `/srv/sites`, owned by your login, so you can put folders there without sudo (with SFTP, say);
 - installs the service template `site@.service` and Caddy's configuration (`hosting/Caddyfile`; the one Caddy came with is kept as `Caddyfile.before-sites`);
-- makes `/etc/caddy/certs` (readable by Caddy alone) and fetches Cloudflare's origin-pull CA into it;
+- makes `/etc/caddy/certs` (readable by Caddy alone) and fetches Cloudflare's origin-pull CA into it, for the sites that go through Cloudflare;
 - installs the command `sites` itself (`/usr/local/bin/sites`).
 
 From then on, `sudo sites …` does the rest. Run `setup` again after a `git pull` that changed anything in `hosting/`: it installs the new versions.
 
-## 4. Cloudflare
+## 4. Certificates
+
+Each site has its certificate one of three ways. `sites link` takes the way you name:
+
+```sh
+sudo sites link person_2 person2.example.com --letsencrypt                                  # from Let's Encrypt
+sudo sites link person_2 person2.example.com --cert fullchain.pem --key privkey.pem       # your own
+sudo sites link person_2 person2.example.com --cloudflare                                   # through Cloudflare
+```
+
+Without one, a site keeps the way it had. A new one goes through Cloudflare if a Cloudflare Origin Certificate in `/etc/caddy/certs` covers its domain, takes your own if another certificate there does, and otherwise gets one from Let's Encrypt; a certificate there meant for the domain that cannot be used (its key missing, say) stops it, with what is wrong. To change a site's way, link it again with the new one.
+
+| | Let's Encrypt | Your own | Cloudflare |
+| --- | --- | --- | --- |
+| The certificate | Caddy gets it, and renews it a month before it runs out | you give it, and give the next one before it runs out | Cloudflare's, at its edge; an Origin Certificate (15 years) between it and Caddy |
+| DNS | the domain's `A`/`AAAA` records point at the VPS (on Cloudflare: **DNS only**, the grey cloud) | as for Let's Encrypt | **Proxied** (the orange cloud) |
+| Firewall | 80 and 443 open to everyone (`firewall.sh open`) | as for Let's Encrypt | 443 from Cloudflare is enough, unless other sites are reached directly |
+| Visitors see | the VPS's address | the VPS's address | Cloudflare's; the VPS's stays hidden, and Cloudflare absorbs junk traffic |
+| Port 80 | sends visitors to https | sends visitors to https | Cloudflare does that |
+
+### Let's Encrypt
+
+The simplest: nothing to make or copy.
+
+1. Point the domain at the VPS: an `A` record (and `AAAA` if the VPS has IPv6). If the domain is on Cloudflare, set the record to **DNS only** (the grey cloud): Let's Encrypt cannot reach the VPS through Cloudflare's proxy, so `sites link` refuses while the domain points there.
+2. Open ports 80 and 443 to everyone: `sudo sh /opt/dezept-website/hosting/firewall.sh open` ("5. Firewall"). Let's Encrypt checks the domain through them.
+3. `sudo sites link person_2 person2.example.com --letsencrypt`
+
+Caddy asks Let's Encrypt for the certificate as soon as the site is linked, and has it within a minute when the domain already points here. It renews it by itself, a month before it runs out, and keeps it in `/var/lib/caddy`. If the domain did not point here yet, Caddy keeps trying, less and less often; once it does, `sudo systemctl restart caddy` makes it try at once.
+
+### Your own certificate
+
+A certificate from any public authority (bought, or made elsewhere), with its key:
+
+```sh
+sudo sites link person_2 person2.example.com --cert /path/to/fullchain.pem --key /path/to/privkey.pem
+```
+
+- Give the full chain, the certificate followed by its authority's intermediate certificates (`fullchain.pem`, where the authority gives one): with the certificate alone, some browsers will not trust it. `sites link` says so when the intermediate is missing.
+- It checks that the certificate covers the domain, has not run out, goes with the key, and is not one of Cloudflare's Origin Certificates (browsers trust those only through Cloudflare). Then it copies both into `/etc/caddy/certs`, as `<domain>.pem` and `<domain>.key`, readable by Caddy alone.
+- Point the domain at the VPS and open ports 80 and 443, as for Let's Encrypt.
+- **Before it runs out**, link the site again with the next certificate. `sites list` shows the way each site has, and `sites link` says until when the certificate runs.
+
+### Cloudflare
 
 For each domain's zone:
 
@@ -71,13 +119,14 @@ For each domain's zone:
 | SSL/TLS → Origin Server | **Create Certificate** for the site's domain, PEM format. Save the certificate and the private key (below). The key is shown only once. |
 | SSL/TLS → Origin Server → Authenticated Origin Pulls | **On** (in the **Global** section). Without it, Caddy refuses every request and Cloudflare shows error 525/526. |
 | SSL/TLS → Edge Certificates | **Always Use HTTPS** on, **Minimum TLS Version** 1.2, **TLS 1.3** on |
-| Network → IP Geolocation | **On**. Cloudflare then adds each visitor's country to the request, and a site's statistics count visitors by country. Without it, that list stays empty. |
+| Network → IP Geolocation | **On**. Cloudflare then adds each visitor's country to the request, and a site's statistics count visitors by country. Without it, that list stays empty. (A site reached directly has no country for its visitors.) |
 
-Save each certificate and its key in `/etc/caddy/certs`, as `<name>.pem` and `<name>.key` (any name; `sites link` finds the one that covers a domain):
+Save each certificate and its key in `/etc/caddy/certs`, as `<name>.pem` and `<name>.key` (any name; `sites link` finds the one that covers a domain), then link the site (`--cloudflare`, or nothing):
 
 ```sh
 sudo nano /etc/caddy/certs/example.com.pem       # paste the Origin Certificate
 sudo nano /etc/caddy/certs/example.com.key       # paste its private key
+sudo sites link person_2 person2.example.com --cloudflare
 ```
 
 **Sites under one domain of yours** (`dezept.example.com`, `person2.example.com` …) need Cloudflare only once:
@@ -87,7 +136,7 @@ sudo nano /etc/caddy/certs/example.com.key       # paste its private key
 
 Then a new site needs nothing in Cloudflare: put its folder in place and link it.
 
-**A friend's own domain** must be on Cloudflare too, set up as above in its own zone, with an Origin Certificate made there (by them, or by you with access to their zone).
+**A friend's own domain** must be on Cloudflare too, set up as above in its own zone, with an Origin Certificate made there (by them, or by you with access to their zone). Or give it Let's Encrypt.
 
 Leave off everything that rewrites the pages (each site counts its own visitors; Cloudflare's Web Analytics would add a script the pages refuse):
 
@@ -112,14 +161,17 @@ The servers throttle failed logins by themselves anyway.
 ## 5. Firewall
 
 ```sh
-sudo sh /opt/dezept-website/hosting/firewall.sh                  # SSH on 22
-sudo SSH_PORT=2222 sh /opt/dezept-website/hosting/firewall.sh    # or another SSH port
+sudo sh /opt/dezept-website/hosting/firewall.sh open             # 80 and 443 from everyone
+sudo sh /opt/dezept-website/hosting/firewall.sh                  # or 443 from Cloudflare alone
+sudo SSH_PORT=2222 sh /opt/dezept-website/hosting/firewall.sh …  # SSH on another port than 22
 ```
 
-- The script allows SSH (rate-limited) and 443 from Cloudflare's current ranges, and denies everything else.
-- It checks every range it fetches before using it. If one is not a plain IPv4 or IPv6 range, or is wide enough to open the port to most of the internet, it stops and changes nothing.
-- Run it again now and then to pick up new Cloudflare ranges.
+- Both allow SSH (rate-limited) and deny everything else.
+- **`open`**, for any site reached directly (Let's Encrypt, or your own certificate): lets in HTTP (80) and HTTPS (443, and 443/udp for HTTP/3) from everyone. A site through Cloudflare still lets in Cloudflare alone, by its client certificate, which nobody else has.
+- **Without `open`**, when every site goes through Cloudflare: lets in 443 from Cloudflare's current ranges only, so nobody else can even reach Caddy. It checks every range it fetches before using it; if one is not a plain IPv4 or IPv6 range, or is wide enough to open the port to most of the internet, it stops and changes nothing. Run it again now and then to pick up new Cloudflare ranges.
+- Each run replaces the rules the other added, so switching is one run. `sites link` says when a site reached directly needs the firewall open.
 - When Cloudflare's list changes, update the `trusted_proxies` line in `hosting/Caddyfile` too, then `sudo sites setup yourlogin`.
+- Your VPS provider's own firewall, if it has one, must let the same ports in.
 
 ## 6. Adding a site
 
@@ -134,7 +186,7 @@ sudo SSH_PORT=2222 sh /opt/dezept-website/hosting/firewall.sh    # or another SS
    ```sh
    sudo sites link person_2 person2.example.com
    ```
-   It makes the site's user, gives it a port, starts it, waits until it answers, and adds its domain to Caddy. It refuses, and changes nothing, if the folder is not a whole site, if the domain is another site's, or if no certificate in `/etc/caddy/certs` covers the domain (it says what to make in Cloudflare and where to save it).
+   It makes the site's user, gives it a port, starts it, waits until it answers, and adds its domain to Caddy, with its certificate the way you name ("4. Certificates": `--letsencrypt`, `--cert … --key …` or `--cloudflare`). It refuses, and changes nothing, if the folder is not a whole site, if the domain is another site's, or if the way cannot work (no certificate for Cloudflare, a certificate that does not fit, Let's Encrypt behind Cloudflare's proxy), saying what to do.
 3. **Give it a keeper's word:**
    ```sh
    sudo sites password person_2
@@ -146,7 +198,7 @@ sudo SSH_PORT=2222 sh /opt/dezept-website/hosting/firewall.sh    # or another SS
    - **A forgotten word:** `sudo sites password person_2 --forget-private`. The site opens again with the new word, but its private sections and its encounters "Only for me" written so far can never be read again, by anyone (the page still lists the latter, as unreadable, so they can be removed). Everything else is untouched. The statistics count visitors afresh from then on.
 4. **Open it**: `https://person2.example.com`. Click the gem (or, on a site without a centerpiece, a chapter), then the brass clasp on the tome's right edge, and speak the word: the editing tools and the Statistics appear.
 
-`sites list` shows every site, its address, port and state, and whether it has a word.
+`sites list` shows every site, its address, its way to a certificate, its port and state, and whether it has a word.
 
 ## Day to day
 
@@ -155,7 +207,8 @@ sudo SSH_PORT=2222 sh /opt/dezept-website/hosting/firewall.sh    # or another SS
   sudo sites restart person_2
   ```
   A site linked from this repository: `cd /opt/dezept-website && sudo git pull && sudo sites restart dezept`. Sessions live in memory, so a restart signs the keeper out.
-- **Moving a site to another domain**: `sudo sites link person_2 new.example.com`.
+- **Moving a site to another domain**: `sudo sites link person_2 new.example.com`, with its way if the new domain needs another.
+- **Certificates**: Caddy renews Let's Encrypt's by itself. Your own, link the site again with the next one before it runs out. Cloudflare's Origin Certificates run 15 years.
 - **Taking a site offline**: `sudo sites unlink person_2`. Its folder, its data and its user stay; `sites link` brings it back as it was. To remove it for good as well: `sudo rm -rf /srv/sites/person_2 /var/lib/sites/person_2 && sudo userdel site-person_2`.
 - **A site's time zone**: its statistics count days in the server's time zone, usually UTC. For another, add a line such as `TZ=Europe/Berlin` to `/etc/sites/<folder>.env`, then `sudo sites restart <folder>`.
 - **Logs**: `journalctl -u site@<folder>`. A server logs only startup messages and unexpected errors. Caddy keeps no access log with this configuration.
@@ -166,12 +219,13 @@ sudo SSH_PORT=2222 sh /opt/dezept-website/hosting/firewall.sh    # or another SS
   - To restore, stop the site (`sudo systemctl stop site@<folder>`), copy a backup over `archive.json`, then `sudo sites restart <folder>`.
   - The private sections, and the encounters only for the keeper, are encrypted in `archive.json` and every backup. Keep `auth.json` with them: its wrapped key and the word are what read them. A copy without the word is a copy without the private sections.
   - The statistics are `stats.json`, saved every half minute while visitors come and whenever the keeper reads them. It holds no visitor's address, so a copy of it tells nobody who visited.
-- **Removing a picture for good**: removing its art piece stops the server serving it at once. Cloudflare keeps its copy for up to a day; to clear it sooner, purge the image's address under Caching → Configuration → Custom Purge.
-- **Videos and Cloudflare**: Cloudflare's Service-Specific Terms ([explained here](https://blog.cloudflare.com/updated-tos/)) say that on the Free, Pro and Business plans the CDN is not for serving video from your own server; that takes Stream, R2 or the Enterprise plan. Cloudflare reserves the right to limit a site that does it anyway, or that serves a disproportionate share of pictures or other large files. Keep videos short and few, or host them elsewhere.
+- **Removing a picture for good**: removing its art piece stops the server serving it at once. For a site through Cloudflare, Cloudflare keeps its copy for up to a day; to clear it sooner, purge the image's address under Caching → Configuration → Custom Purge.
+- **Videos and Cloudflare** (for sites through it): Cloudflare's Service-Specific Terms ([explained here](https://blog.cloudflare.com/updated-tos/)) say that on the Free, Pro and Business plans the CDN is not for serving video from your own server; that takes Stream, R2 or the Enterprise plan. Cloudflare reserves the right to limit a site that does it anyway, or that serves a disproportionate share of pictures or other large files. Keep videos short and few, or host them elsewhere.
 - **Checking a site**:
   ```sh
   curl -sI https://person2.example.com | grep -iE '^(HTTP|content-security-policy|strict-transport)'
-  curl -m 5 -k https://<the VPS's IP>/        # should time out: the firewall drops it
+  curl -sI http://person2.example.com | head -2       # reached directly: 301 to https
+  curl -m 5 -k https://<the VPS's IP>/        # every site through Cloudflare, firewall without open: should time out
   sudo sites list
   ```
 
@@ -202,7 +256,7 @@ A friend's site is a whole copy of `chalice-archive/`, changed freely for them: 
 
 - **Between sites**:
   - Each site runs as its own user. It can write only its own data folder, which no other site can read: not its records, its word's hash, its private sections nor its statistics. Its own folder of code is read-only to it.
-  - Each listens on loopback only, on its own port. Caddy sends each domain to its own site and no other; a request for a name no site has, or without Cloudflare's client certificate, is refused during the TLS handshake.
+  - Each listens on loopback only, on its own port. Caddy sends each domain to its own site and no other; a request for a name no site has is refused during the TLS handshake, and so is one for a site through Cloudflare that does not come with Cloudflare's client certificate.
   - One site that had been broken into could reach the others' servers on loopback, as any visitor can through Caddy, and claim any address there. That only lets it guess another site's word faster from many addresses, which the pause for everyone (below) holds to 50 wrong guesses in ten minutes.
 - **The word**:
   - Stored only as a salted scrypt hash (N=2¹⁷, r=8, p=1).
@@ -240,6 +294,7 @@ A friend's site is a whole copy of `chalice-archive/`, changed freely for them: 
 - **The machine**:
   - Every site's server runs as an unprivileged user of its own, sandboxed by systemd: it can write only its own data folder and talk only to loopback, where nothing else listens that could be told what to do: Caddy's admin API is switched off.
   - So a changed Caddy configuration needs `systemctl restart caddy`, not `reload` (which asks the admin API); `sites` restarts it, and checks the configuration first, leaving the old one in place if Caddy refuses the new one.
-  - The port Caddy listens on accepts only Cloudflare.
+  - With every site through Cloudflare (and the firewall without `open`), the ports Caddy listens on accept only Cloudflare, and the VPS's address is known to nobody else.
+  - A site reached directly (Let's Encrypt, or your own certificate) gives its visitors the VPS's address, and the firewall then lets everyone reach Caddy. Its logins are guarded by the server's own throttles (above), as they are behind Cloudflare; junk traffic reaches the VPS itself.
 
 `chalice-archive/tools/smoke.js` tests these properties against a running server, and `sites` itself: what it refuses and writes, and two sites behind Caddy with the configuration it wrote.

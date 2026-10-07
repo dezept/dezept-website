@@ -91,10 +91,12 @@ Checks:
      page can be amended and records and plates added, and a reload forgets them; the Statistics tab shows made-up
      numbers, said to be examples. The real page carries no trace of the stand-in.
   4. ../hosting/sites.mjs, in a directory of its own with the system's commands only shown: what it refuses, what it
-     writes for this site and for a copy of it without a centerpiece (as a friend's site is made), list, password,
-     restart and unlink; with CADDY, both sites behind Caddy with the configuration it wrote, each domain reaching
-     its own site, and nothing without Cloudflare's client certificate. The copy's landing shows the archive's name
-     and the four chapters at once, loads no model, and keeps them when the tome closes.
+     writes for this site and for copies of it without a centerpiece (as a friend's site is made), each way a site has
+     its certificate (Cloudflare, Let's Encrypt, its own), list, password, restart and unlink; with CADDY, the three
+     behind Caddy with the configuration it wrote, each domain reaching its own site, port 80 sending the direct ones
+     to https, and nothing reaching the one through Cloudflare without Cloudflare's client certificate. The copy's
+     landing shows the archive's name and the four chapters at once, loads no model, and keeps them when the tome
+     closes.
 Screenshots go to tools/.smoke/.
 */
 const fs = require('fs');
@@ -1990,9 +1992,10 @@ async function previewChecks() {
 
 // ---------- the sites on one machine ----------
 // hosting/sites.mjs, run in a directory of its own (SITES_ROOT) with the system's commands only shown (SITES_DRY_RUN):
-// what it refuses and what it writes. Then the two sites it set up, this one and a copy of it without a centerpiece,
-// run as site@.service runs them, behind Caddy with the configuration sites wrote (with CADDY, a caddy binary, or one
-// on the PATH; skipped without), and the copy's landing is looked at in the browser.
+// what it refuses and what it writes, for each way a site has its certificate. Then the three sites it set up (this
+// one through Cloudflare, and a copy of it without a centerpiece twice, with Let's Encrypt and with its own
+// certificate) run as site@.service runs them, behind Caddy with the configuration sites wrote (with CADDY, a caddy
+// binary, or one on the PATH; skipped without), and the copy's landing is looked at in the browser.
 async function sitesChecks() {
   const HOSTING = path.join(ROOT, '..', 'hosting');
   if (!fs.existsSync(path.join(HOSTING, 'sites.mjs'))) { console.log('SKIP  sites checks (no hosting/ beside this site)'); return; }
@@ -2001,14 +2004,24 @@ async function sitesChecks() {
   const root = path.join(top, 'root'), work = path.join(top, 'work');
   fs.mkdirSync(work, { recursive: true });
   const base = 20000 + Math.floor(Math.random() * 20000);
-  const senv = { ...process.env, SITES_ROOT: root, SITES_DRY_RUN: '1', SITES_FIRST_PORT: String(base) };
+  const senv = { ...process.env, SITES_ROOT: root, SITES_DRY_RUN: '1', SITES_FIRST_PORT: String(base), SITES_HOSTS: '{}' }; // no DNS: no name resolves, unless a check says so
   const sites = (...args) => { const r = spawnSync(process.execPath, [path.join(HOSTING, 'sites.mjs'), ...args], { env: senv, encoding: 'utf8' }); return { code: r.status, out: (r.stdout || '') + (r.stderr || '') }; };
   const ssl = (...args) => { const r = spawnSync('openssl', args, { cwd: work, encoding: 'utf8' }); if (r.status !== 0) throw new Error(`openssl ${args[0]}: ${r.stderr || r.error}`); };
   const certs = path.join(root, 'etc/caddy/certs'), sitesDir = path.join(root, 'srv/sites');
   const at = (p) => path.join(root, p), read = (p) => { try { return fs.readFileSync(at(p), 'utf8'); } catch { return null; } };
-  // a certificate as Cloudflare's Origin CA makes them: a leaf for some names, its key beside it
-  const leaf = (name, names, days) => ssl('req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes', '-days', String(days), '-subj', '/CN=CloudFlare Origin Certificate',
-    '-addext', 'subjectAltName=' + names.map((n) => 'DNS:' + n).join(','), '-addext', 'basicConstraints=CA:FALSE', '-keyout', path.join(certs, name + '.key'), '-out', path.join(certs, name + '.pem'));
+  // Certificates: stand-ins for Cloudflare's Origin CA (whose name sites tells its certificates apart by) and for a
+  // public authority, and leaves signed by them for some names, each with its key beside it (<out>.pem, <out>.key)
+  const ca = (name, subject) => ssl('req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes', '-days', '90', '-subj', subject,
+    '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign', '-keyout', name + '.key', '-out', name + '.pem');
+  const leaf = (by, out, names, days) => {
+    ssl('req', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes', '-subj', '/CN=' + names[0], '-keyout', out + '.key', '-out', out + '.csr');
+    fs.writeFileSync(out + '.ext', `subjectAltName=${names.map((n) => 'DNS:' + n).join(',')}\nbasicConstraints=CA:FALSE\n`);
+    ssl('x509', '-req', '-in', out + '.csr', '-CA', by + '.pem', '-CAkey', by + '.key', '-CAcreateserial', '-days', String(days), '-extfile', out + '.ext', '-out', out + '.pem');
+    fs.rmSync(out + '.csr'); fs.rmSync(out + '.ext');
+  };
+  ca('origin-ca', '/O=CloudFlare, Inc./OU=CloudFlare Origin SSL ECC Certificate Authority/CN=Test Origin CA');
+  ca('public-ca', '/O=Test Public Authority/CN=Test Public CA');
+  const w = (f) => path.join(work, f);
 
   check(sites('link', 'dezept', 'archive.test').code === 1 && /not set up/.test(sites('link', 'dezept', 'archive.test').out), 'sites: nothing is linked before the machine is set up');
   const setup = sites('setup', 'tester');
@@ -2029,7 +2042,9 @@ async function sitesChecks() {
     [['link', 'a'.repeat(28), 'friend.friends.test'], /cannot name a site/], [['link', 'dezept', 'https://archive.test/'], /domain alone/],
     [['link', 'dezept', 'archive.test:8443'], /domain alone/], [['link', 'dezept', 'archive'], /is not a domain/], [['link', 'dezept', 'a..test'], /is not a domain/],
     [['link', 'dezept', '-a.test'], /is not a domain/], [['link', 'dezept', '10.0.0.1'], /is not a domain/], [['link', 'nobody', 'friend.friends.test'], /There is no folder/],
-    [['link', 'half', 'half.friends.test'], /not a whole site: it has no dist\/index\.html/], [['link', 'dezept', 'archive.test'], /origin-pull CA is missing/],
+    [['link', 'half', 'half.friends.test'], /not a whole site: it has no dist\/index\.html/], [['link', 'dezept', 'archive.test', '--cloudflare'], /origin-pull CA is missing/],
+    [['link', 'dezept', 'archive.test', '--letsencrypt', '--cloudflare'], /Choose one way/], [['link', 'dezept', 'archive.test', '--cert', 'x.pem'], /certificate and its key together/],
+    [['link', 'dezept', 'archive.test', '--now'], /Usage/],
   ];
   const refusedAll = refusals.filter(([args, re]) => { const r = sites(...args); return !(r.code === 1 && re.test(r.out)); }).map(([args]) => args.join(' '));
   // Cloudflare's part: the CA of its client certificate, and that certificate
@@ -2038,58 +2053,93 @@ async function sitesChecks() {
   ssl('req', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes', '-subj', '/CN=Cloudflare', '-keyout', 'client.key', '-out', 'client.csr');
   fs.writeFileSync(path.join(work, 'client.ext'), 'extendedKeyUsage=clientAuth\n');
   ssl('x509', '-req', '-in', 'client.csr', '-CA', path.join(certs, 'cloudflare-origin-pull-ca.pem'), '-CAkey', 'pull-ca.key', '-CAcreateserial', '-days', '30', '-extfile', 'client.ext', '-out', 'client.pem');
-  const noCert = sites('link', 'dezept', 'archive.test');
-  leaf('wrong', ['archive.test'], 30);
+  const noCert = sites('link', 'dezept', 'archive.test', '--cloudflare');
+  leaf('origin-ca', path.join(certs, 'wrong'), ['archive.test'], 30);
   fs.copyFileSync(path.join(certs, 'cloudflare-origin-pull-ca.pem'), path.join(certs, 'other.pem')); // a CA certificate covers no site
   ssl('genpkey', '-algorithm', 'EC', '-pkeyopt', 'ec_paramgen_curve:P-256', '-out', path.join(certs, 'wrong.key')); // a key, but not wrong.pem's
   const wrongKey = sites('link', 'dezept', 'archive.test');
   check(!refusedAll.length && noCert.code === 1 && noCert.out.includes(`${certs}/archive.test.pem`) && noCert.out.includes('Create Certificate') &&
-    wrongKey.code === 1 && /wrong\.pem covers archive\.test, but wrong\.key is not its key/.test(wrongKey.out) && !fs.existsSync(at('etc/sites/dezept.env')),
-    `sites link refuses a folder name that cannot name a user, anything but a bare domain, a missing or half folder, a missing origin-pull CA, a domain no certificate covers (saying where Cloudflare's goes) and a certificate without its key, and writes nothing then${refusedAll.length ? ': not ' + refusedAll.join(' | ') : ''}`);
+    wrongKey.code === 1 && /wrong\.pem covers archive\.test, but wrong\.key is not its key/.test(wrongKey.out) && /Put that right/.test(wrongKey.out) && !fs.existsSync(at('etc/sites/dezept.env')),
+    `sites link refuses a folder name that cannot name a user, anything but a bare domain, a missing or half folder, two ways at once, Cloudflare without its origin-pull CA or a certificate for the domain (saying where Cloudflare's goes), and a certificate meant for the domain without its key, and writes nothing then${refusedAll.length ? ': not ' + refusedAll.join(' | ') : ''}`);
   fs.rmSync(path.join(certs, 'wrong.pem')); fs.rmSync(path.join(certs, 'wrong.key'));
 
-  // two sites: this one, and a copy of it without a centerpiece, built as a friend's site would be
-  leaf('archive.test', ['archive.test'], 30);
-  leaf('friends', ['*.friends.test', 'friends.test'], 60);
-  leaf('friend.friends.test', ['friend.friends.test'], 20); // shorter, but named for the domain: it goes first
+  // Three sites, one each way: this one through Cloudflare, and copies of it without a centerpiece (a friend's site is
+  // made that way), one with Let's Encrypt, one with a certificate of its own
+  leaf('origin-ca', path.join(certs, 'archive.test'), ['archive.test'], 30);
+  leaf('origin-ca', path.join(certs, 'friends'), ['*.friends.test', 'friends.test'], 60);
+  leaf('origin-ca', path.join(certs, 'friend.friends.test'), ['friend.friends.test'], 20); // shorter, but named for the domain: it goes first
   const friend = path.join(sitesDir, 'friend');
   for (const part of ['build.py', 'src', 'server', 'assets/fonts', 'assets/vendor', 'assets/examples']) fs.cpSync(path.join(ROOT, part), path.join(friend, part), { recursive: true });
   const built = spawnSync('python3', ['build.py'], { cwd: friend, encoding: 'utf8' });
+  fs.symlinkSync(friend, path.join(sitesDir, 'mine')); // a third site, from the same copy
   const one = sites('link', 'dezept', 'archive.test'), two = sites('link', 'friend', 'friend.friends.test');
   const dezeptEnv = read('etc/sites/dezept.env') || '', friendEnv = read('etc/sites/friend.env') || '';
   const block = (name) => read(`etc/caddy/sites/${name}.caddy`) || '';
   check(one.code === 0 && two.code === 0 && /no centerpiece/.test(built.stdout) &&
-    new RegExp(`^PORT=${base}$`, 'm').test(dezeptEnv) && /^PUBLIC_ORIGIN=https:\/\/archive\.test$/m.test(dezeptEnv) &&
-    new RegExp(`^PORT=${base + 1}$`, 'm').test(friendEnv) && /^PUBLIC_ORIGIN=https:\/\/friend\.friends\.test$/m.test(friendEnv) &&
-    block('dezept').includes(`https://archive.test {\n\timport site 127.0.0.1:${base} ${certs}/archive.test.pem ${certs}/archive.test.key\n}`) &&
-    block('friend').includes(`https://friend.friends.test {\n\timport site 127.0.0.1:${base + 1} ${certs}/friend.friends.test.pem ${certs}/friend.friends.test.key\n}`) &&
+    new RegExp(`^PORT=${base}$`, 'm').test(dezeptEnv) && /^PUBLIC_ORIGIN=https:\/\/archive\.test$/m.test(dezeptEnv) && /^TLS=cloudflare$/m.test(dezeptEnv) &&
+    new RegExp(`^PORT=${base + 1}$`, 'm').test(friendEnv) && /^PUBLIC_ORIGIN=https:\/\/friend\.friends\.test$/m.test(friendEnv) && /^TLS=cloudflare$/m.test(friendEnv) &&
+    block('dezept').endsWith(`https://archive.test {\n\timport cloudflare 127.0.0.1:${base} ${certs}/archive.test.pem ${certs}/archive.test.key\n}\n`) &&
+    block('friend').endsWith(`https://friend.friends.test {\n\timport cloudflare 127.0.0.1:${base + 1} ${certs}/friend.friends.test.pem ${certs}/friend.friends.test.key\n}\n`) &&
     /useradd --system --user-group .* site-dezept/.test(one.out) && /runuser -u site-dezept -- test -r/.test(one.out) && /systemctl enable --quiet site@dezept/.test(one.out) &&
     /systemctl restart site@dezept/.test(one.out) && /chown root:caddy .*archive\.test\.key/.test(one.out) && /caddy validate/.test(one.out) && /systemctl restart caddy/.test(one.out) &&
-    /online at https:\/\/archive\.test/.test(one.out) && /sudo sites password dezept/.test(one.out),
-    `sites link gives each site a port of its own, its address, its user and service, and a Caddy block with the certificate that covers its domain (one named for it first); this site and a copy without a centerpiece (${one.code}/${two.code})`);
+    /online at https:\/\/archive\.test, through Cloudflare \(certificate archive\.test\.pem/.test(one.out) && /sudo sites password dezept/.test(one.out),
+    `sites link takes a site through Cloudflare when a Cloudflare Origin Certificate covers its domain (one named for it before a wildcard): a port of its own, its address, user and service, and a Caddy block with that certificate, letting in only Cloudflare (${one.code}/${two.code})`);
+  // Let's Encrypt: asked for, kept, and taken when no certificate covers the domain; refused behind Cloudflare's proxy
+  const toLe = sites('link', 'friend', 'friend.friends.test', '--letsencrypt'), stays = sites('link', 'friend', 'friend.friends.test');
+  const auto = sites('link', 'mine', 'mine.test');
+  const proxied = spawnSync(process.execPath, [path.join(HOSTING, 'sites.mjs'), 'link', 'mine', 'cf.test', '--letsencrypt'],
+    { env: { ...senv, SITES_HOSTS: JSON.stringify({ 'cf.test': ['104.16.0.1'] }) }, encoding: 'utf8' });
+  const leBlock = (domain, port) => `https://${domain} {\n\timport letsencrypt 127.0.0.1:${port}\n}\nhttp://${domain} {\n\timport to-https\n}\n`;
+  check(toLe.code === 0 && stays.code === 0 && auto.code === 0 && /^TLS=letsencrypt$/m.test(read('etc/sites/friend.env') || '') &&
+    new RegExp(`^PORT=${base + 1}$`, 'm').test(read('etc/sites/friend.env') || '') && block('friend').endsWith(leBlock('friend.friends.test', base + 1)) &&
+    /Caddy gets its certificate from Let's Encrypt, and renews it by itself/.test(stays.out) &&
+    /^TLS=letsencrypt$/m.test(read('etc/sites/mine.env') || '') && block('mine').endsWith(leBlock('mine.test', base + 2)) && /mine\.test has no DNS record yet/.test(auto.out) &&
+    proxied.status === 1 && /points at Cloudflare's proxy \(104\.16\.0\.1\)/.test(proxied.stdout + proxied.stderr) && /^PUBLIC_ORIGIN=https:\/\/mine\.test$/m.test(read('etc/sites/mine.env') || ''),
+    "with --letsencrypt a site gets its certificate from Let's Encrypt and answers on port 80, to send visitors to https; it keeps that way when linked again, takes it when no certificate covers its domain, and is refused it while its domain points at Cloudflare's proxy");
+  // Your own certificate: checked, copied in, and told apart from Cloudflare's
+  leaf('public-ca', w('mine'), ['mine.test'], 45);
+  fs.writeFileSync(w('mine-chain.pem'), fs.readFileSync(w('mine.pem'), 'utf8') + fs.readFileSync(w('public-ca.pem'), 'utf8'));
+  leaf('public-ca', w('elsewhere'), ['elsewhere.test'], 45);
+  leaf('origin-ca', w('mine-origin'), ['mine.test'], 45);
+  const ownRefused = [
+    [[w('elsewhere.pem'), w('elsewhere.key')], /does not cover mine\.test; it is for elsewhere\.test/],
+    [[w('mine-origin.pem'), w('mine-origin.key')], /is a Cloudflare Origin Certificate, which browsers trust only through Cloudflare/],
+    [[w('mine-chain.pem'), w('elsewhere.key')], /is not the key of/], [[w('nothing.pem'), w('mine.key')], /Cannot read/],
+  ].filter(([[c, k], re]) => { const r = sites('link', 'mine', 'mine.test', '--cert', c, '--key', k); return !(r.code === 1 && re.test(r.out)); }).map(([[c]]) => path.basename(c));
+  const unchanged = !fs.existsSync(path.join(certs, 'mine.test.pem')) && /^TLS=letsencrypt$/m.test(read('etc/sites/mine.env') || '');
+  const leafOnly = sites('link', 'mine', 'mine.test', '--cert', w('mine.pem'), '--key', w('mine.key'));
+  const toOwn = sites('link', 'mine', 'mine.test', '--cert', w('mine-chain.pem'), '--key', w('mine.key'));
+  const mode = (f) => (fs.statSync(path.join(certs, f)).mode & 0o777).toString(8);
+  check(!ownRefused.length && unchanged && leafOnly.code === 0 && /without its authority's intermediate certificate/.test(leafOnly.out) &&
+    toOwn.code === 0 && !/intermediate/.test(toOwn.out) && read('etc/caddy/certs/mine.test.pem') === fs.readFileSync(w('mine-chain.pem'), 'utf8') &&
+    mode('mine.test.pem') === '640' && mode('mine.test.key') === '640' && /^TLS=own$/m.test(read('etc/sites/mine.env') || '') &&
+    block('mine').endsWith(`https://mine.test {\n\timport own 127.0.0.1:${base + 2} ${certs}/mine.test.pem ${certs}/mine.test.key\n}\nhttp://mine.test {\n\timport to-https\n}\n`) &&
+    /reached directly, with your certificate \(mine\.test\.pem, until/.test(toOwn.out),
+    `with --cert and --key a site gets your own certificate, copied in beside the others for Caddy alone to read, and answers on port 80 too; refused, changing nothing, if it does not cover the domain, is Cloudflare's Origin Certificate, comes with another key or cannot be read; one without its intermediate is taken, with a word about it${ownRefused.length ? ': not ' + ownRefused.join(' | ') : ''}`);
+
   const taken = sites('link', 'friend', 'archive.test');
   fs.appendFileSync(at('etc/sites/dezept.env'), 'TZ=Europe/Berlin\n');
   const again = sites('link', 'dezept', 'archive.test');
   const kept = read('etc/sites/dezept.env') || '';
-  check(taken.code === 1 && /already the address of dezept/.test(taken.out) && (read('etc/sites/friend.env') || '') === friendEnv &&
+  check(taken.code === 1 && /already the address of dezept/.test(taken.out) && /^PUBLIC_ORIGIN=https:\/\/friend\.friends\.test$/m.test(read('etc/sites/friend.env') || '') &&
     again.code === 0 && (kept.match(/^PORT=/gm) || []).length === 1 && new RegExp(`^PORT=${base}$`, 'm').test(kept) && /^TZ=Europe\/Berlin$/m.test(kept),
     "a domain already in use is refused; linking a site again keeps its port and the lines of the owner's own (TZ) in its file");
   const listed = sites('list').out;
   const pw = sites('password', 'dezept'), forget = sites('password', 'dezept', '--forget-private'), bogus = sites('password', 'dezept', '--now');
   const restarted = sites('restart', 'dezept');
-  check(new RegExp(`dezept\\s+https://archive\\.test\\s+${base}`).test(listed) && new RegExp(`friend\\s+https://friend\\.friends\\.test\\s+${base + 1}`).test(listed) &&
-    /half\s+not linked/.test(listed) && /Not_A_Site\s+cannot be linked/.test(listed) &&
+  check(new RegExp(`dezept\\s+https://archive\\.test\\s+Cloudflare\\s+${base}`).test(listed) && new RegExp(`friend\\s+https://friend\\.friends\\.test\\s+Let's Encrypt\\s+${base + 1}`).test(listed) &&
+    new RegExp(`mine\\s+https://mine\\.test\\s+own certificate\\s+${base + 2}`).test(listed) && /half\s+not linked/.test(listed) && /Not_A_Site\s+cannot be linked/.test(listed) &&
     pw.code === 0 && pw.out.includes(`runuser -u site-dezept -- env DATA_DIR=${at('var/lib/sites/dezept')} /usr/bin/node ${sitesDir}/dezept/server/server.mjs set-password`) &&
     /set-password --forget-private/.test(forget.out) && bogus.code === 1 && /Usage/.test(bogus.out) && restarted.code === 0 && /systemctl restart site@dezept/.test(restarted.out),
-    "sites list shows each site's address and port, and the folders not linked; password sets the word as the site's own user, in its own data; restart restarts it");
+    "sites list shows each site's address, its way to a certificate and its port, and the folders not linked; password sets the word as the site's own user, in its own data; restart restarts it");
 
-  // Both sites behind Caddy, as on the machine: Cloudflare's client certificate opens each by its name
+  // The three behind Caddy, as on the machine. Caddy's own CA stands in for Let's Encrypt, which cannot be reached here.
   const caddyBin = process.env.CADDY || (spawnSync('sh', ['-c', 'command -v caddy'], { encoding: 'utf8' }).stdout || '').trim();
   if (!caddyBin) console.log('SKIP  sites behind Caddy (set CADDY to a caddy binary)');
   else {
     const valid = spawnSync(caddyBin, ['validate', '--config', at('etc/caddy/Caddyfile'), '--adapter', 'caddyfile'], { encoding: 'utf8' });
-    check(valid.status === 0, `Caddy accepts the configuration sites wrote (${(valid.stderr || '').trim().split('\n').pop()})`);
-    const httpsPort = base + 500, procs = [];
+    check(valid.status === 0, `Caddy accepts the configuration sites wrote, each way (${(valid.stderr || '').trim().split('\n').pop()})`);
+    const httpsPort = base + 500, httpPort = base + 501, procs = [];
     const started = (proc, re, what) => new Promise((resolve, reject) => {
       let log = '';
       const t = setTimeout(() => reject(new Error(`${what} did not start: ${log.slice(-300)}`)), 15000);
@@ -2098,21 +2148,32 @@ async function sitesChecks() {
       proc.on('exit', (code) => { clearTimeout(t); reject(new Error(`${what} exited (${code}): ${log.slice(-300)}`)); });
     });
     try {
-      for (const name of ['dezept', 'friend']) { // as site@.service runs it: its own folder, its file, its data
+      for (const name of ['dezept', 'friend', 'mine']) { // as site@.service runs it: its own folder, its file, its data
         const vars = Object.fromEntries((read(`etc/sites/${name}.env`) || '').split('\n').filter((l) => /^[A-Z_]+=/.test(l)).map((l) => l.split(/=(.*)/s).slice(0, 2)));
         const proc = spawn(process.execPath, ['server/server.mjs'], { cwd: path.join(sitesDir, name), env: { ...process.env, ...vars, HOST: '127.0.0.1', TRUST_PROXY: 'true', SESSION_HOURS: '12', DATA_DIR: at(`var/lib/sites/${name}`) } });
         procs.push(proc);
         await started(proc, /listening on/, name);
       }
-      const testCaddyfile = path.join(work, 'Caddyfile');
-      fs.writeFileSync(testCaddyfile, caddyfile.replace('{\n', `{\n\thttps_port ${httpsPort}\n`)); // 443 needs root
+      // And two blocks the test adds, a direct one and one through Cloudflare, before a server that echoes what it is sent
+      const echo = http.createServer((req, res) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(req.headers)); });
+      await new Promise((r) => echo.listen(0, '127.0.0.1', r));
+      procs.push({ kill: () => echo.close(), exitCode: 0 });
+      leaf('origin-ca', w('echocf'), ['echocf.test'], 30);
+      const testCaddyfile = path.join(work, 'Caddyfile'), echoAt = `127.0.0.1:${echo.address().port}`;
+      fs.writeFileSync(testCaddyfile, caddyfile.replace('{\n', `{\n\thttps_port ${httpsPort}\n\thttp_port ${httpPort}\n\tskip_install_trust\n`) // 443 and 80 need root
+        .replace('issuer acme', 'issuer internal') +
+        `\nhttps://echo.test {\n\timport letsencrypt ${echoAt}\n}\nhttps://echocf.test {\n\timport cloudflare ${echoAt} ${w('echocf.pem')} ${w('echocf.key')}\n}\n`);
       const caddy = spawn(caddyBin, ['run', '--config', testCaddyfile, '--adapter', 'caddyfile'], { env: { ...process.env, XDG_DATA_HOME: work, XDG_CONFIG_HOME: work } });
       procs.push(caddy);
       await started(caddy, /serving initial configuration/, 'Caddy');
-      const client = { cert: fs.readFileSync(path.join(work, 'client.pem')), key: fs.readFileSync(path.join(work, 'client.key')) };
-      const get = (domain, urlPath, withClient = true) => new Promise((resolve) => {
-        const req = https.request({ host: '127.0.0.1', port: httpsPort, path: urlPath, servername: domain, headers: { Host: domain }, ca: [fs.readFileSync(path.join(certs, domain === 'archive.test' ? 'archive.test.pem' : 'friend.friends.test.pem'))],
-          ...(withClient ? client : {}), timeout: 10000 }, (res) => {
+      const client = { cert: fs.readFileSync(w('client.pem')), key: fs.readFileSync(w('client.key')) };
+      const localRoot = path.join(work, 'caddy/pki/authorities/local/root.crt'); // Caddy's own CA, standing in for Let's Encrypt
+      const origin = () => fs.readFileSync(w('origin-ca.pem')), local = () => fs.readFileSync(localRoot);
+      const trust = { 'archive.test': origin, 'mine.test': () => fs.readFileSync(w('public-ca.pem')), 'friend.friends.test': local, 'echo.test': local, 'echocf.test': origin, 'other.test': origin };
+      const get = (domain, urlPath, withClient = false, headers = {}) => new Promise((resolve) => {
+        let ca;
+        try { ca = [trust[domain]()]; } catch (e) { resolve({ error: e.code || e.message }); return; }
+        const req = https.request({ host: '127.0.0.1', port: httpsPort, path: urlPath, servername: domain, headers: { ...headers, Host: domain }, ca, ...(withClient ? client : {}), timeout: 10000 }, (res) => {
           const chunks = [];
           res.on('data', (c) => chunks.push(c));
           res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString('utf8') }));
@@ -2121,16 +2182,33 @@ async function sitesChecks() {
         req.on('timeout', () => req.destroy(new Error('timeout')));
         req.end();
       });
-      const mine = await get('archive.test', '/'), theirs = await get('friend.friends.test', '/');
+      const plain = (domain, urlPath) => request(httpPort, 'GET', urlPath, { headers: { Host: domain } }).catch((e) => ({ error: e.code || e.message }));
+      let theirs = { error: 'not tried' };
+      for (let i = 0; i < 40 && theirs.status !== 200; i++) { theirs = await get('friend.friends.test', '/'); if (theirs.status !== 200) await new Promise((r) => setTimeout(r, 500)); } // its certificate comes first
+      const mine = await get('archive.test', '/', true), own = await get('mine.test', '/');
       const model = ((mine.text || '').match(/"(chalice\.[0-9a-f]{12}\.glb)"/) || [])[1];
-      const modelHere = await get('archive.test', '/' + model), modelThere = await get('friend.friends.test', '/' + model);
+      const modelHere = await get('archive.test', '/' + model, true), modelThere = await get('friend.friends.test', '/' + model);
       const scriptSrc = (r) => ((r.headers || {})['content-security-policy'] || '').split('; ').find((d) => d.startsWith('script-src ')) || '';
       check(mine.status === 200 && /id="construct" type="button"/.test(mine.text) && theirs.status === 200 && /id="construct" hidden type="button"/.test(theirs.text) &&
+        own.status === 200 && /id="construct" hidden type="button"/.test(own.text) &&
         !!model && modelHere.status === 200 && modelThere.status === 404 && / 'self'$/.test(scriptSrc(mine)) && !/'self'/.test(scriptSrc(theirs)) && scriptSrc(theirs).startsWith("script-src 'sha256-") &&
-        !mine.headers.server && fs.existsSync(at('var/lib/sites/dezept/archive.json')) && fs.existsSync(at('var/lib/sites/friend/archive.json')),
-        `behind Caddy, each domain reaches its own site: this one with its model, the copy without (no model, no three.js, its script alone in the CSP), each with its own data (${mine.status || mine.error}/${theirs.status || theirs.error})`);
-      const bare = await get('archive.test', '/', false), stranger = await get('other.test', '/');
-      check(!!bare.error && !!stranger.error, `without Cloudflare's client certificate, or by a name no site has, the connection is refused (${bare.error || bare.status}, ${stranger.error || stranger.status})`);
+        !mine.headers.server && ['dezept', 'friend', 'mine'].every((n) => fs.existsSync(at(`var/lib/sites/${n}/archive.json`))),
+        `behind Caddy, each domain reaches its own site: this one through Cloudflare with its model; a copy without one with a certificate from Caddy (as from Let's Encrypt), and another with its own certificate, both without Cloudflare's client certificate; each with its own data (${mine.status || mine.error}/${theirs.status || theirs.error}/${own.status || own.error})`);
+      const toHttps = await plain('friend.friends.test', '/about?x=1'), toHttpsOwn = await plain('mine.test', '/'), noPlain = await plain('archive.test', '/');
+      check(toHttps.status === 301 && toHttps.headers.location === 'https://friend.friends.test/about?x=1' && toHttpsOwn.status === 301 && toHttpsOwn.headers.location === 'https://mine.test/' &&
+        !(noPlain.status === 301 || noPlain.status === 200 && /id="ca-app"/.test(noPlain.text || '')),
+        `on port 80, a site reached directly sends visitors to https, keeping the path; a site through Cloudflare has nothing there (${toHttps.status || toHttps.error} ${toHttps.headers ? toHttps.headers.location : ''}, ${noPlain.status || noPlain.error})`);
+      // What a site is told of its visitor: never a country or an address the visitor made up, when it is reached directly
+      const madeUp = { 'CF-IPCountry': 'ZZ', 'X-Real-IP': '203.0.113.9', 'CF-Connecting-IP': '203.0.113.9' };
+      let direct = { error: 'not tried' };
+      for (let i = 0; i < 40 && direct.status !== 200; i++) { direct = await get('echo.test', '/', false, madeUp); if (direct.status !== 200) await new Promise((r) => setTimeout(r, 500)); }
+      const viaCloudflare = await get('echocf.test', '/', true, { 'CF-IPCountry': 'DE', 'X-Real-IP': '203.0.113.9' });
+      const told = (r) => { try { return JSON.parse(r.text); } catch { return {}; } };
+      check(direct.status === 200 && !('cf-ipcountry' in told(direct)) && told(direct)['x-real-ip'] === '127.0.0.1' &&
+        viaCloudflare.status === 200 && told(viaCloudflare)['cf-ipcountry'] === 'DE' && told(viaCloudflare)['x-real-ip'] === '127.0.0.1',
+        `a site reached directly is never told a country or an address its visitor made up (Caddy drops CF-IPCountry, and sets X-Real-IP from the connection); through Cloudflare, Cloudflare's country comes through (${direct.status || direct.error}: ${JSON.stringify({ c: told(direct)['cf-ipcountry'], ip: told(direct)['x-real-ip'] })})`);
+      const shut = await get('archive.test', '/'), stranger = await get('other.test', '/');
+      check(!!shut.error && !!stranger.error, `without Cloudflare's client certificate, the site through Cloudflare refuses the connection, and so does a name no site has (${shut.error || shut.status}, ${stranger.error || stranger.status})`);
     } finally {
       for (const p of procs.reverse()) { p.kill('SIGTERM'); await new Promise((r) => (p.exitCode !== null ? r() : p.once('exit', r))); }
     }

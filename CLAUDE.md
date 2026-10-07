@@ -2,7 +2,7 @@
 
 ## chalice-archive/
 
-A one-page WoW RP site for a Dracthyr character, the owner's own. It is self-hosted on the owner's VPS: Cloudflare, then Caddy, then `chalice-archive/server/server.mjs`.
+A one-page WoW RP site for a Dracthyr character, the owner's own. It is self-hosted on the owner's VPS: Caddy (with Cloudflare in front, or not), then `chalice-archive/server/server.mjs`.
 
 - Read `chalice-archive/HANDOVER.md` before changing anything.
 - `hosting/README.md` covers the VPS.

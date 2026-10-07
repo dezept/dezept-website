@@ -4,7 +4,10 @@
 
      sudo sites setup <login>             once: installs the service template, Caddy's configuration and this command,
                                           and lets <login>, the account you sign in with, put folders in /srv/sites
-     sudo sites link <folder> <domain>    puts /srv/sites/<folder> online at https://<domain> (again: moves it there)
+     sudo sites link <folder> <domain>    puts /srv/sites/<folder> online at https://<domain> (again: moves it there),
+                                          its certificate from Let's Encrypt, from Cloudflare, or your own:
+                                          --letsencrypt, --cloudflare, or --cert <file> --key <file> (else as it was,
+                                          or as the certificates in /etc/caddy/certs say; else Let's Encrypt)
      sudo sites restart <folder>          after a new version of the folder has been put in place
      sudo sites password <folder>         sets or replaces the site's keeper's word; with --forget-private, a
                                           forgotten one (the private sections written so far are lost)
@@ -14,13 +17,19 @@
    A site's folder is a whole site, made from chalice-archive/ (hosting/README.md, "Making a site"): it must hold
    server/server.mjs, which serves it, and dist/index.html, its built page. Each site runs as a user of its own,
    site-<folder>, keeps its data in /var/lib/sites/<folder> and listens on a port of its own on loopback, which
-   /etc/sites/<folder>.env gives along with its address. Caddy sends https://<domain> there, from
-   /etc/caddy/sites/<folder>.caddy, through a Cloudflare Origin Certificate in /etc/caddy/certs that covers the domain.
+   /etc/sites/<folder>.env gives along with its address and how it has its certificate (TLS=). Caddy sends
+   https://<domain> there, from /etc/caddy/sites/<folder>.caddy:
+     - letsencrypt: visitors come straight here; Caddy gets the certificate from Let's Encrypt and renews it;
+     - own: visitors come straight here; your certificate, copied to /etc/caddy/certs/<domain>.pem and .key;
+     - cloudflare: visitors come through Cloudflare's proxy, and only Cloudflare gets in (its client certificate);
+       a Cloudflare Origin Certificate in /etc/caddy/certs that covers the domain.
 
    For tests: SITES_ROOT puts every path under another directory, SITES_DRY_RUN=1 shows the system's commands
-   (useradd, systemctl, runuser, caddy …) instead of running them, and SITES_FIRST_PORT is the first port handed out.
+   (useradd, systemctl, runuser, caddy …) instead of running them, SITES_FIRST_PORT is the first port handed out, and
+   SITES_HOSTS (JSON: {"name": ["address", …]}) stands in for DNS.
 */
 import crypto from "node:crypto";
+import dns from "node:dns";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -43,6 +52,8 @@ const FIRST_PORT = Number(env.SITES_FIRST_PORT || 8081);
 const NODE = "/usr/bin/node"; // as site@.service runs it
 const NAME = /^[a-z][a-z0-9_-]{0,26}$/; // it also names the site's user, site-<folder>, which may have 32 characters
 const MARK = "Installed by `sites setup`"; // in hosting/Caddyfile's first line
+// How a site has its certificate (TLS= in its file), each with the snippet of the same name in hosting/Caddyfile
+const WAYS = { letsencrypt: "Let's Encrypt", own: "own certificate", cloudflare: "Cloudflare" };
 
 class Fail extends Error {}
 
@@ -116,13 +127,13 @@ function setVar(lines, key, value) { // in place of the key's line (only one is 
   return out;
 }
 
-// Every linked site, from /etc/sites: { name, domain, port }
+// Every linked site, from /etc/sites: { name, domain, port, way }
 function linked() {
   let files = [];
   try { files = fs.readdirSync(PATHS.env); } catch {}
   return files.filter((f) => f.endsWith(".env") && NAME.test(f.slice(0, -4))).sort().map((f) => {
     const lines = readText(path.join(PATHS.env, f)).split("\n");
-    return { name: f.slice(0, -4), domain: getVar(lines, "PUBLIC_ORIGIN").replace(/^https:\/\//, ""), port: Number(getVar(lines, "PORT")) || 0 };
+    return { name: f.slice(0, -4), domain: getVar(lines, "PUBLIC_ORIGIN").replace(/^https:\/\//, ""), port: Number(getVar(lines, "PORT")) || 0, way: getVar(lines, "TLS") };
   });
 }
 
@@ -166,16 +177,12 @@ function folder(name) {
   }
   return dir;
 }
-// Cloudflare's CA for Authenticated Origin Pulls, which Caddy checks Cloudflare's client certificate against
-function isCert(pem) {
-  try { return !!new crypto.X509Certificate(pem); } catch { return false; }
-}
-function pullCa() {
-  try { return isCert(fs.readFileSync(PULL_CA)); } catch { return false; }
-}
-// A Cloudflare Origin Certificate in /etc/caddy/certs that covers the domain, with its key beside it
-// (<name>.pem and <name>.key): one named for the domain first, then the one that runs longest
-function certFor(domain) {
+// Cloudflare's Origin Certificates are trusted by Cloudflare alone, not by browsers
+const fromOriginCa = (cert) => /cloudflare origin/i.test(cert.issuer);
+const day = (d) => d.toISOString().slice(0, 10);
+// The certificates in /etc/caddy/certs that cover the domain, each with its key beside it (<name>.pem and <name>.key):
+// one named for the domain first, then the one that runs longest. What keeps the others out goes into notes.
+function certsFor(domain) {
   let files = [];
   try { files = fs.readdirSync(PATHS.certs).filter((f) => f.endsWith(".pem")).sort(); } catch {}
   const usable = [], notes = [];
@@ -190,18 +197,65 @@ function certFor(domain) {
     const until = new Date(cert.validTo);
     if (!key) notes.push(`${f} covers ${domain}, but its key, ${path.basename(keyFile)}, is missing or cannot be read.`);
     else if (!cert.checkPrivateKey(key)) notes.push(`${f} covers ${domain}, but ${path.basename(keyFile)} is not its key.`);
-    else if (until <= new Date()) notes.push(`${f} covers ${domain}, but it ran out on ${until.toISOString().slice(0, 10)}.`);
-    else usable.push({ cert: path.join(PATHS.certs, f), key: keyFile, until, named: f === `${domain}.pem` });
-  }
-  if (!usable.length) {
-    const parent = domain.split(".").slice(1).join(".");
-    throw new Fail([...notes,
-      `No certificate in ${PATHS.certs} covers ${domain}. In Cloudflare, in ${domain}'s zone: SSL/TLS > Origin Server > Create Certificate, for ${domain}` +
-      (parent.includes(".") ? ` (or for *.${parent}, which covers every name beside it too)` : "") + `, in PEM format. ` +
-      `Save the certificate as ${PATHS.certs}/${domain}.pem and its private key as ${PATHS.certs}/${domain}.key, then run this again.`].join("\n"));
+    else if (until <= new Date()) notes.push(`${f} covers ${domain}, but it ran out on ${day(until)}.`);
+    else usable.push({ cert: path.join(PATHS.certs, f), key: keyFile, until, named: f === `${domain}.pem`, origin: fromOriginCa(cert) });
   }
   usable.sort((a, b) => b.named - a.named || b.until - a.until);
-  return usable[0];
+  return { usable, notes };
+}
+// Your own certificate (the full chain, as fullchain.pem holds it) and its key, checked, then copied to
+// /etc/caddy/certs/<domain>.pem and .key, where Caddy can read them. Returns what is worth saying about it.
+function installOwn(domain, certFile, keyFile) {
+  const read = (file) => { try { return fs.readFileSync(file, "utf8"); } catch (e) { throw new Fail(`Cannot read ${file} (${e.code || e.message}).`); } };
+  const pem = read(certFile), keyPem = read(keyFile);
+  let cert, key;
+  try { cert = new crypto.X509Certificate(pem); } catch { throw new Fail(`${certFile} is not a certificate in PEM format.`); }
+  try { key = crypto.createPrivateKey(keyPem); } catch { throw new Fail(`${keyFile} is not a private key in PEM format.`); }
+  if (!cert.checkHost(domain)) throw new Fail(`${certFile} does not cover ${domain}; it is for ${(cert.subjectAltName || cert.subject).replace(/DNS:/g, "")}.`);
+  if (fromOriginCa(cert)) {
+    throw new Fail(`${certFile} is a Cloudflare Origin Certificate, which browsers trust only through Cloudflare. Save it in ${PATHS.certs} and link the site with --cloudflare, or give a certificate from a public authority, or use --letsencrypt.`);
+  }
+  if (!cert.checkPrivateKey(key)) throw new Fail(`${keyFile} is not the key of ${certFile}.`);
+  if (new Date(cert.validTo) <= new Date()) throw new Fail(`${certFile} ran out on ${day(new Date(cert.validTo))}.`);
+  const target = path.join(PATHS.certs, domain);
+  writeFile(`${target}.pem`, pem.replace(/\s*$/, "\n"), 0o640);
+  writeFile(`${target}.key`, keyPem.replace(/\s*$/, "\n"), 0o640);
+  const chain = (pem.match(/-----BEGIN CERTIFICATE-----/g) || []).length;
+  return chain === 1 && cert.issuer !== cert.subject
+    ? `${certFile} holds the certificate alone, without its authority's intermediate certificate: some browsers will not trust it. Give the full chain (often fullchain.pem) next time.`
+    : "";
+}
+// Cloudflare's CA for Authenticated Origin Pulls, which Caddy checks Cloudflare's client certificate against
+function isCert(pem) {
+  try { return !!new crypto.X509Certificate(pem); } catch { return false; }
+}
+function pullCa() {
+  try { return isCert(fs.readFileSync(PULL_CA)); } catch { return false; }
+}
+// Where the domain points in DNS (SITES_HOSTS stands in for DNS in tests)
+async function addressesOf(domain) {
+  if (env.SITES_HOSTS) return JSON.parse(env.SITES_HOSTS)[domain] || [];
+  const resolver = new dns.promises.Resolver({ timeout: 4000, tries: 2 });
+  const got = await Promise.allSettled([resolver.resolve4(domain), resolver.resolve6(domain)]);
+  return got.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+}
+// Is an address Cloudflare's? By the ranges Caddy trusts as Cloudflare's (hosting/Caddyfile, trusted_proxies)
+function cloudflareRanges() {
+  const list = new net.BlockList();
+  const m = /trusted_proxies static ([^\n]+)/.exec(readText(CADDYFILE) || "");
+  for (const range of m ? m[1].trim().split(/\s+/) : []) {
+    const [addr, bits] = range.split("/");
+    list.addSubnet(addr, Number(bits), net.isIPv6(addr) ? "ipv6" : "ipv4");
+  }
+  return (ip) => net.isIP(ip) > 0 && list.check(ip, net.isIPv6(ip) ? "ipv6" : "ipv4");
+}
+// A site reached directly needs ports 80 and 443 open to everyone; ufw's own word for it, if ufw is on
+function firewallNote() {
+  if (DRY) return "";
+  const r = spawnSync("ufw", ["status"], { encoding: "utf8" });
+  if (r.error || r.status !== 0 || !/^Status: active/m.test(r.stdout)) return "";
+  const open = (port) => new RegExp(`^${port}/tcp\\s+ALLOW\\s+Anywhere\\b`, "m").test(r.stdout);
+  return open(80) && open(443) ? "" : `The firewall lets ports 80 and 443 in only from Cloudflare, or not at all. Open them to everyone, for visitors and for Let's Encrypt: sudo sh ${HERE}/firewall.sh open`;
 }
 function canListen(port) {
   return new Promise((done) => {
@@ -258,9 +312,13 @@ function caddySite(name, text) {
   }
   must("systemctl", ["restart", "caddy"], "Restarting Caddy");
 }
-function caddyBlock(name, domain, port, cert) {
-  return `# ${name} (${PATHS.sites}/${name}): written by \`sites link\`, and written again each time; change hosting/Caddyfile instead\n` +
-    `https://${domain} {\n\timport site 127.0.0.1:${port} ${cert.cert} ${cert.key}\n}\n`;
+// The site's block, by how it has its certificate; one reached directly answers on port 80 too, to send visitors to https
+function caddyBlock(name, domain, port, way, cert) {
+  const head = `# ${name} (${PATHS.sites}/${name}), ${WAYS[way]}: written by \`sites link\`, and written again each time; change hosting/Caddyfile instead\n`;
+  const server = `127.0.0.1:${port}`;
+  if (way === "cloudflare") return head + `https://${domain} {\n\timport cloudflare ${server} ${cert.cert} ${cert.key}\n}\n`;
+  const tls = way === "own" ? `\timport own ${server} ${cert.cert} ${cert.key}\n` : `\timport letsencrypt ${server}\n`;
+  return head + `https://${domain} {\n${tls}}\nhttp://${domain} {\n\timport to-https\n}\n`;
 }
 
 // ---------- commands ----------
@@ -307,43 +365,115 @@ async function setup(login) {
   console.log(`Set up. Put a site's folder in ${PATHS.sites} (as ${login}), then: sudo sites link <folder> <domain>`);
 }
 
-async function link(name, rawDomain) {
+// How the site is to have its certificate, from the command's words: { way, cert, key }
+function chosen(words) {
+  const how = { way: "", cert: "", key: "" };
+  const pick = (way) => {
+    if (how.way && how.way !== way) throw new Fail("Choose one way for the certificate: --letsencrypt, --cloudflare, or --cert <file> --key <file>.");
+    how.way = way;
+  };
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (w === "--letsencrypt") pick("letsencrypt");
+    else if (w === "--cloudflare") pick("cloudflare");
+    else if (w === "--cert" || w === "--key") {
+      const file = words[++i];
+      if (!file || file.startsWith("--")) usage();
+      pick("own");
+      how[w.slice(2)] = path.resolve(file);
+    } else usage();
+  }
+  if (how.way === "own" && !(how.cert && how.key)) throw new Fail("Give your certificate and its key together: --cert <file> --key <file>.");
+  return how;
+}
+
+async function link(name, rawDomain, ...words) {
   checkName(name);
   const domain = checkDomain(rawDomain);
+  const how = chosen(words);
   asRoot();
   installed();
   const dir = folder(name);
   const others = linked().filter((s) => s.name !== name);
   const owner = others.find((s) => s.domain === domain);
   if (owner) throw new Fail(`${domain} is already the address of ${owner.name}. Take that site off it first (sudo sites unlink ${owner.name}), or choose another domain.`);
-  if (!pullCa()) throw new Fail(`Cloudflare's origin-pull CA is missing (${PULL_CA}). Run sudo sites setup <login> again, which fetches it.`);
-  const cert = certFor(domain);
+  const file = envFile(name);
+  let lines = readText(file)?.replace(/\n+$/, "").split("\n") ?? [
+    `# ${name}: written by \`sites link\`, which keeps PORT, PUBLIC_ORIGIN and TLS up to date. Lines of your own stay, such`,
+    `# as TZ=Europe/Berlin (the time zone of the statistics' days). After changing this file: sudo sites restart ${name}`,
+  ];
+  // The way: as asked; else as it was; else as the certificates here say (Cloudflare's own: through Cloudflare;
+  // another: yours); else Let's Encrypt
+  const later = []; // worth saying once it is online
+  if (how.way === "own") later.push(installOwn(domain, how.cert, how.key));
+  const { usable, notes } = certsFor(domain);
+  const before = Object.hasOwn(WAYS, getVar(lines, "TLS")) ? getVar(lines, "TLS") : "";
+  if (!how.way && !before && !usable.length && notes.length) { // a certificate meant for it, that cannot be used
+    throw new Fail([...notes, `Put that right, or choose another way: --letsencrypt, or --cert <file> --key <file>.`].join("\n"));
+  }
+  const way = how.way || before || (usable.some((c) => c.origin) ? "cloudflare" : usable.length ? "own" : "letsencrypt");
+  let cert = null;
+  if (way === "cloudflare") {
+    if (!pullCa()) throw new Fail(`Cloudflare's origin-pull CA is missing (${PULL_CA}). Run sudo sites setup <login> again, which fetches it.`);
+    cert = usable.find((c) => c.named) || usable.find((c) => c.origin) || usable[0];
+    if (!cert) {
+      const parent = domain.split(".").slice(1).join(".");
+      throw new Fail([...notes,
+        `No certificate in ${PATHS.certs} covers ${domain}. In Cloudflare, in ${domain}'s zone: SSL/TLS > Origin Server > Create Certificate, for ${domain}` +
+        (parent.includes(".") ? ` (or for *.${parent}, which covers every name beside it too)` : "") + `, in PEM format. ` +
+        `Save the certificate as ${PATHS.certs}/${domain}.pem and its private key as ${PATHS.certs}/${domain}.key, then run this again. ` +
+        `(Without Cloudflare: --letsencrypt.)`].join("\n"));
+    }
+  } else if (way === "own") {
+    cert = usable.find((c) => !c.origin);
+    if (!cert) {
+      throw new Fail([...notes, usable.length
+        ? `Only a Cloudflare Origin Certificate covers ${domain} here, which browsers trust only through Cloudflare: --cloudflare, or give your own (--cert <file> --key <file>), or --letsencrypt.`
+        : `No certificate of yours covers ${domain}: give it with --cert <file> --key <file> (the full chain, and its key), or let Let's Encrypt give it one: --letsencrypt.`].join("\n"));
+    }
+  }
+  // Where the domain points: Let's Encrypt cannot reach this machine through Cloudflare's proxy
+  const ips = await addressesOf(domain), isCloudflare = cloudflareRanges(), proxied = ips.filter(isCloudflare);
+  if (way === "letsencrypt" && proxied.length) {
+    throw new Fail(`${domain} points at Cloudflare's proxy (${proxied.join(", ")}), through which Let's Encrypt cannot reach this machine. ` +
+      `Either set its DNS record in Cloudflare to "DNS only" (the grey cloud), then run this again; or keep Cloudflare in front: ` +
+      `save a Cloudflare Origin Certificate for it in ${PATHS.certs} and run this with --cloudflare.`);
+  }
+  if (way === "cloudflare") {
+    if (!ips.length || ips.length > proxied.length) later.push(`In Cloudflare, ${domain} needs a proxied DNS record (the orange cloud) for this machine, if it has none yet; and the zone needs SSL/TLS Full (strict) and Authenticated Origin Pulls (hosting/README.md).`);
+  } else {
+    if (!ips.length) later.push(`${domain} has no DNS record yet: point it (A, and AAAA with IPv6) at this machine.` + (way === "letsencrypt" ? " Caddy keeps trying for its certificate, less and less often; once it points here, sudo systemctl restart caddy makes it try at once." : ""));
+    else if (proxied.length) later.push(`${domain} points at Cloudflare's proxy. Your own certificate works through it, but the machine also lets everyone in directly: for Cloudflare alone, --cloudflare.`);
+    later.push(firewallNote());
+  }
   const user = `site-${name}`;
   if (DRY || !getent("passwd", user)) {
     must("useradd", ["--system", "--user-group", "--no-create-home", "--home-dir", "/nonexistent", "--shell", "/usr/sbin/nologin", user], `Making the user ${user}`);
   }
   // The port: the site's own if it has one, else the first free one
-  const file = envFile(name);
-  let lines = readText(file)?.replace(/\n+$/, "").split("\n") ?? [
-    `# ${name}: written by \`sites link\`, which keeps PORT and PUBLIC_ORIGIN up to date. Lines of your own stay, such as`,
-    `# TZ=Europe/Berlin (the time zone of the statistics' days). After changing this file: sudo sites restart ${name}`,
-  ];
   let port = Number(getVar(lines, "PORT"));
   if (!port || others.some((s) => s.port === port)) port = await freePort(new Set(others.map((s) => s.port)));
-  lines = setVar(setVar(lines, "PORT", String(port)), "PUBLIC_ORIGIN", `https://${domain}`);
+  lines = setVar(setVar(setVar(lines, "PORT", String(port)), "PUBLIC_ORIGIN", `https://${domain}`), "TLS", way);
   writeFile(file, lines.join("\n") + "\n");
   readableBy(user, dir);
   await start(name, port);
-  for (const f of [cert.cert, cert.key]) { // Caddy reads them; nobody else
-    if (!DRY) fs.chmodSync(f, 0o640);
-    own(f, "root", "caddy");
+  if (cert) {
+    for (const f of [cert.cert, cert.key]) { // Caddy reads them; nobody else
+      if (!DRY) fs.chmodSync(f, 0o640);
+      own(f, "root", "caddy");
+    }
   }
-  caddySite(name, caddyBlock(name, domain, port, cert));
-  console.log(`${name} is online at https://${domain} (its server on port ${port}, certificate ${path.basename(cert.cert)}).`);
+  caddySite(name, caddyBlock(name, domain, port, way, cert));
+  const said = {
+    cloudflare: () => `through Cloudflare (certificate ${path.basename(cert.cert)}, until ${day(cert.until)})`,
+    own: () => `reached directly, with your certificate (${path.basename(cert.cert)}, until ${day(cert.until)}). Before then: sudo sites link ${name} ${domain} --cert <new certificate> --key <its key>`,
+    letsencrypt: () => "reached directly. Caddy gets its certificate from Let's Encrypt, and renews it by itself",
+  };
+  console.log(`${name} is online at https://${domain}, ${said[way]()}.`);
   let word = false;
   try { word = fs.existsSync(path.join(PATHS.data, name, "auth.json")); } catch {}
   if (!word) console.log(`It has no keeper's word yet: sudo sites password ${name}`);
-  console.log(`In Cloudflare, ${domain} needs a proxied DNS record pointing at this machine, if it has none yet (hosting/README.md, "Adding a site").`);
+  for (const line of later) if (line) console.log(line);
 }
 
 async function restart(name) {
@@ -389,7 +519,7 @@ function list() {
   try { folders = fs.readdirSync(PATHS.sites).filter((n) => !n.startsWith(".")); } catch {}
   const names = [...new Set([...sites.map((s) => s.name), ...folders])].sort();
   if (!names.length) return console.log(`No sites yet. Put a site's folder in ${PATHS.sites}, then: sudo sites link <folder> <domain>`);
-  const rows = [["SITE", "ADDRESS", "PORT", "STATE", "WORD"]];
+  const rows = [["SITE", "ADDRESS", "CERTIFICATE", "PORT", "STATE", "WORD"]];
   for (const name of names) {
     const site = sites.find((s) => s.name === name);
     let state = "not linked", word = "";
@@ -400,7 +530,7 @@ function list() {
       // the site's data is its own (0700): without sudo, there is no telling
       word = process.getuid() !== 0 && ROOT === "/" ? "?" : fs.existsSync(path.join(PATHS.data, name, "auth.json")) ? "set" : "not set";
     }
-    rows.push([name, site ? `https://${site.domain}` : "", site ? String(site.port) : "", state, word]);
+    rows.push([name, site ? `https://${site.domain}` : "", site ? WAYS[site.way] || "?" : "", site ? String(site.port) : "", state, word]);
   }
   const widths = rows[0].map((_, i) => Math.max(...rows.map((r) => r[i].length)));
   for (const row of rows) console.log(row.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd());
@@ -409,7 +539,8 @@ function list() {
 function usage() {
   throw new Fail(`Usage:
   sudo sites setup <login>             once, on a new machine (<login>: the account you sign in with)
-  sudo sites link <folder> <domain>    put /srv/sites/<folder> online at https://<domain>
+  sudo sites link <folder> <domain> [--letsencrypt | --cloudflare | --cert <file> --key <file>]
+                                       put /srv/sites/<folder> online at https://<domain>
   sudo sites restart <folder>          after a new version of the folder has been put in place
   sudo sites password <folder> [--forget-private]
                                        set or replace the site's keeper's word

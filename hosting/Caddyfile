@@ -1,39 +1,33 @@
-# /etc/caddy/Caddyfile: every site on this VPS, behind Cloudflare. Installed by `sites setup`; hosting/README.md has the
-# whole setup. Each site's own block is /etc/caddy/sites/<folder>.caddy, written by `sites link`: change this file, not
-# those. Caddy's admin API is off, so a change needs `sudo systemctl restart caddy` (`reload` asks the admin API).
+# /etc/caddy/Caddyfile: every site on this VPS. Installed by `sites setup`; hosting/README.md has the whole setup. Each
+# site's own block is /etc/caddy/sites/<folder>.caddy, written by `sites link`: change this file, not those. Caddy's
+# admin API is off, so a change needs `sudo systemctl restart caddy` (`reload` asks the admin API).
+#
+# A site gets its certificate one of three ways (its block imports the snippet of the same name): from Let's Encrypt,
+# which Caddy renews by itself; from you; or from Cloudflare, whose proxy visitors then come through.
 {
 	# No admin API. It would listen on localhost:2019 and take a whole new configuration from any process on the VPS
 	# that asks, any site's server among them, which are otherwise kept to loopback: one that had been broken into
 	# could have had Caddy serve an Origin Certificate's private key.
 	admin off
 
-	# Cloudflare redirects http to https ("Always Use HTTPS"), and port 80 stays closed, so Caddy only serves 443.
+	# Port 80 only where a site asks for it: one reached directly has a block there of its own (to-https, below), which
+	# also answers Let's Encrypt. Cloudflare redirects to https by itself ("Always Use HTTPS"), so a machine whose sites
+	# all go through Cloudflare keeps port 80 closed.
 	auto_https disable_redirects
 
 	servers {
-		# Requests arrive from Cloudflare. Only from these addresses does Caddy believe CF-Connecting-IP,
-		# the visitor's real address; from anywhere else the header is ignored. The ranges are
-		# https://www.cloudflare.com/ips/ as of October 2026; compare them now and then.
+		# Requests through Cloudflare arrive from these addresses. Only from them does Caddy believe CF-Connecting-IP,
+		# the visitor's real address; from anywhere else (a visitor reaching a site directly) the header is ignored,
+		# and the connection's own address is the visitor's. The ranges are https://www.cloudflare.com/ips/ as of
+		# October 2026; compare them now and then.
 		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
 		trusted_proxies_strict
 		client_ip_headers CF-Connecting-IP
 	}
 }
 
-# What every site gets. A site's block imports it with three arguments: its server's address on loopback, and the
-# Cloudflare Origin Certificate and key that cover its domain.
-(site) {
-	# The Origin Certificate (SSL/TLS > Origin Server), for Cloudflare's "Full (strict)" mode
-	tls {args[1]} {args[2]} {
-		protocols tls1.2 tls1.3
-		# Authenticated Origin Pulls: only Cloudflare, presenting its client certificate, completes the handshake.
-		# Turn it on in Cloudflare too, for every domain (SSL/TLS > Origin Server), or its requests fail with 525/526.
-		client_auth {
-			mode require_and_verify
-			trust_pool file /etc/caddy/certs/cloudflare-origin-pull-ca.pem
-		}
-	}
-
+# What every site gets, whichever way it has its certificate; {args[0]} is its server's address on loopback
+(serve) {
 	# Request bodies: an upload for an art piece up to 100 MB, which is also Cloudflare's own limit on the Free and Pro
 	# plans (the server takes 8 MiB for a picture, 40 MiB for a GIF and 90 MiB for a video), everything else up to
 	# 320 KB (the server takes 256 KiB for the About page and 64 KiB for the rest).
@@ -59,6 +53,52 @@
 	reverse_proxy {args[0]} {
 		header_up X-Real-IP {client_ip}
 	}
+}
+
+# Through Cloudflare: Cloudflare's Origin Certificate for the domain ({args[1]}, its key {args[2]}; SSL/TLS > Origin
+# Server), for its "Full (strict)" mode
+(cloudflare) {
+	tls {args[1]} {args[2]} {
+		protocols tls1.2 tls1.3
+		# Authenticated Origin Pulls: only Cloudflare, presenting its client certificate, completes the handshake.
+		# Turn it on in Cloudflare too, for every such domain (SSL/TLS > Origin Server), or its requests fail with 525/526.
+		client_auth {
+			mode require_and_verify
+			trust_pool file /etc/caddy/certs/cloudflare-origin-pull-ca.pem
+		}
+	}
+	import serve {args[0]}
+}
+
+# Directly, with your own certificate ({args[1]}: the full chain; {args[2]}: its key)
+(own) {
+	tls {args[1]} {args[2]} {
+		protocols tls1.2 tls1.3
+	}
+	import direct
+	import serve {args[0]}
+}
+
+# Directly, with a certificate Caddy gets from Let's Encrypt and renews by itself, about a month before it runs out.
+# It keeps it in its own data (/var/lib/caddy).
+(letsencrypt) {
+	tls {
+		protocols tls1.2 tls1.3
+		issuer acme
+	}
+	import direct
+	import serve {args[0]}
+}
+
+# A site reached directly: only Cloudflare says which country a visitor is in, and from anyone else the header would be
+# theirs to make up, so it goes (the site's statistics take it as Cloudflare's)
+(direct) {
+	request_header -CF-IPCountry
+}
+
+# Port 80 of a site reached directly: everything to https, after Let's Encrypt's challenges, which Caddy answers first
+(to-https) {
+	redir https://{host}{uri} permanent
 }
 
 import /etc/caddy/sites/*.caddy
