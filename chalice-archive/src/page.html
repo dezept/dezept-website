@@ -1007,10 +1007,10 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               <ol class="plates" id="plates"></ol>
             </section>
             <div class="owner-row" id="gl-tools" hidden>
-              <button class="btn" id="gl-edit" type="button">Rename the form</button>
+              <button class="btn" id="gl-edit" type="button">Rename OC</button>
               <button class="btn" id="gl-earlier" type="button">Move earlier</button>
               <button class="btn" id="gl-later" type="button">Move later</button>
-              <button class="btn" id="gl-delete" type="button">Remove the form</button>
+              <button class="btn" id="gl-delete" type="button">Remove OC</button>
             </div>
           </section>
 
@@ -1063,7 +1063,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
                 <input class="input" id="af-title" name="title" maxlength="120" autocomplete="off" placeholder="At the edge of the Reach">
               </div>
               <div class="field">
-                <label for="af-gallery">Form</label>
+                <label for="af-gallery">OC</label>
                 <select class="input" id="af-gallery" name="gallery"></select>
               </div>
               <div class="row-2">
@@ -2333,7 +2333,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     el.afHeading.textContent = a ? "Revise the art piece" : "Add an art piece";
     el.afSubmit.textContent = a ? "Save changes" : "Add the art piece";
     // which of his forms it shows: the one it is in, or, for a new piece, the one open
-    fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: nameOf(g) }); }).concat([h("option", { value: "", text: "Other art (no form)" })]));
+    fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: nameOf(g) }); }).concat([h("option", { value: "", text: "Other art (no OC)" })]));
     el.afGallery.value = a ? a.gallery : galleryOf(galleryId) && galleryId !== OTHER ? galleryId : "";
     fill(el.afVersions, a ? a.versions.map(versionRow) : [versionRow(null, 0)]);
     updateVersionRows();
@@ -2447,7 +2447,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function openGalleryForm(id) {
     var g = id ? galleryOf(id) : null;
     galEditing = g && !g.other ? g.id : null;
-    el.gfHeading.textContent = galEditing ? "Rename the form" : "Add OC";
+    el.gfHeading.textContent = galEditing ? "Rename OC" : "Add OC";
     el.gfSubmit.textContent = galEditing ? "Save the name" : "Add OC";
     el.gfName.value = galEditing ? g.name : "";
     el.gfError.hidden = true;

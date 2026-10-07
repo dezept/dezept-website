@@ -579,7 +579,7 @@ function cleanArt(input, prev, check, galleries = archive.galleries) {
   const versions = !check ? storedVersions(input) : input.versions === undefined && prev ? prev.versions : cleanVersions(input.versions, prev && prev.versions);
   let gallery = typeof input.gallery === "string" && galleries.some((g) => g.id === input.gallery) ? input.gallery : "";
   if (check && input.gallery === undefined && prev) gallery = prev.gallery;
-  else if (check && input.gallery && !gallery) throw new HttpError(400, "That form is gone. Reload the page and choose another.");
+  else if (check && input.gallery && !gallery) throw new HttpError(400, "That OC is gone. Reload the page and choose another.");
   return {
     id: prev ? prev.id : "a" + crypto.randomBytes(9).toString("base64url"),
     gallery,
@@ -595,9 +595,9 @@ function cleanArt(input, prev, check, galleries = archive.galleries) {
 
 // One of his forms, such as "Vaelith (Dracthyr)" and "Vaelith (visage)": a gallery of the art pieces that show him so
 function cleanGallery(input, prev) {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "The form is malformed.");
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "The OC is malformed.");
   const name = str(input.name, LIMIT.galleryName);
-  if (!name) throw new HttpError(400, "Give the form a name.");
+  if (!name) throw new HttpError(400, "Give the OC a name.");
   return { id: prev ? prev.id : "g" + crypto.randomBytes(9).toString("base64url"), name, added: prev ? prev.added : Date.now() };
 }
 
@@ -1515,7 +1515,7 @@ async function handle(req, res) {
   // his forms: galleries of art pieces, in the keeper's order
   if (req.method === "POST" && pathname === "/api/galleries") {
     const body = await keeperJson(req);
-    if (archive.galleries.length >= LIMIT.galleries) throw new HttpError(413, "There is no room for more forms.");
+    if (archive.galleries.length >= LIMIT.galleries) throw new HttpError(413, "There is no room for more OCs.");
     const gallery = cleanGallery(body);
     commit({ ...archive, galleries: [...archive.galleries, gallery] });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: gallery.id });
@@ -1524,7 +1524,7 @@ async function handle(req, res) {
     const ids = (await keeperJson(req)).ids;
     const byId = new Map(archive.galleries.map((g) => [g.id, g]));
     if (!Array.isArray(ids) || ids.length !== byId.size || new Set(ids).size !== ids.length || !ids.every((id) => byId.has(id))) {
-      throw new HttpError(409, "The forms have changed. Reload and try again.");
+      throw new HttpError(409, "The OCs have changed. Reload and try again.");
     }
     commit({ ...archive, galleries: ids.map((id) => byId.get(id)) });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
@@ -1533,14 +1533,14 @@ async function handle(req, res) {
   if (gm && validId(gm[1])) {
     const body = req.method === "PUT" ? await keeperJson(req) : null;
     const prev = archive.galleries.find((g) => g.id === gm[1]);
-    if (!prev) throw new HttpError(404, "That form is gone.");
+    if (!prev) throw new HttpError(404, "That OC is gone.");
     if (req.method === "PUT") {
       const gallery = cleanGallery(body, prev);
       commit({ ...archive, galleries: archive.galleries.map((g) => (g.id === prev.id ? gallery : g)) });
       return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: gallery.id });
     }
     if (req.method === "DELETE") { // only an empty one, so no art piece is lost with it
-      if (archive.art.some((a) => a.gallery === prev.id)) throw new HttpError(409, "Move its art pieces to another form, or remove them, first.");
+      if (archive.art.some((a) => a.gallery === prev.id)) throw new HttpError(409, "Move its art pieces to another OC, or remove them, first.");
       commit({ ...archive, galleries: archive.galleries.filter((g) => g.id !== prev.id) });
       return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
     }
