@@ -317,7 +317,6 @@ function cleanRecord(input, prev, encounters = archive.encounters) {
     encounter: typeof input.encounter === "string" && encounters.some((e) => e.id === input.encounter) ? input.encounter : "",
     date: validDate(input.date) ? input.date : "",
     added: prev ? prev.added : Date.now(),
-    example: false,
   };
 }
 
@@ -335,7 +334,6 @@ function cleanEncounter(input, prev) {
     date: validDate(input.date) ? input.date : "",
     text: str(input.text, LIMIT.story), // keeps TRP markup as text; only the page reads it
     added: prev ? prev.added : Date.now(),
-    example: false,
   };
 }
 // A private text as sent: undefined keeps what was there, "" removes it, anything else replaces it, encrypted
@@ -366,7 +364,7 @@ function encounterFrom(body, prev, key) {
   let text = body.private === undefined ? undefined : str(body.private, LIMIT.private);
   if (text === undefined && prev) text = wasSealed ? (openSealed(key, prev) || {}).private || "" : prev.private ? openPrivate(key, prev.id, prev.private) || "" : "";
   if (!sealed) return withPrivate(enc, text || "", null, key);
-  return { id: enc.id, sealed: sealEncounter(key, enc.id, { title: enc.title, date: enc.date, text: enc.text, private: text || "" }), added: enc.added, example: false };
+  return { id: enc.id, sealed: sealEncounter(key, enc.id, { title: enc.title, date: enc.date, text: enc.text, private: text || "" }), added: enc.added };
 }
 
 // Everything visitors may see: the archive without the encounters' private sections, without the encounters only
@@ -387,8 +385,8 @@ function keeperArchive(key) {
     encounters: archive.encounters.map(({ private: _, ...e }) => {
       if (!e.sealed) return e;
       const f = openSealed(key, e);
-      return f ? { id: e.id, title: f.title, date: f.date, text: f.text, added: e.added, example: false, sealed: true }
-        : { id: e.id, title: "An encounter that can no longer be read", date: "", text: "", added: e.added, example: false, sealed: true, unreadable: true };
+      return f ? { id: e.id, title: f.title, date: f.date, text: f.text, added: e.added, sealed: true }
+        : { id: e.id, title: "Unreadable", date: "", text: "", added: e.added, sealed: true, unreadable: true };
     }),
   };
 }
@@ -592,7 +590,6 @@ function cleanArt(input, prev, check, galleries = archive.galleries) {
     date: validDate(input.date) ? input.date : today(),
     note: str(input.note, LIMIT.caption),
     added: prev ? prev.added : Date.now(),
-    example: false,
   };
 }
 
@@ -601,7 +598,7 @@ function cleanGallery(input, prev) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "The form is malformed.");
   const name = str(input.name, LIMIT.galleryName);
   if (!name) throw new HttpError(400, "Give the form a name.");
-  return { id: prev ? prev.id : "g" + crypto.randomBytes(9).toString("base64url"), name, added: prev ? prev.added : Date.now(), example: false };
+  return { id: prev ? prev.id : "g" + crypto.randomBytes(9).toString("base64url"), name, added: prev ? prev.added : Date.now() };
 }
 
 // The About page, laid out like a Total RP 3 profile: a short title, the directory (race, class, age …), additional
@@ -629,24 +626,21 @@ function cleanAbout(input) {
   return out;
 }
 
-function cleanProfile(p, prev = {}) {
-  return {
-    name: str(p.name, 60) || "Unnamed Dracthyr", epithet: str(p.epithet, 280),
-    construct: str(p.construct ?? prev.construct, 60), constructNote: str(p.constructNote ?? prev.constructNote, 400),
-  };
+function cleanProfile(p) {
+  return { name: str(p.name, 60) || "Unnamed Dracthyr", epithet: str(p.epithet, 280) };
 }
 
 function cleanArchive(raw) {
   const p = (raw && raw.profile) || {};
   const encounters = (Array.isArray(raw && raw.encounters) ? raw.encounters : []).filter((e) => e && validId(e.id) && (validBox(e.sealed) || str(e.title, LIMIT.title))).slice(0, LIMIT.encounters)
-    .map((e) => (validBox(e.sealed) ? { id: e.id, sealed: box(e.sealed), added: stamp(e.added), example: false }
-      : { ...cleanEncounter(e, { id: e.id, added: stamp(e.added) }), example: Boolean(e.example), ...(validBox(e.private) ? { private: box(e.private) } : {}) }));
+    .map((e) => (validBox(e.sealed) ? { id: e.id, sealed: box(e.sealed), added: stamp(e.added) }
+      : { ...cleanEncounter(e, { id: e.id, added: stamp(e.added) }), ...(validBox(e.private) ? { private: box(e.private) } : {}) }));
   const records = (Array.isArray(raw && raw.records) ? raw.records : []).filter((r) => r && validId(r.id) && str(r.title, LIMIT.title)).slice(0, LIMIT.records)
-    .map((r) => ({ ...cleanRecord(r, { id: r.id, added: stamp(r.added) }, encounters), example: Boolean(r.example) }));
+    .map((r) => cleanRecord(r, { id: r.id, added: stamp(r.added) }, encounters));
   const galleries = (Array.isArray(raw && raw.galleries) ? raw.galleries : []).filter((g) => g && validId(g.id) && str(g.name, LIMIT.galleryName)).slice(0, LIMIT.galleries)
-    .map((g) => ({ ...cleanGallery(g, { id: g.id, added: stamp(g.added) }), example: Boolean(g.example) }));
+    .map((g) => cleanGallery(g, { id: g.id, added: stamp(g.added) }));
   const art = (Array.isArray(raw && raw.art) ? raw.art : []).filter((a) => a && validId(a.id)).slice(0, LIMIT.art)
-    .map((a) => ({ ...cleanArt(a, { id: a.id, added: stamp(a.added) }, false, galleries), example: Boolean(a.example) })).filter((a) => a.versions.length);
+    .map((a) => cleanArt(a, { id: a.id, added: stamp(a.added) }, false, galleries)).filter((a) => a.versions.length);
   return { profile: cleanProfile(p), about: cleanAbout(raw && raw.about), galleries, art, records, encounters };
 }
 
@@ -1475,17 +1469,11 @@ async function handle(req, res) {
     commit({ ...archive, records: [...archive.records, rec] });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey), id: rec.id });
   }
-  if (req.method === "POST" && pathname === "/api/records/clear-examples") { // the example records and encounters
-    const encounters = archive.encounters.filter((e) => !e.example);
-    const records = archive.records.filter((r) => !r.example).map((r) => (encounters.some((e) => e.id === r.encounter) ? r : { ...r, encounter: "" }));
-    commit({ ...archive, records, encounters });
-    return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
-  }
   if (req.method === "PUT" && pathname === "/api/about") {
     const body = await keeperJson(req, LIMIT.aboutBody).catch((e) => {
       throw e.status === 413 ? new HttpError(413, `The About page is too long to keep: ${LIMIT.aboutBody / 1024} KB in all.`) : e;
     });
-    commit({ ...archive, profile: cleanProfile(body, archive.profile), about: cleanAbout(body) });
+    commit({ ...archive, profile: cleanProfile(body), about: cleanAbout(body) });
     return sendJson(req, res, 200, { archive: keeperArchive(session.privateKey) });
   }
   if (req.method === "POST" && pathname === "/api/uploads") return upload(req, res);

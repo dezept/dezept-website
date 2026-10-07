@@ -233,13 +233,12 @@ sudo SSH_PORT=2222 sh /opt/dezept-website/hosting/firewall.sh …  # SSH on anot
 
 A friend's site is a whole copy of `chalice-archive/`, changed freely for them: their own look, their own centerpiece or none, their own links. Make it in a folder of its own beside `chalice-archive/` in this repository, then put it in `/srv/sites` and link it.
 
-- **Copy** `chalice-archive/`, leaving out `tools/node_modules/`, `tools/.smoke/`, `server/data/` and `dist/preview.html`.
+- **Copy** `chalice-archive/`, leaving out `tools/node_modules/`, `tools/.smoke/` and `server/data/`.
 - **What is the owner's in it**, to change or take out:
   - the page's `<title>` (`src/page.html`);
   - the X marks: the handle `dezeptdrac` in `src/page.html` (the warning card's link, the marks' names, the warning's words). For a friend without X, take out both marks (`#x-stage`, `#x-tome`) and their code; for an account without mature content, the warning can go too;
   - the profile it starts with (`src/seed.json`: name, epithet) and "Unnamed Dracthyr" where the page falls back to it;
-  - "he" and "his" in the page's hints and placeholders ("What he learned, in his own words."), for a character who is not a he;
-  - the preview's examples (`src/preview-examples.json`, `assets/examples/`): the owner's. A friend's site has no Artifact preview, but `build.py` still builds `dist/preview.html` (git-ignored) from them;
+  - "he" in the page ("What he learned from it"), for a character who is not a he;
   - `HANDOVER.md`, to describe the friend's site.
 - **The centerpiece** follows the files in `assets/` (`build.py`'s first lines):
   - `assets/front.webp` and one `assets/model/<name>.glb`: a 3D model, drawn over its cutout once loaded (the chalice);
@@ -249,8 +248,7 @@ A friend's site is a whole copy of `chalice-archive/`, changed freely for them: 
 - **Keep what the hosting needs**:
   - `server/server.mjs`, run with Node 20 or later and nothing else, reading `HOST`, `PORT`, `DATA_DIR`, `PUBLIC_ORIGIN`, `TRUST_PROXY`, `SESSION_HOURS` and `TZ` from its environment, with `set-password` (and `--forget-private`) for the word;
   - `dist/`, built with `python3 build.py`, committed with the site.
-- **Test it** with its own `tools/smoke.js`, changed where it checks the owner's things (the X handle, the example forms).
-- The owner's preview Artifact is the owner's alone: a friend's site is never published there.
+- **Test it** with its own `tools/smoke.js`, changed where it checks the owner's things (the X handle).
 
 ## What protects what
 

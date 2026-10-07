@@ -7,7 +7,6 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 7-6 7-6-7z' fill='%2366efdc' stroke='%230a0e1a' stroke-width='1.2'/%3E%3Cpath d='M8 1l3 7-3 7' fill='%23fff' fill-opacity='.35'/%3E%3C/svg%3E">
 <link rel="preload" href="__MODEL_URL__" as="fetch" crossorigin>
 <link rel="modulepreload" href="__THREE_URL__">
-__FONT_LINK__
 <style id="ca-style">
 __FONTS__
 /* Layout: one dark stage where the construct is the only bright object. A click on its gem draws in the light drifting around it and projects three choices beneath it (About, Art, Knowledge); each opens its chapter of the archive, a single parchment page in a leather binding. */
@@ -265,8 +264,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .det-title { margin: 0; font-family: var(--font-title); font-weight: 700; font-size: clamp(28px, 3vw, 38px); line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; color: var(--sepia); }
 .det-title::after { content: ""; display: block; width: 120px; height: 9px; margin-top: 12px; background: radial-gradient(circle, var(--rubric) 2px, transparent 2.5px) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, rgb(var(--sepia-rgb) / .5) 30%, rgb(var(--sepia-rgb) / .5) 70%, transparent) center / 100% 1px no-repeat; }
 .det-note { margin: 18px 0 0; max-width: 60ch; font-size: 19px; line-height: 1.6; white-space: pre-line; color: var(--sepia); }
-.det-note:not(.is-empty)::first-letter { float: left; margin: .06em .1em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.3em; line-height: .82; color: var(--rubric); }
-.det-note.is-empty { font-style: italic; color: var(--sepia-faint); }
+.det-note::first-letter { float: left; margin: .06em .1em 0 0; font-family: var(--font-title); font-weight: 700; font-size: 3.3em; line-height: .82; color: var(--rubric); }
 .det-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 18px; margin: 24px 0 0; padding-top: 14px; border-top: 1px solid rgb(var(--sepia-rgb) / .2); font-size: 17px; }
 .det-facts dt { font-family: var(--font-book-sc); color: var(--rubric); }
 .det-facts dd { margin: 0; font-style: italic; color: var(--sepia-soft); }
@@ -538,11 +536,6 @@ select.input { appearance: none; padding-right: 26px; cursor: pointer; backgroun
 .help-box { font-size: 15.5px; color: var(--sepia-soft); }
 .help-box summary { cursor: pointer; font-style: italic; }
 .help-box summary:hover { color: var(--rubric); }
-.help-list { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; margin: 10px 0 6px; padding: 12px 14px; border: 1px solid rgb(var(--sepia-rgb) / .2); background: rgb(255 248 225 / .3); }
-.help-list dt, .help-box code { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; font-size: 13px; color: var(--sepia); }
-.help-list dt { white-space: nowrap; }
-.help-list dd { margin: 0; line-height: 1.4; }
-.help-box > p { margin: 0; font-style: italic; }
 .row-tools { display: flex; gap: 3px; padding-bottom: 6px; }
 .icon-btn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid rgb(var(--sepia-rgb) / .35); border-radius: 2px; background: rgb(255 248 225 / .35); cursor: pointer; font-family: var(--font-book); font-size: 17px; line-height: 1; color: var(--sepia-soft); }
 .icon-btn:hover { border-color: var(--rubric); color: var(--rubric); }
@@ -729,7 +722,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     <button class="clasp" id="clasp" type="button" aria-label="The keeper's lock" aria-expanded="false" aria-controls="seal"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="5" cy="5" r="3.3" fill="currentColor"></circle><path d="M3.5 7.4 2.4 15.2h5.2L6.5 7.4z" fill="currentColor"></path></svg></button>
     <form class="seal" id="seal" hidden novalidate aria-labelledby="seal-title">
       <h3 class="seal-title" id="seal-title">The keeper's word</h3>
-      <p class="seal-text" id="seal-text"></p>
       <input id="seal-user" name="username" type="text" autocomplete="username" value="keeper" hidden>
       <div class="field" id="seal-f0" hidden>
         <label for="seal-current">The current word</label>
@@ -760,7 +752,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
           <div class="leaf" id="leaf-knowledge">
             <div class="ar-tools">
               <button class="btn" id="btn-inscribe" type="button" hidden>Inscribe record</button>
-              <button class="btn" id="btn-clear-examples" type="button" hidden>Remove examples</button>
             </div>
             <h3 class="sr-only">The records</h3>
             <ol class="entries" id="records"></ol>
@@ -822,7 +813,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
           <section id="view-form" hidden>
             <form class="form" id="rec-form" novalidate>
-              <button class="back" id="f-back" type="button">← Return without inscribing</button>
+              <button class="back" id="f-back" type="button">← Back</button>
               <h3 id="form-heading">Inscribe a record</h3>
               <div class="field">
                 <label for="f-title">Title</label>
@@ -834,16 +825,15 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               </div>
               <div class="field">
                 <label for="f-note">Record</label>
-                <textarea class="input" id="f-note" name="note" maxlength="4000" placeholder="What he learned, in his own words."></textarea>
+                <textarea class="input" id="f-note" name="note" maxlength="4000"></textarea>
               </div>
               <div class="field">
                 <label for="f-encounter">Learned in an encounter</label>
                 <select class="input" id="f-encounter" name="encounter"></select>
-                <p class="help">The record then links to the encounter, which tells what happened.</p>
               </div>
               <div class="field">
                 <label for="f-source">Learned from</label>
-                <input class="input" id="f-source" name="source" maxlength="160" autocomplete="off" placeholder="A book, a person, the construct's memory">
+                <input class="input" id="f-source" name="source" maxlength="160" autocomplete="off">
               </div>
               <p class="form-error" id="f-error" role="alert" hidden></p>
               <div class="form-actions">
@@ -876,9 +866,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
           <section id="view-about-form" hidden>
             <form class="form" id="about-form" novalidate>
-              <button class="back" id="abf-back" type="button">← Return without amending</button>
+              <button class="back" id="abf-back" type="button">← Back</button>
               <h3>Amend this page</h3>
-              <p class="help">Laid out like a Total RP 3 profile. Anything left empty is left out of the page.</p>
               <div class="row-2">
                 <div class="field">
                   <label for="abf-title">Title</label>
@@ -891,7 +880,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               </div>
               <div class="field">
                 <label for="abf-epithet">Full title</label>
-                <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280" placeholder="A line or two beneath his name"></textarea>
+                <textarea class="input short" id="abf-epithet" name="epithet" maxlength="280"></textarea>
               </div>
               <fieldset class="field">
                 <legend>Directory</legend>
@@ -909,7 +898,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               </fieldset>
               <fieldset class="field">
                 <legend>Personality traits</legend>
-                <p class="help">Each trait sits between two opposites. Slide toward the one that fits him.</p>
                 <div class="rows" id="abf-traits"></div>
                 <div class="adds">
                   <button class="back add" id="abf-add-trait" type="button">+ Add a trait</button>
@@ -918,24 +906,11 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               </fieldset>
               <fieldset class="field">
                 <legend>At first glance</legend>
-                <p class="help">Up to five things anyone would notice.</p>
                 <div class="rows" id="abf-glances"></div>
                 <button class="back add" id="abf-add-glance" type="button">+ Add a glance</button>
               </fieldset>
               <fieldset class="field">
                 <legend>Description</legend>
-                <p class="help">In sections, each with an optional heading. A whole Total RP 3 description can be pasted into one section; its markup carries over.</p>
-                <details class="help-box">
-                  <summary>Formatting, as in Total RP 3</summary>
-                  <dl class="help-list">
-                    <dt>{h1}Title{/h1}</dt><dd>A heading. <code>{h2}</code> and <code>{h3}</code> are smaller. Add <code>:c</code> or <code>:r</code> to centre it or align it right, as in <code>{h2:c}</code>.</dd>
-                    <dt>{p:c}Text{/p}</dt><dd>A centred paragraph. <code>{p:r}</code> aligns it right.</dd>
-                    <dt>{col:ffd100}Text{/col}</dt><dd>Coloured text. The game's colour codes (<code>|cffffd100Text|r</code>) work too. Pale colours are darkened so they stay readable on parchment.</dd>
-                    <dt>{link*https://…*Text}</dt><dd>A link. Only http and https addresses become links.</dd>
-                    <dt>A blank line</dt><dd>Starts a new paragraph. A single line break stays a line break.</dd>
-                  </dl>
-                  <p>Icons and images (<code>{icon:…}</code>, <code>{img:…}</code>) are game files, so they are left out.</p>
-                </details>
                 <div class="rows" id="abf-sections"></div>
                 <div class="adds">
                   <button class="back add" id="abf-add-section" type="button">+ Add a section</button>
@@ -952,12 +927,12 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
           <section class="detail" id="view-encounter" hidden>
             <button class="back" id="enc-back" type="button">← Return to the encounters</button>
-            <p class="only-me" id="enc-sealed" hidden><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Only for you: no one else can see this encounter, or that it exists</p>
+            <p class="only-me" id="enc-sealed" hidden><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Only for you</p>
             <div class="det-meta"><time id="enc-date"></time></div>
             <h3 class="det-title" id="enc-title"></h3>
             <div class="trp enc-text" id="enc-text"></div>
             <section class="private" id="enc-private" aria-labelledby="enc-private-title" hidden>
-              <h4 class="private-head" id="enc-private-title"><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Private: only you can see this</h4>
+              <h4 class="private-head" id="enc-private-title"><svg viewBox="0 0 10 14" aria-hidden="true"><rect x="1" y="6" width="8" height="7.4" rx="1" fill="currentColor"></rect><path d="M2.8 6V4.2a2.2 2.2 0 0 1 4.4 0V6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>Private</h4>
               <div class="trp" id="enc-private-text"></div>
             </section>
             <section class="learned" id="enc-learned" aria-labelledby="enc-learned-title" hidden>
@@ -972,7 +947,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
           <section id="view-encounter-form" hidden>
             <form class="form" id="encounter-form" novalidate>
-              <button class="back" id="ef-back" type="button">← Return without saving</button>
+              <button class="back" id="ef-back" type="button">← Back</button>
               <h3 id="ef-heading">Record an encounter</h3>
               <div class="field">
                 <label for="ef-title">Title</label>
@@ -984,17 +959,14 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               </div>
               <div class="field">
                 <label class="check only-check"><input type="checkbox" id="ef-sealed" name="sealed"> Only for me</label>
-                <p class="help">No one else sees this encounter at all, not even that it exists. All of it is encrypted before it is stored, with a key that only your word unlocks. Records that name it link to it only for you.</p>
               </div>
               <div class="field">
                 <label for="ef-text">What happened</label>
-                <textarea class="input long" id="ef-text" name="text" maxlength="20000" placeholder="What happened, as anyone may read it."></textarea>
-                <p class="help" id="ef-text-help">Everyone can read this. Total RP 3's markup works here, as on the About page.</p>
+                <textarea class="input long" id="ef-text" name="text" maxlength="20000"></textarea>
               </div>
               <div class="field">
                 <label for="ef-private">Private</label>
-                <textarea class="input long" id="ef-private" name="private" maxlength="20000" placeholder="What only you should know."></textarea>
-                <p class="help" id="ef-private-help">Only you can see this, and only while the archive is unsealed. It is encrypted before it is stored, with a key that only your word unlocks.</p>
+                <textarea class="input long" id="ef-private" name="private" maxlength="20000"></textarea>
               </div>
               <p class="form-error" id="ef-error" role="alert" hidden></p>
               <div class="form-actions">
@@ -1024,9 +996,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
           <section id="view-gallery-form" hidden>
             <form class="form" id="gallery-form" novalidate>
-              <button class="back" id="gf-back" type="button">← Return without adding</button>
+              <button class="back" id="gf-back" type="button">← Back</button>
               <h3 id="gf-heading">Add a form</h3>
-              <p class="help">One of the shapes he takes, such as his Dracthyr form or his visage. Its art pieces are shown together, under its name.</p>
               <div class="field">
                 <label for="gf-name">Name</label>
                 <input class="input" id="gf-name" name="name" maxlength="80" autocomplete="off" placeholder="Character (Dracthyr)">
@@ -1041,14 +1012,14 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
           <section class="plate-view" id="view-plate" hidden>
             <button class="back" id="pl-back" type="button">← Return to the overview</button>
-            <p class="empty" id="pl-empty" hidden>The art pieces will be shown here.</p>
+            <p class="empty" id="pl-empty" hidden>Not found.</p>
             <figure class="plate" id="pl-figure">
               <p class="plate-no" id="pl-no"></p>
               <div class="plate-media" id="pl-media">
-                <button class="mount plate-open" id="pl-open" type="button" aria-label="View the image full size"></button>
+                <button class="mount plate-open" id="pl-open" type="button" aria-label="View full size"></button>
                 <div class="mount plate-open plate-video" id="pl-video" hidden></div>
               </div>
-              <div class="versions" id="pl-versions" role="group" aria-label="This art piece's images" hidden></div>
+              <div class="versions" id="pl-versions" role="group" aria-label="Images" hidden></div>
               <figcaption>
                 <h3 class="plate-title" id="pl-title"></h3>
                 <p class="plate-credit" id="pl-credit"></p>
@@ -1065,7 +1036,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
 
           <section id="view-art-form" hidden>
             <form class="form" id="art-form" novalidate>
-              <button class="back" id="af-back" type="button">← Return without adding</button>
+              <button class="back" id="af-back" type="button">← Back</button>
               <h3 id="af-heading">Add an art piece</h3>
               <div class="field">
                 <label for="af-title">Title</label>
@@ -1078,7 +1049,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               <div class="row-2">
                 <div class="field">
                   <label for="af-artist">Artist</label>
-                  <input class="input" id="af-artist" name="artist" maxlength="80" autocomplete="off" placeholder="Who made it">
+                  <input class="input" id="af-artist" name="artist" maxlength="80" autocomplete="off">
                 </div>
                 <div class="field">
                   <label for="af-date">Date</label>
@@ -1091,12 +1062,10 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
               </div>
               <div class="field">
                 <label for="af-note">Note</label>
-                <textarea class="input short" id="af-note" name="note" maxlength="1000" placeholder="A commission, a gift, a scene from a story"></textarea>
+                <textarea class="input short" id="af-note" name="note" maxlength="1000"></textarea>
               </div>
               <fieldset class="field">
                 <legend>Images and videos</legend>
-                <p class="help">The first is the main one, shown in the list; the others are its alternate versions. Tick <i>Mature</i> on any that is for adults only: it stays covered until a visitor says they are 18 or older.</p>
-                <p class="help">Pictures (PNG, JPEG or WebP) are scaled to 2400 pixels on the long side, and nothing but the picture is kept. GIFs keep their animation, up to 40 MB. Videos can be MP4 (H.264) or WebM, up to 90 MB; tick <i>Loop</i> for a short animation. GIFs and videos lose any notes they carry, such as where they were made.</p>
                 <div class="rows" id="af-versions"></div>
                 <button class="back add" id="af-add" type="button">+ Add an image or video</button>
               </fieldset>
@@ -1113,35 +1082,35 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
             <div class="st-body" id="st-body" hidden>
               <ul class="tallies" id="st-tallies" aria-label="Visitors and visits"></ul>
               <section aria-labelledby="st-days-title">
-                <h4 class="rubric" id="st-days-title">Visitors each day <span>the last 30 days</span></h4>
+                <h4 class="rubric" id="st-days-title">Visitors each day <span>last 30 days</span></h4>
                 <div class="st-chart" id="st-chart"></div>
                 <details class="help-box st-table-box">
-                  <summary>The same as a table, with the visits</summary>
+                  <summary>Table</summary>
                   <table class="st-table" id="st-days"></table>
                 </details>
               </section>
               <section aria-labelledby="st-chapters-title">
-                <h4 class="rubric" id="st-chapters-title">Chapters <span>visitors who opened each</span></h4>
+                <h4 class="rubric" id="st-chapters-title">Chapters</h4>
                 <div id="st-chapters"></div>
               </section>
               <section aria-labelledby="st-art-title">
-                <h4 class="rubric" id="st-art-title">Art <span>visitors who opened each piece</span></h4>
+                <h4 class="rubric" id="st-art-title">Art</h4>
                 <div id="st-art"></div>
               </section>
               <section aria-labelledby="st-enc-title">
-                <h4 class="rubric" id="st-enc-title">Encounters <span>visitors who opened each</span></h4>
+                <h4 class="rubric" id="st-enc-title">Encounters</h4>
                 <div id="st-encounters"></div>
               </section>
               <section aria-labelledby="st-rec-title">
-                <h4 class="rubric" id="st-rec-title">Character Knowledge <span>visitors who opened each record</span></h4>
+                <h4 class="rubric" id="st-rec-title">Character Knowledge</h4>
                 <div id="st-records"></div>
               </section>
               <section aria-labelledby="st-from-title">
-                <h4 class="rubric" id="st-from-title">Where they came from <span>visitors from each site</span></h4>
+                <h4 class="rubric" id="st-from-title">Sources</h4>
                 <div id="st-from"></div>
               </section>
               <section aria-labelledby="st-countries-title">
-                <h4 class="rubric" id="st-countries-title">Countries <span>visitors from each</span></h4>
+                <h4 class="rubric" id="st-countries-title">Countries</h4>
                 <div id="st-countries"></div>
               </section>
             </div>
@@ -1176,7 +1145,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     </figure>
     <button class="lb-btn lb-prev" id="lb-prev" type="button" aria-label="Previous image"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5L5 8l5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></button>
     <button class="lb-btn lb-next" id="lb-next" type="button" aria-label="Next image"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 2.5L11 8l-5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></button>
-    <button class="btn-close" id="lb-close" type="button" aria-label="Close the full-size view"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
+    <button class="btn-close" id="lb-close" type="button" aria-label="Close"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"></path></svg></button>
   </div>
 </dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
@@ -1201,12 +1170,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   var STANDARD_SECTIONS = ["Physical description", "Personality", "History"];
   var IMAGE_SIDE = 2400, THUMB_SIDE = 800, STILL_SIDE = 1280; // longest side of a stored picture, of its thumbnail, and of a GIF's or video's still, in pixels
   var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // The preview build (dist/preview.html, published as the claude.ai Artifact) answers requests in the page itself,
-  // because the Artifact viewer allows no network requests. The real page has no such script, so it uses fetch.
-  var PREVIEW = window.CA_PREVIEW || null;
-  var request = PREVIEW ? PREVIEW.fetch : function (url, opts) { return fetch(url, opts); };
-  // Art is served at art/<name>; the preview keeps its images in the page, as data: URIs
-  function artUrl(name) { return PREVIEW ? PREVIEW.src(name) : "art/" + name; }
+  function artUrl(name) { return "art/" + name; } // the server serves art at art/<name>
 
   function byId(id) { return document.getElementById(id); }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -1227,22 +1191,22 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   // The server puts the archive into #ca-data, and answers every accepted change with the whole archive again
   function normalize(raw) {
     raw = raw || {};
-    var profile = Object.assign({ name: "Unnamed Dracthyr", epithet: "", construct: "Eternal Gladiator's Chalice", constructNote: "" }, raw.profile || {});
+    var profile = Object.assign({ name: "Unnamed Dracthyr", epithet: "" }, raw.profile || {});
     // encounters, and records of what he knows, which may name an encounter as where he learned it
     var encounters = (Array.isArray(raw.encounters) ? raw.encounters : []).filter(function (e) { return e && e.id && e.title; }).map(function (e) {
-      return { id: String(e.id), title: String(e.title), date: isDate(e.date) ? e.date : "", text: String(e.text || ""), added: Number(e.added) || 0, example: !!e.example,
+      return { id: String(e.id), title: String(e.title), date: isDate(e.date) ? e.date : "", text: String(e.text || ""), added: Number(e.added) || 0,
                sealed: e.sealed === true, unreadable: e.unreadable === true }; // sealed: only for the keeper, who alone receives it
     });
     var records = (Array.isArray(raw.records) ? raw.records : []).filter(function (r) { return r && r.id && r.title; }).map(function (r) {
       return {
         id: String(r.id), title: String(r.title), note: String(r.note || ""), source: String(r.source || ""),
         encounter: encounters.some(function (e) { return e.id === r.encounter; }) ? r.encounter : "",
-        date: isDate(r.date) ? r.date : "", added: Number(r.added) || 0, example: !!r.example
+        date: isDate(r.date) ? r.date : "", added: Number(r.added) || 0
       };
     });
     // his forms: each a gallery of the art pieces that show him in it
     var galleries = (Array.isArray(raw.galleries) ? raw.galleries : []).filter(function (g) { return g && g.id && g.name; }).map(function (g) {
-      return { id: String(g.id), name: String(g.name), added: Number(g.added) || 0, example: !!g.example };
+      return { id: String(g.id), name: String(g.name), added: Number(g.added) || 0 };
     });
     // an art piece (a plate, in the code) is one or more images (versions), each a picture, a GIF or a video: the
     // first is its main one, the others its alternates. It belongs to one of his forms, or to none ("Other art").
@@ -1256,7 +1220,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       return {
         id: String(a.id), versions: versions, gallery: galleries.some(function (g) { return g.id === a.gallery; }) ? a.gallery : "",
         title: String(a.title || ""), artist: String(a.artist || ""), link: /^https?:\/\//i.test(a.link) ? String(a.link) : "",
-        date: isDate(a.date) ? a.date : today(), note: String(a.note || ""), added: Number(a.added) || 0, example: !!a.example
+        date: isDate(a.date) ? a.date : today(), note: String(a.note || ""), added: Number(a.added) || 0
       };
     }).filter(function (a) { return a.versions.length; });
     var ab = raw.about || {};
@@ -1409,7 +1373,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       if (paused && !still) still = verImg(v, "thumb", alt);
       if (!paused && !img) { img = verImg(v, "file", alt); img.removeAttribute("loading"); }
       fill(box, [paused ? still : img]);
-      btn.setAttribute("aria-label", paused ? "Play the animation" : "Pause the animation");
+      btn.setAttribute("aria-label", paused ? "Play" : "Pause");
       fill(btn, [icon(paused ? "play" : "pause")]);
     }
     btn.addEventListener("click", function () { paused = !paused; show(); });
@@ -1424,7 +1388,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     video.src = artUrl(v.file);
     var big = h("button", { class: "play-btn vid-big", type: "button", "aria-label": "Play" }, icon("play"));
     var play = h("button", { class: "vid-btn", type: "button" });
-    var seek = h("input", { class: "vid-seek", type: "range", min: 0, max: 1, step: "any", value: 0, "aria-label": "Position in the video" });
+    var seek = h("input", { class: "vid-seek", type: "range", min: 0, max: 1, step: "any", value: 0, "aria-label": "Seek" });
     var time = h("span", { class: "vid-time", "aria-hidden": "true" });
     var sound = h("button", { class: "vid-btn", type: "button" });
     var full = document.fullscreenEnabled ? h("button", { class: "vid-btn", type: "button", "aria-label": "Full screen", title: "Full screen" }, icon("full")) : null;
@@ -1442,8 +1406,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       }
       if (video.muted !== muted) {
         muted = video.muted;
-        sound.setAttribute("aria-label", muted ? "Turn the sound on" : "Turn the sound off");
-        sound.title = muted ? "Sound on" : "Sound off";
+        sound.setAttribute("aria-label", muted ? "Unmute" : "Mute");
+        sound.title = muted ? "Unmute" : "Mute";
         fill(sound, [icon(muted ? "muted" : "sound")]);
       }
       seek.max = d || 1;
@@ -1481,7 +1445,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     ["play", "pause", "ended", "timeupdate", "durationchange", "loadedmetadata", "volumechange", "seeked"].forEach(function (n) { video.addEventListener(n, sync); });
     video.addEventListener("error", function () {
       box.classList.add("is-broken");
-      note.textContent = PREVIEW ? "The preview could not play this video. On the site it plays." : "This browser cannot play this video.";
+      note.textContent = "Can't play this video.";
       note.hidden = false;
     });
     sync();
@@ -1579,10 +1543,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function renderArchive() {
     var p = state.profile;
     el.arName.textContent = p.name || "Unnamed Dracthyr";
-    // the owner can clear the example records and encounters in one go while any remain
-    var ex = state.records.filter(function (r) { return r.example; }).length + state.encounters.filter(function (e) { return e.example; }).length;
-    el.btnClearExamples.hidden = !(ex && canPost());
-    if (!el.btnClearExamples.dataset.armed) el.btnClearExamples.textContent = "Remove " + ex + " example" + (ex === 1 ? "" : "s");
     fill(el.records, state.records.length ? newest(state.records).map(function (r) {
       var e = r.encounter && findEnc(r.encounter), from = e ? e.title : r.source;
       return entry(r.title, [r.date ? fmtDate(r.date) : "", from ? "from " + from : ""].filter(Boolean).join(" · "), r.note, function () { showDetail(r.id); });
@@ -1686,7 +1646,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
         h("span", { class: "mount" }, main.mature ? spoiler(main) : verImg(main, "thumb", ""), main.mature ? null : badge(main)),
         h("span", { class: "plate-cap" }, h("b", { text: roman(i + 1) + "." }), " " + (a.title || "Untitled"),
           count > 1 ? h("span", { class: "plate-more", text: count + " images" }) : null)));
-    }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: canPost() ? "No art pieces yet. Add the first." : "No art pieces yet." }))]);
+    }) : [h("li", { class: "plates-empty" }, h("p", { class: "empty", text: "No art pieces yet." }))]);
     el.glTools.hidden = !(canPost() && at >= 0);
     el.glDelete.hidden = all.length > 0; // only an empty form can be removed, so no art piece goes with it
     el.glEarlier.disabled = at <= 0;
@@ -1738,7 +1698,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     else if (kind === "gif") { var gif = gifPlayer(v, altOf(a, v)); fill(el.plOpen, [gif.box]); el.plMedia.append(gif.btn); }
     else fill(el.plOpen, [verImg(v, "file", altOf(a, v))]);
     el.plOpen.classList.toggle("is-covered", covered);
-    el.plOpen.setAttribute("aria-label", covered ? "A mature image: select to view it (18 or older)" : "View the image full size");
+    el.plOpen.setAttribute("aria-label", covered ? "Mature image (18+)" : "View full size");
   }
   // Nothing of the image stays on the page once the visitor moves on, and a video stops
   function clearMedia() {
@@ -1760,8 +1720,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     var g = galleryOf(galleryId);
     el.glTools.hidden = !(on && g && !g.other);
     el.clasp.classList.toggle("is-open", on);
-    var ex = state.records.some(function (r) { return r.example; }) || state.encounters.some(function (e) { return e.example; });
-    el.btnClearExamples.hidden = !(ex && on);
   }
 
   // Each view lives on the right leaf and belongs to a chapter, whose own left leaf shows beside it. On narrow
@@ -1840,14 +1798,14 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     el.detDate.textContent = r.date ? fmtDate(r.date) : "";
     el.detDate.setAttribute("datetime", r.date);
     el.detTitle.textContent = r.title;
-    el.detNote.textContent = r.note || "Nothing inscribed beyond the title yet.";
-    el.detNote.classList.toggle("is-empty", !r.note);
+    el.detNote.textContent = r.note;
+    el.detNote.hidden = !r.note;
     // where he learned it: the encounter, as a link to it, and his own words
     var e = r.encounter && findEnc(r.encounter);
     fill(el.detSource, [
       e ? h("button", { class: "link-to", type: "button", text: e.title, onclick: function () { showEncounter(e.id); } }) : null,
-      e && e.sealed ? h("span", { class: "opt", text: " (only you see this link)" }) : null,
-      e && r.source ? "; " : null, r.source || null, !e && !r.source ? "Not recorded" : null
+      e && e.sealed ? h("span", { class: "opt", text: " (private)" }) : null,
+      e && r.source ? "; " : null, r.source || null, !e && !r.source ? "Unknown" : null
     ].filter(Boolean));
   }
   // An encounter: what happened; the private section only for the keeper, once it has been fetched; and what he
@@ -1861,12 +1819,11 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     el.encTitle.textContent = e.title;
     el.encSealed.hidden = !e.sealed;
     el.encEdit.hidden = e.unreadable; // it can only be removed
-    fill(el.encText, e.unreadable ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })]
-      : e.text ? [trp(e.text)] : [h("p", { class: "empty", text: "Nothing is written about it yet." })]);
+    fill(el.encText, e.unreadable ? [h("p", { class: "empty", text: "Unreadable." })] : e.text ? [trp(e.text)] : []);
     // one only for the keeper that can no longer be read says so once, above (its private section said it again)
     var priv = owner && !e.unreadable && Object.prototype.hasOwnProperty.call(privates, e.id) ? privates[e.id] : undefined;
     el.encPrivate.hidden = priv === undefined;
-    fill(el.encPrivateText, priv === null ? [h("p", { class: "empty", text: "This was written under a word that was forgotten, so it can no longer be read." })] : priv ? [trp(priv)] : []);
+    fill(el.encPrivateText, priv === null ? [h("p", { class: "empty", text: "Unreadable." })] : priv ? [trp(priv)] : []);
     var learned = newest(state.records.filter(function (r) { return r.encounter === e.id; }));
     el.encLearned.hidden = !learned.length;
     fill(el.encRecords, learned.map(function (r) { return entry(r.title, r.date ? fmtDate(r.date) : "", r.note, function () { showDetail(r.id); }); }));
@@ -1952,7 +1909,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   function encounterChoices() {
     fill(el.fEncounter, [h("option", { value: "", text: "None" })].concat(newest(state.encounters).map(function (e) {
-      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") + (e.sealed ? ", only for you" : "") });
+      return h("option", { value: e.id, text: e.title + (e.date ? " (" + fmtDate(e.date) + ")" : "") + (e.sealed ? " (private)" : "") });
     })));
   }
   // The keeper's archive may arrive after the form has opened (just after unsealing), bringing the encounters only
@@ -1974,32 +1931,23 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     e.preventDefault();
     if (busy || !mayPost()) return;
     var rec = recFromForm(), prev = editingId ? find(editingId) : null;
-    if (!rec.title) { formError("form", "Give the record a title."); el.fTitle.focus(); return; }
+    if (!rec.title) { formError("form", "Title required."); el.fTitle.focus(); return; }
     save(prev ? "PUT" : "POST", prev ? "api/records/" + encodeURIComponent(prev.id) : "api/records", rec,
-      function (data) { if (find(data.id)) showDetail(data.id); else showView("overview"); }, el.fSubmit, prev ? "Saving…" : "Inscribing…",
-      prev ? "Record revised." : "Record inscribed.");
+      function (data) { if (find(data.id)) showDetail(data.id); else showView("overview"); }, el.fSubmit, prev ? "Saving…" : "Inscribing…", "Saved.");
   });
   el.fCancel.addEventListener("click", leaveForm);
   el.fBack.addEventListener("click", leaveForm);
 
   // An encounter. Its private text goes to the server only when it was changed here, so one saved before its private
   // section had arrived, or one that can no longer be read, keeps what is stored.
-  var PRIVATE_HELP = el.efPrivateHelp.textContent, encWas = "", privWas = "";
+  var encWas = "", privWas = "";
   function encFromForm() {
     return { title: el.efTitle.value.trim(), date: isDate(el.efDate.value) ? el.efDate.value : "", text: el.efText.value.trim(), private: el.efPrivate.value.trim(), sealed: el.efSealed.checked };
   }
-  // "Only for me" changes who "What happened" is for
-  var TEXT_HELP = el.efTextHelp.textContent;
-  function syncSealed() {
-    var only = el.efSealed.checked;
-    el.efTextHelp.textContent = only ? "Only you can read this. " + TEXT_HELP.replace(/^Everyone can read this\. /, "") : TEXT_HELP;
-    el.efText.placeholder = only ? "What happened, for you alone." : "What happened, as anyone may read it.";
-  }
-  el.efSealed.addEventListener("change", syncSealed);
   function fillPrivate(e) {
     var priv = e ? privates[e.id] : "";
     el.efPrivate.value = typeof priv === "string" ? priv : "";
-    el.efPrivateHelp.textContent = priv === null ? "What was written here before can no longer be read: it was written under a word that was forgotten. Writing here replaces it." : PRIVATE_HELP;
+    el.efPrivate.placeholder = priv === null ? "Unreadable" : "";
     privWas = el.efPrivate.value;
   }
   function openEncounterForm(id) {
@@ -2011,7 +1959,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     el.efDate.value = e ? e.date : "";
     el.efText.value = e ? e.text : "";
     el.efSealed.checked = !!(e && e.sealed);
-    syncSealed();
     el.efError.hidden = true;
     fillPrivate(e);
     encWas = JSON.stringify(encFromForm());
@@ -2034,13 +1981,13 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     // and comes back only with the keeper's archive, so looking it up here, just after unsealing again, found nothing
     // and saved it a second time, as a new one.
     var body = encFromForm(), id = encEditing;
-    if (!body.title) { formError("encounterForm", "Give the encounter a title."); el.efTitle.focus(); return; }
+    if (!body.title) { formError("encounterForm", "Title required."); el.efTitle.focus(); return; }
     if (id && el.efPrivate.value === privWas) delete body.private; // untouched: the server keeps what it has
     save(id ? "PUT" : "POST", id ? "api/encounters/" + encodeURIComponent(id) : "api/encounters", body, function (data) {
       if (body.private !== undefined && owner) { if (body.private) privates[data.id] = body.private; else delete privates[data.id]; }
       if (findEnc(data.id)) showEncounter(data.id); else showView("encounters");
       loadPrivate();
-    }, el.efSubmit, id ? "Saving…" : "Recording…", id ? "The encounter is revised." : body.sealed ? "The encounter is recorded, for you alone." : "The encounter is recorded.");
+    }, el.efSubmit, id ? "Saving…" : "Recording…", "Saved.");
   });
   el.efCancel.addEventListener("click", leaveCurrentForm);
   el.efBack.addEventListener("click", leaveCurrentForm);
@@ -2058,7 +2005,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     var hint = FACT_HINTS[i] || ["", ""];
     return h("div", { class: "row row-fact" },
       h("input", { class: "input", "data-k": "label", "aria-label": "Label", list: "fact-labels", maxlength: 40, autocomplete: "off", placeholder: hint[0] || "Label", value: f.label }),
-      h("input", { class: "input", "data-k": "value", "aria-label": "Its value", maxlength: 400, autocomplete: "off", placeholder: hint[1], value: f.value }),
+      h("input", { class: "input", "data-k": "value", "aria-label": "Value", maxlength: 400, autocomplete: "off", placeholder: hint[1], value: f.value }),
       rowTools());
   }
   // a trait: its two opposites and a slider between them, 0 (all the left one) to 20 (all the right one)
@@ -2080,9 +2027,9 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   function glanceRow(g) {
     return h("div", { class: "row row-glance" },
-      h("input", { class: "input", "data-k": "title", "aria-label": "What is noticed", maxlength: 80, autocomplete: "off", placeholder: "Scales", value: g.title }),
+      h("input", { class: "input", "data-k": "title", "aria-label": "Title", maxlength: 80, autocomplete: "off", placeholder: "Scales", value: g.title }),
       rowTools(),
-      h("textarea", { class: "input", "data-k": "text", "aria-label": "What anyone would see", maxlength: 1000, placeholder: "Obsidian, dulled at the edges." }, g.text));
+      h("textarea", { class: "input", "data-k": "text", "aria-label": "Text", maxlength: 1000 }, g.text));
   }
   // A section: its heading (shown in the heading's style and colour as it is typed), the heading's colour, and its text.
   // A new section takes the colour of the last one.
@@ -2097,7 +2044,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     show();
     return h("div", { class: "row row-section" }, head, pick,
       rowTools(),
-      h("textarea", { class: "input", "data-k": "body", "aria-label": "Text", maxlength: 40000, placeholder: i ? "" : "Write it here, or paste his description from Total RP 3." }, x.body));
+      h("textarea", { class: "input", "data-k": "body", "aria-label": "Text", maxlength: 40000 }, x.body));
   }
   // the rows' values; a row counts only if one of `filled` (by default, any key) has something in it
   function rowsOf(box, keys, filled) {
@@ -2219,7 +2166,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   el.aboutForm.addEventListener("submit", function (e) {
     e.preventDefault();
     if (busy || !mayPost()) return;
-    save("PUT", "api/about", aboutFromForm(), function () { showView("about"); }, el.abfSubmit, "Saving…", "The page is amended.");
+    save("PUT", "api/about", aboutFromForm(), function () { showView("about"); }, el.abfSubmit, "Saving…", "Saved.");
   });
   el.abfCancel.addEventListener("click", leaveCurrentForm);
   el.abfBack.addEventListener("click", leaveCurrentForm);
@@ -2243,7 +2190,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       var j = h("canvas", { width: c.width, height: c.height }), g = j.getContext("2d");
       g.fillStyle = "#0a0e1a"; g.fillRect(0, 0, j.width, j.height); g.drawImage(c, 0, 0);
       return toBlob(j, "image/jpeg", q);
-    }).then(function (b) { if (!b) throw new Error("This browser could not prepare the image."); return b; });
+    }).then(function (b) { if (!b) throw new Error("Couldn't process the image."); return b; });
   }
   // What a chosen file is, by its type, or by its name when the browser gives no type
   var EXT_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime" };
@@ -2256,15 +2203,14 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     var type = mediaType(file);
     if (type === "image/gif") return prepareGif(file);
     if (type === "video/mp4" || type === "video/webm") return prepareVideo(file, type);
-    if (type === "video/quicktime") return Promise.reject(new Error("QuickTime files (.mov) do not play in every browser. Export it as an MP4 (H.264) or WebM video."));
-    if (/^video\//.test(type)) return Promise.reject(new Error("Choose an MP4 or WebM video."));
+    if (/^video\//.test(type)) return Promise.reject(new Error("Use MP4 or WebM.")); // QuickTime (.mov) too: not every browser plays it
     return prepareImage(file);
   }
   function typed(file, type) { return file.type === type ? file : new Blob([file], { type: type }); }
   function prepareGif(file) {
-    if (file.size > MAX.gif) return Promise.reject(new Error("That GIF is too large. The limit is " + MAX.gif / MiB + " MB."));
-    if (!window.createImageBitmap) return Promise.reject(new Error("This browser cannot prepare images. Try another one."));
-    return createImageBitmap(file).catch(function () { throw new Error("That file could not be read as a GIF."); }).then(function (bmp) {
+    if (file.size > MAX.gif) return Promise.reject(new Error("GIF too large (max " + MAX.gif / MiB + " MB)."));
+    if (!window.createImageBitmap) return Promise.reject(new Error("Unsupported browser."));
+    return createImageBitmap(file).catch(function () { throw new Error("Couldn't read the GIF."); }).then(function (bmp) {
       var still = scaled(bmp, STILL_SIDE), w = bmp.width, hgt = bmp.height;
       if (bmp.close) bmp.close();
       return encode(still, .85).then(function (thumb) {
@@ -2274,20 +2220,18 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   // A video is played here, silently, to learn its size and length and to take its poster from early on
   function prepareVideo(file, type) {
-    if (file.size > MAX.video) return Promise.reject(new Error("That video is too large. The limit is " + MAX.video / MiB + " MB."));
+    if (file.size > MAX.video) return Promise.reject(new Error("Video too large (max " + MAX.video / MiB + " MB)."));
     var url = URL.createObjectURL(file), video = document.createElement("video");
     video.muted = true;
     video.playsInline = true;
     video.preload = "auto";
     return new Promise(function (resolve, reject) {
-      var timer = setTimeout(function () { reject(new Error("That video took too long to read.")); }, 30000);
+      var timer = setTimeout(function () { reject(new Error("Couldn't read the video.")); }, 30000);
       function fail(msg) { clearTimeout(timer); reject(new Error(msg)); }
-      video.addEventListener("error", function () {
-        fail(PREVIEW ? "The preview could not read that video. On the site, MP4 (H.264) and WebM videos can be added." : "This browser cannot play that video. Export it as an MP4 (H.264) or WebM video.");
-      });
+      video.addEventListener("error", function () { fail("Couldn't read the video. Use MP4 (H.264) or WebM."); });
       video.addEventListener("loadedmetadata", function () {
-        if (!video.videoWidth || !video.videoHeight) { fail("That video has no picture."); return; }
-        if (video.videoWidth > 10000 || video.videoHeight > 10000) { fail("A video can be at most 10000 pixels on a side."); return; }
+        if (!video.videoWidth || !video.videoHeight) { fail("Couldn't read the video."); return; }
+        if (video.videoWidth > 10000 || video.videoHeight > 10000) { fail("Video too large (max 10000 px)."); return; }
         video.addEventListener("seeked", function () { clearTimeout(timer); resolve(); }, { once: true });
         video.currentTime = Math.min(1, (isFinite(video.duration) ? video.duration : 1) * .1);
       });
@@ -2300,14 +2244,14 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     }).finally(function () { video.removeAttribute("src"); video.load(); URL.revokeObjectURL(url); });
   }
   function prepareImage(file) {
-    if (!/^image\//.test(mediaType(file))) return Promise.reject(new Error("Choose an image (PNG, JPEG, WebP or GIF) or a video (MP4 or WebM)."));
-    if (file.size > 80 * 1024 * 1024) return Promise.reject(new Error("That file is too large to prepare here."));
-    if (!window.createImageBitmap) return Promise.reject(new Error("This browser cannot prepare images. Try another one."));
-    return createImageBitmap(file).catch(function () { throw new Error("That file could not be read as an image."); }).then(function (bmp) {
+    if (!/^image\//.test(mediaType(file))) return Promise.reject(new Error("Unsupported file type."));
+    if (file.size > 80 * 1024 * 1024) return Promise.reject(new Error("File too large."));
+    if (!window.createImageBitmap) return Promise.reject(new Error("Unsupported browser."));
+    return createImageBitmap(file).catch(function () { throw new Error("Couldn't read the image."); }).then(function (bmp) {
       var full = scaled(bmp, IMAGE_SIDE), thumb = scaled(full, THUMB_SIDE);
       if (bmp.close) bmp.close();
       return encode(full, .9).then(function (b) { return b.size > MAX.upload ? encode(full, .72) : b; }).then(function (fullBlob) {
-        if (fullBlob.size > MAX.upload) throw new Error("Even scaled down, that image is too large.");
+        if (fullBlob.size > MAX.upload) throw new Error("Image too large.");
         return encode(thumb, .85).then(function (thumbBlob) {
           return { kind: "image", full: fullBlob, thumb: thumbBlob, preview: thumb, width: full.width, height: full.height };
         });
@@ -2326,9 +2270,9 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       h("div", { class: "ver-fields" },
         v ? null : h("input", { class: "input", type: "file", "data-k": "file", "aria-label": "Image or video", accept: "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" }),
         v ? null : h("p", { class: "help", "data-k": "status" }),
-        h("input", { class: "input", "data-k": "label", "aria-label": "Label", maxlength: 60, autocomplete: "off", placeholder: i ? "Label, such as Without armour" : "Label (optional)", value: v ? v.label : "" }),
+        h("input", { class: "input", "data-k": "label", "aria-label": "Label", maxlength: 60, autocomplete: "off", placeholder: "Label", value: v ? v.label : "" }),
         h("label", { class: "check" }, h("input", { type: "checkbox", "data-k": "mature", checked: !!(v && v.mature) }), "Mature (18+)"),
-        h("label", { class: "check", "data-k": "loop-box", hidden: !video }, h("input", { type: "checkbox", "data-k": "loop", checked: !!(v && v.loop) }), "Loop (for a short animation)")),
+        h("label", { class: "check", "data-k": "loop-box", hidden: !video }, h("input", { type: "checkbox", "data-k": "loop", checked: !!(v && v.loop) }), "Loop")),
       rowTools());
   }
   function updateVersionRows() {
@@ -2351,7 +2295,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     artEditing = a ? a.id : null;
     el.afHeading.textContent = a ? "Revise the art piece" : "Add an art piece";
     el.afSubmit.textContent = a ? "Save changes" : "Add the art piece";
-    el.afBack.textContent = a ? "← Return without revising" : "← Return without adding";
     // which of his forms it shows: the one it is in, or, for a new piece, the one open
     fill(el.afGallery, state.galleries.map(function (g) { return h("option", { value: g.id, text: g.name }); }).concat([h("option", { value: "", text: "Other art (no form)" })]));
     el.afGallery.value = a ? a.gallery : galleryOf(galleryId) && galleryId !== OTHER ? galleryId : "";
@@ -2384,12 +2327,12 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     status.textContent = "";
     loop.hidden = true;
     if (!f) return;
-    status.textContent = /^video\//.test(mediaType(f)) ? "Reading the video…" : "Preparing the image…";
+    status.textContent = "Processing…";
     row._draft = prepareMedia(f).then(function (d) {
       if (row._seq === seq) {
-        var what = d.kind === "gif" ? "An animated GIF, " : d.kind === "video" ? "A video of " + clock(d.duration) + ", " : "";
+        var what = d.kind === "gif" ? "GIF" : d.kind === "video" ? "Video " + clock(d.duration) : "Image";
         fill(preview, [d.preview, d.kind === "image" ? null : h("span", { class: "media-badge", text: d.kind === "gif" ? "GIF" : "Video" })].filter(Boolean));
-        status.textContent = what + d.width + " × " + d.height + " pixels, " + size(d.full.size + d.thumb.size) + " to upload.";
+        status.textContent = [what, d.width + " × " + d.height, size(d.full.size + d.thumb.size)].join(" · ");
         if (d.kind === "video") { loop.hidden = false; row.querySelector('[data-k="loop"]').checked = d.duration > 0 && d.duration <= 30; }
       }
       return d;
@@ -2415,9 +2358,9 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     e.preventDefault();
     if (busy || !mayPost()) return;
     var prev = artEditing ? findArt(artEditing) : null, rows = Array.prototype.slice.call(el.afVersions.children), vid = versionId;
-    if (!rows.length) { formError("artForm", "Add an image first."); el.afAdd.focus(); return; }
+    if (!rows.length) { formError("artForm", "Add an image."); el.afAdd.focus(); return; }
     var empty = rows.filter(function (r) { return !r.dataset.id && !r._draft; })[0];
-    if (empty) { formError("artForm", "Choose an image or a video for each new row, or remove the row."); empty.querySelector('[data-k="file"]').focus(); return; }
+    if (empty) { formError("artForm", "Choose a file for each row."); empty.querySelector('[data-k="file"]').focus(); return; }
     var meta = { title: el.afTitle.value.trim(), gallery: el.afGallery.value, artist: el.afArtist.value.trim(), link: el.afLink.value.trim(), date: isDate(el.afDate.value) ? el.afDate.value : today(), note: el.afNote.value.trim() };
     var job = artJob = { ctrl: typeof AbortController === "function" ? new AbortController() : null, saving: false };
     function going() { if (artJob !== job) throw new Error("stopped"); }
@@ -2450,7 +2393,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       if (here) { artJob = null; setBusy(el.afSubmit, false); }
       applyArchive(data.archive);
       if (here) showPlate(data.id, prev ? vid : null); // a revised piece stays on the image on view, if it kept it (it went back to the main one)
-      toast(prev ? "The art piece is revised." : "The art piece is added.");
+      toast("Saved.");
     }, function (err) {
       if (artJob !== job) return; // stopped: the keeper has left the form
       artJob = null;
@@ -2469,7 +2412,6 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     galEditing = g && !g.other ? g.id : null;
     el.gfHeading.textContent = galEditing ? "Rename the form" : "Add a form";
     el.gfSubmit.textContent = galEditing ? "Save the name" : "Add the form";
-    el.gfBack.textContent = galEditing ? "← Return without renaming" : "← Return without adding";
     el.gfName.value = galEditing ? g.name : "";
     el.gfError.hidden = true;
     showView("galleryForm");
@@ -2480,9 +2422,9 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     e.preventDefault();
     if (busy || !mayPost()) return;
     var name = el.gfName.value.trim(), prev = galEditing ? galleryOf(galEditing) : null;
-    if (!name) { formError("galleryForm", "Give the form a name."); el.gfName.focus(); return; }
+    if (!name) { formError("galleryForm", "Name required."); el.gfName.focus(); return; }
     save(prev ? "PUT" : "POST", prev ? "api/galleries/" + encodeURIComponent(prev.id) : "api/galleries", { name: name }, function (data) { showGallery(data.id); },
-      el.gfSubmit, "Saving…", prev ? "The form is renamed." : "The form is added.");
+      el.gfSubmit, "Saving…", "Saved.");
   });
   el.gfCancel.addEventListener("click", leaveCurrentForm);
   el.gfBack.addEventListener("click", leaveCurrentForm);
@@ -2507,23 +2449,19 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   }
   arm(el.detDelete, function () { return "Confirm removal"; }, function () {
     var r = find(detailId); if (!r || !canPost()) return;
-    save("DELETE", "api/records/" + encodeURIComponent(r.id), undefined, function () { showView("overview"); }, el.detDelete, "Removing…", "Removed “" + r.title + "”.");
+    save("DELETE", "api/records/" + encodeURIComponent(r.id), undefined, function () { showView("overview"); }, el.detDelete, "Removing…", "Removed.");
   });
   arm(el.encDelete, function () { return "Confirm removal"; }, function () {
     var e = findEnc(encounterId); if (!e || !canPost()) return;
-    save("DELETE", "api/encounters/" + encodeURIComponent(e.id), undefined, function () { delete privates[e.id]; showView("encounters"); }, el.encDelete, "Removing…", "Removed “" + e.title + "”.");
-  });
-  arm(el.btnClearExamples, function () { return "Confirm: remove examples"; }, function () {
-    if (!canPost()) return;
-    save("POST", "api/records/clear-examples", undefined, function () { showView("overview"); }, el.btnClearExamples, "Removing…", "Examples removed.");
+    save("DELETE", "api/encounters/" + encodeURIComponent(e.id), undefined, function () { delete privates[e.id]; showView("encounters"); }, el.encDelete, "Removing…", "Removed.");
   });
   arm(el.plDelete, function () { return "Confirm removal"; }, function () {
     var a = findArt(plateId); if (!a || !canPost()) return;
-    save("DELETE", "api/art/" + encodeURIComponent(a.id), undefined, function () { showGallery(groupOf(a)); }, el.plDelete, "Removing…", "The art piece is removed.");
+    save("DELETE", "api/art/" + encodeURIComponent(a.id), undefined, function () { showGallery(groupOf(a)); }, el.plDelete, "Removing…", "Removed.");
   });
   arm(el.glDelete, function () { return "Confirm removal"; }, function () {
     var g = galleryOf(galleryId); if (!g || g.other || !canPost()) return;
-    save("DELETE", "api/galleries/" + encodeURIComponent(g.id), undefined, function () { showGalleries(); }, el.glDelete, "Removing…", "The form is removed.");
+    save("DELETE", "api/galleries/" + encodeURIComponent(g.id), undefined, function () { showGalleries(); }, el.glDelete, "Removing…", "Removed.");
   });
   // An art piece moves past the next one of the same form; the server keeps one order for all of them
   function movePlate(by, btn) {
@@ -2553,8 +2491,8 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   // The X marks, on the landing and on the tome, lead to @dezeptdrac on X, which holds mature content. Each time,
   // the same card warns of it first. Asked the age, 18 or older opens X at once; once the age is known, the card
   // holds the link itself. Under 18, there is no way on. X opens from the card's link either way, clicked by the page
-  // or by the visitor: the preview's viewer refuses a window a page opens for most viewers, and may refuse that click
-  // too, but never the visitor's own (the mark then offers the link, the age being known).
+  // or by the visitor: a browser that refuses the page's click never refuses the visitor's own (the mark then offers
+  // the link, the age being known).
   var shown = null; // the id of the one mature image on view, uncovered
   var ageMemo = "", gateThen = null, gateFrom = null, gateX = false;
   function ageAnswer() { try { return sessionStorage.getItem("ca-age") || ageMemo; } catch (e) { return ageMemo; } }
@@ -2592,9 +2530,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function renderGate(mode) {
     el.gateTitle.textContent = gateX ? "Mature content" : "Mature art";
     el.gateGo.textContent = gateX ? "Continue to X" : "Continue";
-    el.gateText.textContent = !gateX ? (mode === "ask" ? "This image is marked as mature. How old are you?" : "Mature images are only for those 18 or older.")
-      : mode === "denied" ? "@dezeptdrac on X is only for those 18 or older."
-      : "@dezeptdrac on X contains mature content. " + (mode === "ask" ? "How old are you?" : "It opens in a new tab.");
+    el.gateText.textContent = mode === "denied" ? "18+ only." : [gateX ? "@dezeptdrac on X contains mature content." : "", mode === "ask" ? "How old are you?" : ""].join(" ").trim();
     el.gateField.hidden = el.gateGo.hidden = mode !== "ask";
     el.gateX.hidden = mode !== "go";
     el.gateAge.value = "";
@@ -2611,7 +2547,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   el.gate.addEventListener("submit", function (e) {
     e.preventDefault();
     var text = el.gateAge.value.trim(), age = Number(text);
-    if (!/^\d{1,3}$/.test(text) || age < 1 || age > 130) { el.gateError.textContent = "Enter your age in years."; el.gateError.hidden = false; el.gateAge.focus(); return; }
+    if (!/^\d{1,3}$/.test(text) || age < 1 || age > 130) { el.gateError.textContent = "Enter your age."; el.gateError.hidden = false; el.gateAge.focus(); return; }
     if (age < 18) { setAge("minor"); renderGate("denied"); el.gateBack.focus(); return; }
     setAge("adult");
     if (gateX) { el.gateX.click(); return; } // X opens in a new tab, and the card closes
@@ -2651,7 +2587,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     var a = lb && findArt(lb.plate), v = a && versionIn(a, lb.version);
     if (!v) { closeLightbox(); return; }
     if (v.mature && shown !== v.id) {
-      fill(el.lbFrame, [h("button", { class: "lb-cover", type: "button", "aria-label": "A mature image: select to view it (18 or older)", onclick: function () { showMature(v); } }, spoiler(v, true))]);
+      fill(el.lbFrame, [h("button", { class: "lb-cover", type: "button", "aria-label": "Mature image (18+)", onclick: function () { showMature(v); } }, spoiler(v, true))]);
     } else if (kindOf(v) === "video") {
       fill(el.lbFrame, [videoPlayer(v, altOf(a, v))]);
     } else if (kindOf(v) === "gif") {
@@ -2713,17 +2649,17 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     var headers = { Accept: "application/json" }, blob = typeof Blob !== "undefined" && body instanceof Blob;
     if (csrf) headers["X-CSRF-Token"] = csrf; // GET too: the private sections are read with it
     if (body !== undefined) headers["Content-Type"] = blob ? body.type : "application/json";
-    return request(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store", signal: signal })
+    return fetch(url, { method: method, headers: headers, body: body === undefined ? undefined : blob ? body : JSON.stringify(body), credentials: "same-origin", cache: "no-store", signal: signal })
       .then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (data) {
           if (res.ok) return data;
-          var err = new Error(data.error || (res.status === 413 ? "That is too large." : "The archive could not be reached. Try again in a moment."));
+          var err = new Error(data.error || (res.status === 413 ? "Too large." : "Something went wrong. Try again."));
           err.status = res.status;
           err.retry = Number(res.headers.get("Retry-After")) || 0;
           throw err;
         });
       }, function () {
-        var err = new Error("The archive could not be reached. Check the connection and try again.");
+        var err = new Error("Couldn't reach the server.");
         err.status = 0;
         throw err;
       });
@@ -2739,13 +2675,13 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function refused(err) {
     var stale = csrf;
     return refreshSession().then(function () {
-      if (owner && csrf !== stale) toast("This tab's session was out of date. Try once more.");
+      if (owner && csrf !== stale) toast("Session refreshed. Try again.");
       else if (owner) toast(err.message);
       else sealedAgain();
     });
   }
   // The session is over while something is still to be sent: the seal panel opens, and the form stays as it is
-  function sealedAgain() { openSeal(); sealError("The archive has sealed itself again. Speak the word, then try once more."); }
+  function sealedAgain() { openSeal(); sealError("Session expired."); }
   // A form sent while sealed: nothing goes to the server, the seal panel says why
   function mayPost() { if (!canPost()) sealedAgain(); return canPost(); }
   function failed(err) {
@@ -2860,17 +2796,11 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       if (lost && FORMS[currentView] && el.archive.open) sealedAgain(); // what is written in the open form waits to be sent once unsealed
     }, watchSession);
   }
-  var SEAL_COPY = {
-    unlock: ["The keeper's word", "Speak the word to take up the quill."],
-    change: ["A new word", "Speak the current word, then choose a new one of at least " + WORD_MIN + " characters, used nowhere else. Every other session is sealed."],
-    open: ["The archive is unsealed", "The quill is yours until you seal it again or the session runs out."]
-  };
-  if (PREVIEW && PREVIEW.note) SEAL_COPY.unlock[1] += " " + PREVIEW.note;
+  var SEAL_TITLE = { unlock: "The keeper's word", change: "A new word", open: "Unsealed" };
   function renderSeal(mode) {
     sealMode = mode;
     var change = mode === "change";
-    el.sealTitle.textContent = SEAL_COPY[mode][0];
-    el.sealText.textContent = SEAL_COPY[mode][1];
+    el.sealTitle.textContent = SEAL_TITLE[mode];
     el.sealF0.hidden = el.sealF2.hidden = !change;
     el.sealF1.hidden = mode === "open";
     el.sealWordLabel.textContent = change ? "The new word" : "Word";
@@ -2908,7 +2838,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       if (FORMS[currentView]) { leaveCurrentForm(); wipeForms(); }
       closeSeal(true);
       tellTabs();
-      toast("Sealed. The editing tools are hidden again.");
+      toast("Sealed.");
     }
     sealWorking(true, el.sealGo.textContent);
     call("POST", "api/logout").then(function () { sealWorking(false); sealed(); }, function (err) {
@@ -2918,7 +2848,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   el.sealChange.addEventListener("click", function () { if (owner) { renderSeal("change"); el.sealCurrent.focus(); } });
   // The statistics from the keeper's panel: the way to them on a narrow screen, where their tab has no room
   el.sealStats.addEventListener("click", function () {
-    if (FORMS[currentView]) { toast("Finish or cancel the form first."); return; } // as the chapter tabs do
+    if (FORMS[currentView]) { toast("Close the form first."); return; } // as the chapter tabs do
     closeSeal(true);
     showStats();
   });
@@ -2927,14 +2857,13 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     if (sealBusy) return;
     var mode = sealMode, word = el.sealWord.value;
     if (mode === "unlock") {
-      if (!word) { sealError("Speak the word first."); el.sealWord.focus(); return; }
+      if (!word) { sealError("Enter the word."); el.sealWord.focus(); return; }
       sealWorking(true, "Testing…");
       call("POST", "api/login", { password: word }).then(function (s) {
         sealWorking(false);
         setOwner(true, s.csrf);
         closeSeal(true);
         tellTabs();
-        toast("Unsealed. The quill is yours.");
       }, function (err) {
         sealWorking(false);
         sealError(err.message + (err.status === 401 && err.retry ? " Try again in " + err.retry + " s." : ""));
@@ -2944,23 +2873,23 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     }
     if (mode === "change") {
       var current = el.sealCurrent.value;
-      if (!current) { sealError("Speak the current word first."); el.sealCurrent.focus(); return; }
-      if (word.length < WORD_MIN) { sealError("Use at least " + WORD_MIN + " characters."); el.sealWord.focus(); return; }
-      if (word !== el.sealAgain.value) { sealError("The two new words don't match."); el.sealAgain.focus(); return; }
+      if (!current) { sealError("Enter the current word."); el.sealCurrent.focus(); return; }
+      if (word.length < WORD_MIN) { sealError("At least " + WORD_MIN + " characters."); el.sealWord.focus(); return; }
+      if (word !== el.sealAgain.value) { sealError("The words don't match."); el.sealAgain.focus(); return; }
       sealWorking(true, "Changing…");
       call("POST", "api/password", { current: current, next: word }).then(function (s) {
         sealWorking(false);
         setOwner(true, s.csrf);
         closeSeal(true);
         tellTabs();
-        toast("The word is changed. Every other session is sealed.");
+        toast("Word changed.");
       }, function (err) {
         sealWorking(false);
         if (err.status !== 401 && err.status !== 403) { sealError(err.message); return; }
         refreshSession().then(function () {
           if (owner) { sealError(err.message); el.sealCurrent.select(); return; }
           renderSeal("unlock");
-          sealError("The archive has sealed itself again. Speak the word.");
+          sealError("Session expired.");
         });
       });
     }
@@ -2982,7 +2911,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       return;
     }
     try {
-      var sent = request("api/hit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store", keepalive: true });
+      var sent = fetch("api/hit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store", keepalive: true });
       if (sent && sent.catch) sent.catch(function () {});
     } catch (e) {}
   }
@@ -3010,7 +2939,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   function loadStats() {
     var ask = ++countsAsked;
     el.stBody.classList.add("is-loading"); // the numbers on view stay until the new ones have come
-    if (!counts) { el.stStatus.textContent = "Counting…"; el.stStatus.hidden = false; }
+    if (!counts) { el.stStatus.textContent = "Loading…"; el.stStatus.hidden = false; }
     call("GET", "api/stats").then(function (d) {
       if (ask !== countsAsked || !owner) return;
       counts = d;
@@ -3037,8 +2966,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     el.stStatus.hidden = true;
     el.stBody.hidden = false;
     el.stBody.classList.remove("is-loading");
-    el.stNote.textContent = (d.example ? "Example numbers: the preview counts nothing. " : "") + (d.since ? "Counted since " + fmtDate(d.since) + ". " : "") +
-      "Each visitor counts once, told apart by an address the archive keeps nowhere. Your own visits do not count.";
+    el.stNote.textContent = d.since ? "Since " + fmtDate(d.since) : "";
     fill(el.stTallies, SPANS.map(function (s) {
       var v = d.visitors[s[0]] || 0, n = d.visits[s[0]] || 0;
       return h("li", { class: "tally" }, h("span", { class: "tally-label", text: s[1] }), h("span", { class: "tally-value", text: num(v) }),
@@ -3059,7 +2987,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       return { label: name, more: f[0] && name !== f[0] ? f[0] : "", n: f[1] };
     }), "No visitors yet.");
     barList(el.stCountries, "countries", (d.countries || []).map(function (c) { return { label: countryName(c[0]), n: c[1] }; }),
-      d.visitors.all ? "No visitor's country is known. Cloudflare names it once IP Geolocation is switched on (under Network)." : "No visitors yet.");
+      d.visitors.all ? "No data." : "No visitors yet.");
   }
   // The last 30 days: a column of visitors each, on a scale of round numbers. A column's day, visitors and visits show
   // on hover and on focus (the arrow keys go from day to day), and in the table beneath. Days before visitors were
@@ -3085,10 +3013,10 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       if (t) { var line = h("i", { class: "st-line" }); line.style.bottom = t / top * 100 + "%"; lines.push(line); }
     }
     function says(x) {
-      return [before(x) ? "visitors not told apart yet" : plural(x.visitors, "visitor", "visitors"), plural(x.visits, "visit", "visits"), fmtDate(x.day)];
+      return [before(x) ? "– visitors" : plural(x.visitors, "visitor", "visitors"), plural(x.visits, "visit", "visits"), fmtDate(x.day)];
     }
     var tip = h("div", { class: "st-tip", "aria-hidden": "true", hidden: true });
-    var cols = h("ol", { class: "st-cols", "aria-label": "Visitors on each of the last 30 days" }, days.map(function (x, i) {
+    var cols = h("ol", { class: "st-cols", "aria-label": "Visitors per day" }, days.map(function (x, i) {
       var bar = h("i"), s = says(x);
       bar.style.height = (before(x) ? 0 : x.visitors / top * 100) + "%";
       var col = h("li", { class: "st-col", tabindex: i === days.length - 1 ? "0" : "-1" }, bar, h("span", { class: "sr-only", text: [s[2], s[0], s[1]].join(", ") }));
@@ -3161,7 +3089,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
       }).sort(function (a, b) { return b.n - a.n; }), "No art pieces yet.", max);
       return h("section", { class: "st-group" },
         h("h5", { class: "st-group-head" }, h("button", { class: "st-name", type: "button", onclick: function () { showGallery(g.id); } }, h("span", { text: g.name })),
-          h("span", { text: plural(n, "visitor", "visitors") + " opened the form" })),
+          h("span", { text: plural(n, "visitor", "visitors") })),
         list);
     }));
   }
@@ -3170,7 +3098,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     [/(^|\.)bing\.com$/, "Bing"], [/(^|\.)duckduckgo\.com$/, "DuckDuckGo"], [/(^|\.)reddit\.com$/, "Reddit"], [/(^|\.)bsky\.app$/, "Bluesky"],
     [/(^|\.)tumblr\.com$/, "Tumblr"], [/(^|\.)facebook\.com$/, "Facebook"], [/(^|\.)instagram\.com$/, "Instagram"], [/(^|\.)wowhead\.com$/, "Wowhead"]];
   function placeName(host) {
-    if (!host) return "Directly, or from a site that does not say";
+    if (!host) return "Direct";
     var known = PLACES.find(function (p) { return p[0].test(host); });
     return known ? known[1] : host;
   }
@@ -3476,7 +3404,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   // shading in extras.wow, and the shaders below reproduce those combiners. The cutout image stays in place
   // until the first frame is drawn, and for good if WebGL or three.js is unavailable.
   // three.js and its GLTFLoader: on the site, one file it serves itself (assets/vendor/three.module.js, named by its
-  // hash), so both addresses are the same; in the preview, which can load scripts only from CDNs, jsDelivr's copies.
+  // hash), so both addresses are the same.
   var MODEL_URL = "__MODEL_URL__";
   var THREE_URL = "__THREE_URL__";
   var GLTF_URL = "__GLTF_URL__";
@@ -3880,14 +3808,14 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     api.lift = function () { return liftNow; };
     api.gemAt = gemAt;
 
-    var glb = request(MODEL_URL).then(function (r) { if (!r.ok) throw new Error("model: HTTP " + r.status); return r.arrayBuffer(); });
+    var glb = fetch(MODEL_URL).then(function (r) { if (!r.ok) throw new Error("model: HTTP " + r.status); return r.arrayBuffer(); });
     Promise.all([import(THREE_URL), import(GLTF_URL), glb]).then(function (got) {
       T = got[0];
       var loader = new got[1].GLTFLoader();
       loader.register(dataUriImages);
       return new Promise(function (resolve, reject) { loader.parse(got[2], "", resolve, reject); });
     }).then(setup).catch(function (e) {
-      if (window.console) console.warn("Chalice model unavailable; showing the image instead.", e);
+      if (window.console) console.warn("Model unavailable:", e);
     });
     return api;
   })();
@@ -3954,7 +3882,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   el.tabs.addEventListener("click", function (e) {
     var t = e.target.closest(".tab");
     if (!t) return;
-    if (FORMS[currentView]) { toast("Finish or cancel the form first."); return; } // a tab would throw away what is written
+    if (FORMS[currentView]) { toast("Close the form first."); return; } // a tab would throw away what is written
     openBook(t.dataset.book); // the open chapter's own tab goes back to its start
   });
   el.stage.addEventListener("pointermove", function (e) { if (!drawing) setGemHover(onGem(e.clientX, e.clientY)); }, { passive: true });
@@ -3966,7 +3894,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
   // unsaved writing); only then the tome. It is handled on keydown, because Chrome lets a page hold back the
   // dialog's own cancel only once per click or key press, and a second Escape would close the whole tome. The cancel
   // handler stays for other ways of closing, such as a phone's back gesture.
-  var UNSAVED = "There are unsaved changes. Save them, or press Cancel to let them go.";
+  var UNSAVED = "Unsaved changes.";
   function formChanged() { return aboutChanged() || encounterChanged() || recordChanged() || artChanged() || galleryChanged(); }
   function closeTop() {
     if (!el.gate.hidden) closeGate();
@@ -3993,7 +3921,7 @@ button.st-name:hover > span:last-child { color: var(--rubric); text-decoration: 
     closeSeal(false);
     if (!owner) wipeForms(true); // a form kept open as the session ended is left now: what it held stayed in the page
     root.append(el.toast);
-    disarm(el.detDelete); disarm(el.btnClearExamples); disarm(el.plDelete); disarm(el.encDelete);
+    disarm(el.detDelete); disarm(el.plDelete); disarm(el.encDelete);
     el.stage.classList.remove("is-paused");
     motes.resume();
     model3d.resume();
